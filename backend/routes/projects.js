@@ -70,6 +70,19 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get all Projects for the current logged-in user (Simplified for lists)
+router.get('/all', async (req, res) => {
+  try {
+    const projects = await prisma.project.findMany({
+      where: { userId: req.user.userId },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(projects);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch project list.' });
+  }
+});
+
 // =======================
 // SCAN HISTORY API
 // =======================

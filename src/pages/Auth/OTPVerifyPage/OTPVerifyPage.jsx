@@ -72,7 +72,7 @@ const OTPVerifyPage = () => {
       loading: 'Verifying code...',
       success: (result) => {
         if (!result.success) throw new Error(result.error);
-        return 'Email verified successfully!';
+        return 'Successfully signed up! Redirecting to login...';
       },
       error: (err) => err.message
     }).then((result) => {
@@ -80,7 +80,10 @@ const OTPVerifyPage = () => {
         if (context === 'reset') {
           window.location.href = '/reset-password?email=' + encodeURIComponent(email);
         } else {
-          window.location.href = '/dashboard';
+          // Changed to redirect to login
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
         }
       }
     }).catch(() => {})

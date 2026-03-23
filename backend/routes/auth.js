@@ -41,6 +41,14 @@ const transporter = nodemailer.createTransport({
 
 const sendOtpEmail = async (email, otp) => {
   try {
+    // Check if SMTP is configured
+    if (!process.env.SMTP_USER || process.env.SMTP_USER === 'your-email@gmail.com') {
+      console.log('--- DEVELOPMENT MODE: SMTP NOT CONFIGURED ---');
+      console.log(`Verification code for ${email}: ${otp}`);
+      console.log('---------------------------------------------');
+      return true;
+    }
+
     await transporter.sendMail({
       from: `"AuditScope Security" <${process.env.SMTP_USER}>`,
       to: email,
@@ -59,9 +67,12 @@ const sendOtpEmail = async (email, otp) => {
     console.log(`Real OTP Email sent to: ${email}`);
     return true;
   } catch (error) {
-    console.error("Nodemailer failed to send email. Check your SMTP credentials in .env! Error:", error);
-    // We throw to notify the frontend
-    throw new Error('Failed to send OTP email. Contact support.');
+    console.error("Nodemailer failed to send email. Falling back to console log. Error:", error);
+    console.log('--- FALLBACK OTP ---');
+    console.log(`Verification code for ${email}: ${otp}`);
+    console.log('--------------------');
+    // We log but don't throw, so the user can still register locally
+    return true;
   }
 };
 

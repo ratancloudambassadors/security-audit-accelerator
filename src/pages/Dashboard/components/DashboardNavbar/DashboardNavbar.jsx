@@ -41,6 +41,7 @@ const DashboardNavbar = () => {
         ];
         setDynamicServiceOptions(newOptions);
         setSelectedService('all');
+        if (results.provider) setSelectedProvider(results.provider);
       }
     };
     window.addEventListener('scanCompleted', handleScanComplete);
@@ -121,7 +122,7 @@ const DashboardNavbar = () => {
             <div className={styles.userProfile} ref={profileRef} onClick={() => setProfileOpen(!profileOpen)} style={{ position: 'relative', cursor: 'pointer' }}>
               {user?.displayPicture ? (
                 <img
-                  src={`http://security-audit-accelerator-backend-196053730058.asia-south1.run.app${user.displayPicture}`}
+                  src={`http://localhost:5000${user.displayPicture}`}
                   alt="Profile"
                   className={styles.avatar}
                 />

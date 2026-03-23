@@ -21,7 +21,7 @@ const CTASection = () => {
             Start your free scan today and protect your business from attacks and data leaks.
           </p>
           <div className={styles.actions}>
-            <Button variant="primary" size="large">Start Free Scan</Button>
+            <Button variant="primary" size="large" onClick={() => window.location.href = '/register'}>Start Free Scan</Button>
             <Button variant="secondary" size="large">Contact Sales</Button>
           </div>
         </div>

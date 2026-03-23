@@ -75,8 +75,21 @@ const ScanHistoryPage = () => {
   };
 
   const openScanDetails = (scan) => {
-    setSelectedScan(scan);
-    setIsModalOpen(true);
+    // Adapt scan history data to the format the dashboard expects
+    const adaptedData = {
+      score: scan.score,
+      vulnerabilities: scan.findings || [],
+      scanned: scan.scannedResources,
+      provider: scan.project?.provider || 'gcp',
+      dbProjectId: scan.projectId,
+      isHistory: true // flag to indicate this is historical data
+    };
+    
+    // Store in localStorage to pass to DashboardPage
+    localStorage.setItem('last_viewed_scan', JSON.stringify(adaptedData));
+    
+    // Redirect to Dashboard
+    window.location.href = '/dashboard';
   };
 
   return (
@@ -134,7 +147,8 @@ const ScanHistoryPage = () => {
                 key={scan.id} 
                 style={{ padding: 'var(--spacing-4)', cursor: 'pointer', transition: 'border-color 0.2s, background-color 0.2s' }}
                 onClick={() => openScanDetails(scan)}
-                className="hoverableCard"
+                onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--color-primary)'}
+                onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--color-border)'}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
@@ -168,11 +182,6 @@ const ScanHistoryPage = () => {
                     {scan.mediumCount > 0 && (
                       <span style={{ fontSize: 'var(--font-size-xs)', padding: '4px 10px', borderRadius: '4px', backgroundColor: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.2)', color: '#eab308', fontWeight: 600 }}>
                         {scan.mediumCount} Medium
-                      </span>
-                    )}
-                    {scan.score === 100 && (
-                      <span style={{ fontSize: 'var(--font-size-xs)', padding: '4px 10px', borderRadius: '4px', backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', color: '#22c55e', fontWeight: 600 }}>
-                        Perfect Score 🌟
                       </span>
                     )}
                   </div>

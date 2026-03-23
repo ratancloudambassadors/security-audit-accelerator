@@ -79,7 +79,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('auditscope_token');
     localStorage.removeItem('auditscope_user');
     setUser(null);
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   return (

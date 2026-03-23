@@ -20,7 +20,7 @@ const SettingsPage = () => {
         if (user) {
             setName(user.name || '');
             if (user.displayPicture) {
-                setPreviewUrl(`http://security-audit-accelerator-backend-196053730058.asia-south1.run.app${user.displayPicture}`);
+                setPreviewUrl(`http://localhost:5000${user.displayPicture}`);
             }
         }
     }, [user]);
@@ -116,7 +116,7 @@ const SettingsPage = () => {
                         <div className={styles.profileSection}>
                             <div className={styles.avatarContainer}>
                                 {previewUrl ? (
-                                    <img src={previewUrl} alt="Profile Preview" className={styles.avatarImage} />
+                                    <img src={previewUrl} alt="Profile Preview" className={styles.avatarImage} title="Click 'Change Picture' to update your avatar" />
                                 ) : (
                                     <div className={styles.avatarPlaceholder}>
                                         {name ? name.charAt(0).toUpperCase() : 'U'}
@@ -143,29 +143,32 @@ const SettingsPage = () => {
                             </div>
                         </div>
 
-                        <div className={styles.formGroup}>
-                            <label htmlFor="name" className={styles.label}>Full Name</label>
-                            <input
-                                id="name"
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className={styles.input}
-                                placeholder="John Doe"
-                            />
-                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--spacing-6)' }}>
+                            <div className={styles.formGroup}>
+                                <label htmlFor="name" className={styles.label}>Full Name</label>
+                                <input
+                                    id="name"
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className={styles.input}
+                                    placeholder="Enter your full name"
+                                />
+                                <p className={styles.inputHint}>How your name will appear across the platform.</p>
+                            </div>
 
-                        <div className={styles.formGroup}>
-                            <label htmlFor="email" className={styles.label}>Email Address</label>
-                            <input
-                                id="email"
-                                type="email"
-                                value={user?.email || ''}
-                                disabled
-                                className={`${styles.input} ${styles.disabledInput}`}
-                                title="Email cannot be changed"
-                            />
-                            <p className={styles.inputHint}>Your associated email address. This cannot be modified.</p>
+                            <div className={styles.formGroup}>
+                                <label htmlFor="email" className={styles.label}>Email Address</label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    value={user?.email || ''}
+                                    disabled
+                                    className={`${styles.input} ${styles.disabledInput}`}
+                                    title="Email cannot be changed"
+                                />
+                                <p className={styles.inputHint}>Your verified email address for notifications.</p>
+                            </div>
                         </div>
 
                         {error && <div className={styles.errorMessage}>{error}</div>}

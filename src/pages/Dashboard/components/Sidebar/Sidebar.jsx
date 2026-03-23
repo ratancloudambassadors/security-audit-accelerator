@@ -4,6 +4,7 @@ import styles from './Sidebar.module.css';
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: '📊' },
   { name: 'Projects', path: '/dashboard/projects', icon: '📁' },
+  { name: 'Automation', path: '/dashboard/automation', icon: '⏰' },
   { name: 'Scan History', path: '/dashboard/history', icon: '⏱️' },
 ];
 

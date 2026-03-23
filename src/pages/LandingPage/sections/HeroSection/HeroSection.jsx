@@ -23,7 +23,7 @@ const HeroSection = () => {
             We scan your cloud to find hidden security risks and provide clear recommendations to fix them instantly.
           </p>
           <div className={styles.ctaGroup}>
-            <Button variant="primary" size="large">Start Free Scan</Button>
+            <Button variant="primary" size="large" onClick={() => window.location.href = '/register'}>Start Free Scan</Button>
             <Button variant="secondary" size="large">View Demo</Button>
           </div>
           

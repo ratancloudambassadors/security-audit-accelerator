@@ -44,9 +44,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projects');
 const reportRoutes = require('./routes/reports');
+const scheduleRoutes = require('./routes/schedules');
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/schedules', scheduleRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Security Audit API is running.' });
@@ -134,7 +136,13 @@ app.post('/api/scan/gcp', authenticateToken, upload.single('file'), async (req, 
 
     if (!project) {
       project = await prisma.project.create({
-        data: { name: projectName, provider: 'gcp', userId: req.user.userId }
+        data: { name: projectName, provider: 'gcp', userId: req.user.userId, credentials: JSON.stringify(credentials) }
+      });
+    } else {
+      // Update credentials for future automation
+      await prisma.project.update({
+        where: { id: project.id },
+        data: { credentials: JSON.stringify(credentials) }
       });
     }
 
@@ -154,6 +162,7 @@ app.post('/api/scan/gcp', authenticateToken, upload.single('file'), async (req, 
       success: true,
       projectId: gcpProjectId,
       dbScanId: scanRecord.id,
+      dbProjectId: scanRecord.projectId,
       summary: {
         score: computedScore,
         scannedResources: totalScanned,
@@ -232,7 +241,13 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
 
     if (!project) {
       project = await prisma.project.create({
-        data: { name: projectName, provider: 'aws', userId: req.user.userId }
+        data: { name: projectName, provider: 'aws', userId: req.user.userId, credentials: JSON.stringify(credentials) }
+      });
+    } else {
+      // Update credentials for automation
+      await prisma.project.update({
+        where: { id: project.id },
+        data: { credentials: JSON.stringify(credentials) }
       });
     }
 
@@ -251,6 +266,8 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
     const liveResults = {
       success: true,
       projectId: projectName,
+      dbScanId: scanRecord.id,
+      dbProjectId: scanRecord.projectId,
       provider: 'AWS',
       summary: {
         score: computedScore,
@@ -268,10 +285,15 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
   }
 });
 
+const { startScheduler } = require('./services/scheduler');
+
 async function startServer() {
   try {
     await prisma.$connect();
     console.log('Successfully connected to the database.');
+
+    // Initialize Scheduler
+    startScheduler();
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server listening on port ${PORT}`);

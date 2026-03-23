@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from './DashboardLayout';
 import Section from '../../components/Section/Section';
 import Card from '../../components/Card/Card';
+import ScheduleModal from '../../components/ScheduleModal/ScheduleModal';
 
 const DashboardPage = () => {
   const [scanData, setScanData] = useState(null);
@@ -9,6 +10,7 @@ const DashboardPage = () => {
   const [reportMenuOpen, setReportMenuOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailInput, setEmailInput] = useState('');
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   // Filtering and Pagination State
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,6 +18,25 @@ const DashboardPage = () => {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+
+  useEffect(() => {
+    // Check if we came from ScanHistory with a specific scan object
+    const historicalScan = localStorage.getItem('last_viewed_scan');
+    if (historicalScan) {
+      console.log('Dashboard loading historical scan data');
+      const scan = JSON.parse(historicalScan);
+      setScanData(scan);
+      
+      // Dispatch event so Navbar knows to update its Service dropdown options
+      // Use short timeout to ensure Navbar's event listener is ready.
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('scanCompleted', { detail: scan }));
+      }, 50);
+      
+      // Clean up so it doesn't persist forever on refresh
+      localStorage.removeItem('last_viewed_scan');
+    }
+  }, []);
 
   useEffect(() => {
     const handleScanComplete = (e) => {
@@ -170,11 +191,14 @@ const DashboardPage = () => {
       <div style={{ paddingBottom: 'var(--spacing-4)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 'var(--spacing-4)' }}>
           <div>
-            <h1 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-1)' }}>
+            <h1 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-1)', display: 'flex', alignItems: 'center', gap: '10px' }}>
               {scanData ? `${scanData.provider.toUpperCase()} Infrastructure Overview` : 'Overview'}
+              {scanData?.isHistory && (
+                <span style={{ fontSize: '10px', padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '10px', color: 'var(--color-text-muted)', fontWeight: 400 }}>Historical</span>
+              )}
             </h1>
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', margin: 0 }}>
-              {scanData ? 'Latest security audit results.' : 'Select a Cloud Provider and click "Scan" to begin.'}
+              {scanData ? (scanData.isHistory ? 'Historical security audit results.' : 'Latest security audit results.') : 'Select a Cloud Provider and click "Scan" to begin.'}
             </p>
           </div>
           {scanData && (
@@ -183,26 +207,27 @@ const DashboardPage = () => {
                 onClick={() => setReportMenuOpen(!reportMenuOpen)}
                 disabled={reportStatus === 'downloading' || reportStatus === 'sending'}
                 style={{
-                  padding: '8px 20px',
-                  fontSize: 'var(--font-size-sm)',
-                  fontWeight: 600,
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  fontWeight: 700,
                   border: 'none',
-                  borderRadius: 'var(--radius-md)',
+                  borderRadius: '6px',
                   cursor: (reportStatus === 'downloading' || reportStatus === 'sending') ? 'wait' : 'pointer',
-                  background: reportStatus === 'sent' ? '#22c55e' : reportStatus === 'error' ? '#ef4444' : 'linear-gradient(135deg, #0e7490, #06b6d4)',
-                  color: '#fff',
+                  background: reportStatus === 'sent' ? 'var(--color-success)' : reportStatus === 'error' ? 'var(--color-danger)' : 'var(--color-primary)',
+                  color: '#000',
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: '0 2px 8px rgba(6, 182, 212, 0.3)'
+                  gap: '4px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.02em'
                 }}
               >
                 {reportStatus === 'downloading' ? '⏳ Downloading...' :
                   reportStatus === 'sending' ? '⏳ Sending Email...' :
-                    reportStatus === 'sent' ? '✅ Action Successful!' :
+                    reportStatus === 'sent' ? '✅ Success' :
                       reportStatus === 'error' ? '❌ Failed' :
-                        '📄 Report ▾'}
+                        <>📄 Report <span style={{ fontSize: '10px', marginLeft: '2px' }}>▼</span></>}
               </button>
 
               {reportMenuOpen && (
@@ -211,8 +236,8 @@ const DashboardPage = () => {
                   top: '100%',
                   right: 0,
                   marginTop: '8px',
-                  backgroundColor: '#1a1d2e',
-                  border: '1px solid #2d3148',
+                  backgroundColor: 'var(--color-bg-secondary)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: 'var(--radius-md)',
                   minWidth: '180px',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.6)',
@@ -229,7 +254,7 @@ const DashboardPage = () => {
                   </button>
                   <button
                     onClick={() => { setReportMenuOpen(false); setEmailModalOpen(true); }}
-                    style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: 'var(--color-text)', textAlign: 'left', cursor: 'pointer', fontSize: 'var(--font-size-sm)', display: 'flex', gap: '8px', alignItems: 'center' }}
+                    style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid #2d3148', color: 'var(--color-text)', textAlign: 'left', cursor: 'pointer', fontSize: 'var(--font-size-sm)', display: 'flex', gap: '8px', alignItems: 'center' }}
                     onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.05)'}
                     onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
@@ -243,70 +268,76 @@ const DashboardPage = () => {
 
         {scanData ? (
           <>
-            {/* Extremely compact metrics overview */}
+            {/* Metrics overview */}
             <Section style={{ padding: 0, marginBottom: 'var(--spacing-6)' }} darker={false}>
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)', gap: 'var(--spacing-3)' }}>
-                <Card style={{ padding: 'var(--spacing-3)' }}>
-                  <h3 style={{ fontSize: 'var(--font-size-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-1)' }}>Score</h3>
-                  <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 800, color: scanData.score > 80 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                <Card style={{ padding: 'var(--spacing-4)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }}>
+                  <h3 style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2)', fontWeight: 700 }}>Safety Score</h3>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: scanData.score > 80 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                     {scanData.score}%
                   </div>
                 </Card>
-                <Card style={{ padding: 'var(--spacing-3)' }}>
-                  <h3 style={{ fontSize: 'var(--font-size-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-1)' }}>Vulnerabilities</h3>
-                  <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 800, color: scanData.vulnerabilities.length > 0 ? 'var(--color-danger)' : 'var(--color-text)' }}>
+                <Card style={{ padding: 'var(--spacing-4)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }}>
+                  <h3 style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2)', fontWeight: 700 }}>Vulnerabilities</h3>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: scanData.vulnerabilities.length > 0 ? '#f43f5e' : 'var(--color-text)' }}>
                     {scanData.vulnerabilities.length}
                   </div>
                 </Card>
-                <Card style={{ padding: 'var(--spacing-3)' }}>
-                  <h3 style={{ fontSize: 'var(--font-size-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-1)' }}>Resources</h3>
-                  <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 800 }}>
+                <Card style={{ padding: 'var(--spacing-4)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }}>
+                  <h3 style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2)', fontWeight: 700 }}>Resources</h3>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-text)' }}>
                     {scanData.scanned}
                   </div>
                 </Card>
-                <Card style={{ padding: 'var(--spacing-3)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  {/* Compact Filter Controls inside a metric-sized card to save vertical space */}
-                  <div style={{ display: 'flex', gap: 'var(--spacing-2)', height: '100%' }}>
-                    <input
-                      type="text"
-                      placeholder="Search resources, IDs, or issues..."
-                      value={searchTerm}
-                      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                      style={{
-                        flex: 1,
-                        backgroundColor: 'var(--color-background-dark)',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: '4px',
-                        padding: '0 var(--spacing-2)',
-                        color: 'var(--color-text)',
-                        fontSize: 'var(--font-size-sm)'
-                      }}
-                    />
+                <Card style={{ padding: 'var(--spacing-3)', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--color-bg-secondary)' }}>
+                  <div style={{ display: 'flex', gap: 'var(--spacing-2)', height: '42px' }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <input
+                        type="text"
+                        placeholder="Search resources, IDs..."
+                        value={searchTerm}
+                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          backgroundColor: 'rgba(0,0,0,0.25)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: '6px',
+                          padding: '0 12px 0 32px',
+                          color: 'var(--color-text)',
+                          fontSize: '13px',
+                          outline: 'none'
+                        }}
+                      />
+                      <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, fontSize: '14px' }}>🔍</span>
+                    </div>
                     <select
                       value={severityFilter}
                       onChange={(e) => { setSeverityFilter(e.target.value); setCurrentPage(1); }}
                       style={{
-                        backgroundColor: 'var(--color-background-dark)',
+                        backgroundColor: 'rgba(0,0,0,0.25)',
                         border: '1px solid var(--color-border)',
-                        borderRadius: '4px',
-                        padding: '0 var(--spacing-2)',
+                        borderRadius: '6px',
+                        padding: '0 12px',
                         color: 'var(--color-text)',
-                        fontSize: 'var(--font-size-sm)',
-                        cursor: 'pointer'
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        minWidth: '130px'
                       }}
                     >
-                      <option style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }} value="All">All Severities</option>
-                      <option style={{ backgroundColor: '#1a1a1a', color: '#ef4444' }} value="Critical">Critical</option>
-                      <option style={{ backgroundColor: '#1a1a1a', color: '#f97316' }} value="High">High</option>
-                      <option style={{ backgroundColor: '#1a1a1a', color: '#eab308' }} value="Medium">Medium</option>
-                      <option style={{ backgroundColor: '#1a1a1a', color: '#3b82f6' }} value="Low">Low</option>
+                      <option value="All" style={{ background: '#1a1d2e', color: '#fff' }}>All Severities</option>
+                      <option value="Critical" style={{ background: '#1a1d2e', color: '#fff' }}>Critical</option>
+                      <option value="High" style={{ background: '#1a1d2e', color: '#fff' }}>High</option>
+                      <option value="Medium" style={{ background: '#1a1d2e', color: '#fff' }}>Medium</option>
+                      <option value="Low" style={{ background: '#1a1d2e', color: '#fff' }}>Low</option>
                     </select>
                   </div>
                 </Card>
               </div>
             </Section>
 
-            {/* Dense Data Table */}
+            {/* Data Table */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)' }}>
                 <h2 style={{ fontSize: 'var(--font-size-base)', margin: 0 }}>Vulnerability Findings <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>({processedData.totalItems})</span></h2>
@@ -438,6 +469,13 @@ const DashboardPage = () => {
           </div>
         </div>
       )}
+
+      <ScheduleModal 
+        isOpen={scheduleModalOpen}
+        onClose={() => setScheduleModalOpen(false)}
+        projectId={scanData?.dbProjectId}
+        projectName={scanData?.provider?.toUpperCase() || 'Cloud'}
+      />
     </DashboardLayout>
   );
 };

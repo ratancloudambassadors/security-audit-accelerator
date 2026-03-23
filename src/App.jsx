@@ -4,6 +4,7 @@ import DashboardPage from './pages/Dashboard/DashboardPage';
 import ProjectsPage from './pages/Dashboard/ProjectsPage';
 import ScanHistoryPage from './pages/Dashboard/ScanHistoryPage';
 import SettingsPage from './pages/Dashboard/SettingsPage';
+import AutomationPage from './pages/Dashboard/AutomationPage';
 
 // Auth Pages
 import LoginPage from './pages/Auth/LoginPage/LoginPage';
@@ -23,6 +24,7 @@ function App() {
   if (path === '/dashboard/projects') return <ProjectsPage />;
   if (path === '/dashboard/history') return <ScanHistoryPage />;
   if (path === '/dashboard/settings') return <SettingsPage />;
+  if (path === '/dashboard/automation') return <AutomationPage />;
 
   // The main dashboard prefix matcher
   if (path.startsWith('/dashboard')) return <DashboardPage />;
