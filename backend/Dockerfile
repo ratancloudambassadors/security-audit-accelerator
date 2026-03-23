@@ -7,8 +7,8 @@ RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists
 # Create app directory
 WORKDIR /app
 
-# Set DATABASE_URL to /tmp (writable on Cloud Run)
-ENV DATABASE_URL="file:/tmp/dev.db"
+# Database URL should be provided at runtime via Cloud Run environment variables
+# ENV DATABASE_URL="postgresql://..."
 ENV JWT_SECRET="super-secure-production-key"
 
 # Copy dependency definitions

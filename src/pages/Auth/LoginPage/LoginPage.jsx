@@ -4,26 +4,39 @@ import AuthLayout from '../AuthLayout';
 import Input from '../../../components/Input/Input';
 import Button from '../../../components/Button/Button';
 import styles from './LoginPage.module.css';
+import toast from 'react-hot-toast';
 
 const LoginPage = () => {
   const { login } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
     
-    const result = await login(email, password);
-    if (result.success) {
-      window.location.href = '/dashboard';
-    } else {
-      setError(result.error);
-    }
-    setLoading(false);
+    const loginPromise = login(email, password);
+    
+    toast.promise(loginPromise, {
+      loading: 'Logging in...',
+      success: (result) => {
+        if (!result.success) throw new Error(result.error);
+        return 'Welcome back!';
+      },
+      error: (err) => err.message
+    }).then((result) => {
+      if (result && result.success) {
+        window.location.href = '/dashboard';
+      }
+    }).catch((err) => {
+      if (err.message && err.message.toLowerCase().includes('verify')) {
+        setTimeout(() => {
+          window.location.href = `/verify-otp?email=${encodeURIComponent(email)}`;
+        }, 1500);
+      }
+    })
+    .finally(() => setLoading(false));
   };
 
   return (
@@ -32,7 +45,6 @@ const LoginPage = () => {
       subtitle="Enter your credentials to access your account"
     >
       <form onSubmit={handleSubmit} className={styles.form}>
-        {error && <div style={{color: '#ef4444', marginBottom: '1rem', fontSize: '0.875rem', textAlign: 'center'}}>{error}</div>}
         <Input 
           label="Email Address" 
           type="email" 
@@ -56,7 +68,7 @@ const LoginPage = () => {
           </a>
         </div>
         
-        <Button type="submit" variant="primary" className={styles.submitBtn}>
+        <Button type="submit" variant="primary" className={styles.submitBtn} disabled={loading}>
           Log In
         </Button>
       </form>

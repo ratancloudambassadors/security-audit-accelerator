@@ -10,7 +10,7 @@ const ProjectsPage = () => {
     const fetchProjects = async () => {
       try {
         const token = localStorage.getItem('auditscope_token');
-        const res = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/projects', {
+        const res = await fetch('http://localhost:5000/api/projects', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();

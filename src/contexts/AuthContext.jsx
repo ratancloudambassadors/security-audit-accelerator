@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/auth/login', {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      const response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/auth/register', {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password })
@@ -47,6 +47,24 @@ export const AuthProvider = ({ children }) => {
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Registration failed');
+
+      // Do NOT set token here; user must verify OTP first
+      return { success: true, email: data.email };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const verifyOtp = async (email, otp) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Verification failed');
 
       localStorage.setItem('auditscope_token', data.token);
       localStorage.setItem('auditscope_user', JSON.stringify(data.user));
@@ -65,7 +83,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, verifyOtp, logout }}>
       {children}
     </AuthContext.Provider>
   );

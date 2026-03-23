@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from './DashboardLayout';
 import Card from '../../components/Card/Card';
+import ScanDetailModal from '../../components/ScanDetailModal/ScanDetailModal';
 
 const ScanHistoryPage = () => {
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Modal State
+  const [selectedScan, setSelectedScan] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Filtering & Pagination State
   const [selectedProvider, setSelectedProvider] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8; // Same kind of pagination as dashboard
+  const itemsPerPage = 8;
 
   // Fetch all scans for the user on mount
   useEffect(() => {
@@ -17,7 +22,7 @@ const ScanHistoryPage = () => {
       setLoading(true);
       try {
         const token = localStorage.getItem('auditscope_token');
-        const res = await fetch(`https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/projects/all/scans`, {
+        const res = await fetch(`http://localhost:5000/api/projects/all/scans`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -67,6 +72,11 @@ const ScanHistoryPage = () => {
       case 'Medium': return '#eab308';
       default: return '#3b82f6';
     }
+  };
+
+  const openScanDetails = (scan) => {
+    setSelectedScan(scan);
+    setIsModalOpen(true);
   };
 
   return (
@@ -120,7 +130,12 @@ const ScanHistoryPage = () => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
             {processedData.items.map((scan) => (
-              <Card key={scan.id} style={{ padding: 'var(--spacing-4)' }}>
+              <Card 
+                key={scan.id} 
+                style={{ padding: 'var(--spacing-4)', cursor: 'pointer', transition: 'border-color 0.2s, background-color 0.2s' }}
+                onClick={() => openScanDetails(scan)}
+                className="hoverableCard"
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
                     <div style={{
@@ -198,6 +213,12 @@ const ScanHistoryPage = () => {
           </div>
         )}
       </div>
+
+      <ScanDetailModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        scan={selectedScan} 
+      />
     </DashboardLayout>
   );
 };

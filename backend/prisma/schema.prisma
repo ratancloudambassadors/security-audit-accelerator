@@ -4,35 +4,38 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  email          String    @unique
+  passwordHash   String
   name           String?
   displayPicture String?
   createdAt      DateTime  @default(now())
+  isVerified     Boolean   @default(false)
+  otp            String?
+  otpExpiry      DateTime?
   
-  projects     Project[]
+  projects       Project[]
 }
 
 model Project {
-  id        String   @id @default(uuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String
   provider  String   // e.g., 'gcp', 'aws', 'azure'
   createdAt DateTime @default(now())
   
-  userId    String
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   scans     ScanHistory[]
 }
 
 model ScanHistory {
-  id               String   @id @default(uuid())
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
   score            Float
   scannedResources Int
   criticalCount    Int
@@ -41,6 +44,6 @@ model ScanHistory {
   findings         String   // Stored as JSON string to accommodate large payloads
   createdAt        DateTime @default(now())
   
-  projectId        String
+  projectId        String   @db.ObjectId
   project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }

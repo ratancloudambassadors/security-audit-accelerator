@@ -63,7 +63,7 @@ const SettingsPage = () => {
                 return;
             }
 
-            const response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/auth/profile', {
+            const response = await fetch('http://localhost:5000/api/auth/profile', {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`

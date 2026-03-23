@@ -4,27 +4,34 @@ import AuthLayout from '../AuthLayout';
 import Input from '../../../components/Input/Input';
 import Button from '../../../components/Button/Button';
 import styles from './RegisterPage.module.css';
+import toast from 'react-hot-toast';
 
 const RegisterPage = () => {
   const { register } = useContext(AuthContext);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    const toastId = toast.loading('Creating your account...');
     
-    const result = await register(name, email, password);
-    if (result.success) {
-      window.location.href = '/dashboard';
-    } else {
-      setError(result.error);
+    try {
+      const result = await register(name, email, password);
+      
+      if (result.success) {
+        toast.success('OTP sent to your email!', { id: toastId });
+        window.location.href = `/verify-otp?email=${encodeURIComponent(result.email || email)}`;
+      } else {
+        toast.error(result.error || 'Failed to create account', { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err.message || 'An unexpected error occurred', { id: toastId });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -33,7 +40,6 @@ const RegisterPage = () => {
       subtitle="Join AuditScope to secure your cloud infrastructure"
     >
       <form onSubmit={handleSubmit} className={styles.form}>
-        {error && <div style={{color: '#ef4444', marginBottom: '1rem', fontSize: '0.875rem', textAlign: 'center'}}>{error}</div>}
         <Input 
           label="Full Name" 
           type="text" 
@@ -61,7 +67,7 @@ const RegisterPage = () => {
           required
         />
         
-        <Button type="submit" variant="primary" className={styles.submitBtn}>
+        <Button type="submit" variant="primary" className={styles.submitBtn} disabled={loading}>
           Create Account
         </Button>
       </form>

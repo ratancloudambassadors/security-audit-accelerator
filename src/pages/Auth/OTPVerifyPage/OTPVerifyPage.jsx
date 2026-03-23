@@ -1,9 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
+import { AuthContext } from '../../../contexts/AuthContext';
 import AuthLayout from '../AuthLayout';
 import Button from '../../../components/Button/Button';
 import styles from './OTPVerifyPage.module.css';
+import toast from 'react-hot-toast';
 
 const OTPVerifyPage = () => {
+  const { verifyOtp } = useContext(AuthContext);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isVerifying, setIsVerifying] = useState(false);
   const inputRefs = useRef([]);
@@ -58,20 +61,30 @@ const OTPVerifyPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const otpString = otp.join('');
-    if (otpString.length < 6) return; // Basic validation
+    if (otpString.length < 6) return; 
     
     setIsVerifying(true);
-    console.log('Verifying OTP:', otpString, 'for', email);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsVerifying(false);
-      if (context === 'reset') {
-        window.location.href = '/reset-password?email=' + encodeURIComponent(email);
-      } else {
-        window.location.href = '/dashboard';
+    // Call real AuthContext method
+    const verifyPromise = verifyOtp(email, otpString);
+
+    toast.promise(verifyPromise, {
+      loading: 'Verifying code...',
+      success: (result) => {
+        if (!result.success) throw new Error(result.error);
+        return 'Email verified successfully!';
+      },
+      error: (err) => err.message
+    }).then((result) => {
+      if (result && result.success) {
+        if (context === 'reset') {
+          window.location.href = '/reset-password?email=' + encodeURIComponent(email);
+        } else {
+          window.location.href = '/dashboard';
+        }
       }
-    }, 1500);
+    }).catch(() => {})
+    .finally(() => setIsVerifying(false));
   };
 
   return (
@@ -108,7 +121,7 @@ const OTPVerifyPage = () => {
       </form>
 
       <div className={styles.footerText}>
-        Didn't receive the code? <button type="button" className={styles.linkButton}>Resend</button>
+        Didn't receive the code? <button type="button" className={styles.linkButton} onClick={() => toast("Contact support or check spam folder.")}>Resend</button>
       </div>
     </AuthLayout>
   );

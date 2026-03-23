@@ -106,7 +106,7 @@ const DashboardPage = () => {
     setReportStatus('downloading');
     try {
       const token = localStorage.getItem('auditscope_token');
-      const res = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/reports/download', {
+      const res = await fetch('http://localhost:5000/api/reports/download', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +141,7 @@ const DashboardPage = () => {
     setReportStatus('sending');
     try {
       const token = localStorage.getItem('auditscope_token');
-      const res = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/reports/send', {
+      const res = await fetch('http://localhost:5000/api/reports/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -14,6 +14,8 @@ import OTPVerifyPage from './pages/Auth/OTPVerifyPage/OTPVerifyPage';
 
 import './App.css';
 
+import { Toaster } from 'react-hot-toast';
+
 function App() {
   const path = window.location.pathname;
 
@@ -33,6 +35,7 @@ function App() {
 
   return (
     <div className="app">
+      <Toaster position="top-right" />
       <LandingPage />
     </div>
   );
