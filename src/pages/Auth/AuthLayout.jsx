@@ -11,8 +11,8 @@ const AuthLayout = ({ children, title, subtitle }) => {
       <div className={styles.container}>
         <div className={styles.logoRow}>
           <a href="/" className={styles.logo}>
-            <span className={styles.logoIcon}>🛡️</span>
-            <span className="text-gradient">AuditScope</span>
+            <span className={styles.logoIcon}></span>
+            {/* <span className="text-gradient">Security Audit</span> */}
           </a>
         </div>
 

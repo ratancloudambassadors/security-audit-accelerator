@@ -8,6 +8,17 @@ const router = express.Router();
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-local-key-for-jwt';
 
+// Helper for Real Email Sending
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: process.env.SMTP_PORT || 587,
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
 // Auth middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -161,22 +172,43 @@ router.post('/send', async (req, res) => {
 
     const pdfBuffer = await generatePDF(scanData, user.name || user.email, projectId);
 
-    // Instead of real SMTP (which fails due to Gmail App Password strictness),
-    // we simulate the email delivery for demonstration purposes.
-    console.log('\n======================================================');
-    console.log(`📧 MOCK EMAIL DELIVERY TRIGGERED`);
-    console.log(`To: ${recipientEmail}`);
-    console.log(`From: AuditScope `);
-    console.log(`Subject: 🛡️ Security Audit Report — Score: ${scanData.score}% | ${scanData.vulnerabilities?.length || 0} Findings`);
-    console.log(`Attachment: AuditScope_Report_${new Date().toISOString().slice(0, 10)}.pdf (${Math.round(pdfBuffer.length / 1024)} KB)`);
-    console.log(`Body: High-level summary sent in HTML.`);
-    console.log('======================================================\n');
+    // Real SMTP delivery for the PDF report
+    if (!process.env.SMTP_USER || process.env.SMTP_USER === 'your-email@gmail.com') {
+      console.log('--- DEVELOPMENT MODE: SMTP NOT CONFIGURED ---');
+      console.log(`Simulating PDF Email to ${recipientEmail}`);
+      console.log('---------------------------------------------');
+      return res.json({ success: true, message: `Report emailed to ${recipientEmail} (Simulated - SMTP not configured)` });
+    }
 
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const filename = `AuditScope_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
 
-    console.log(`[Report] PDF report simulated email to ${recipientEmail}`);
-    res.json({ success: true, message: `Report emailed to ${recipientEmail} (Simulated)` });
+    await transporter.sendMail({
+      from: `"AuditScope Security" <${process.env.SMTP_USER}>`,
+      to: recipientEmail,
+      subject: `🛡️ Security Audit Report — Score: ${scanData.score}%`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+          <h2>Security Audit Report</h2>
+          <p>Please find attached the security audit report for your project <b>${projectId}</b>.</p>
+          <ul>
+            <li><b>Score:</b> ${scanData.score}%</li>
+            <li><b>Vulnerabilities Found:</b> ${scanData.vulnerabilities?.length || 0}</li>
+            <li><b>Resources Scanned:</b> ${scanData.scanned || 0}</li>
+          </ul>
+          <p>Thank you for using AuditScope.</p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: filename,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ]
+    });
+
+    console.log(`[Report] PDF report emailed successfully to ${recipientEmail}`);
+    res.json({ success: true, message: `Report emailed successfully to ${recipientEmail}` });
 
   } catch (error) {
     console.error('[Report] Error emailing report:', error);
@@ -184,4 +216,5 @@ router.post('/send', async (req, res) => {
   }
 });
 
+router.generatePDF = generatePDF;
 module.exports = router;

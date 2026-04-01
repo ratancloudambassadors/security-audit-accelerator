@@ -50,12 +50,12 @@ const sendOtpEmail = async (email, otp) => {
     }
 
     await transporter.sendMail({
-      from: `"AuditScope Security" <${process.env.SMTP_USER}>`,
+      from: `"Security Audit" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: '🛡️ AuditScope Security - Verify Your Email',
+      subject: 'Security Audit - Verify Your Email',
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-          <h2 style="color: #0f172a;">AuditScope Security</h2>
+          <h2 style="color: #0f172a;">Security Audit</h2>
           <p>Thank you for registering. Please use the following 6-digit code to verify your email address:</p>
           <div style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #ef4444; margin: 20px 0;">${otp}</div>
           <p>This code will expire in 15 minutes.</p>

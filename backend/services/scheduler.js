@@ -10,7 +10,7 @@ const { auditCloudSQL } = require('./gcp/auditors/sqlAuditor');
 const { auditNetworking } = require('./gcp/auditors/networkingAuditor');
 const { auditBigQuery } = require('./gcp/auditors/bigqueryAuditor');
 const { auditAwsIam, auditAwsEc2, auditAwsS3 } = require('./awsScanner');
-const { generateReportBuffer } = require('../routes/reports'); // Import helper if available, otherwise we will refactor
+const { generatePDF } = require('../routes/reports');
 const nodemailer = require('nodemailer');
 
 // Helper to send email
@@ -46,11 +46,30 @@ const sendAuditEmail = async (userEmail, scanData, projectName) => {
             <p>Please log in to your dashboard to view the full details and remediation steps.</p>
         `;
 
+        let pdfBuffer = Buffer.from('');
+        try {
+            const pdfScanData = {
+                score: scanData.score,
+                vulnerabilities: typeof scanData.findings === 'string' ? JSON.parse(scanData.findings) : (scanData.findings || scanData.vulnerabilities || []),
+                scanned: scanData.scannedResources || scanData.scanned || 0
+            };
+            pdfBuffer = await generatePDF(pdfScanData, userEmail, projectName);
+        } catch (e) {
+            console.error('[Scheduler] Failed to generate PDF for automation:', e);
+        }
+
+        const filename = `AuditScope_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+
         await transporter.sendMail({
             from: `"AuditScope Automation" <${process.env.SMTP_USER}>`,
             to: userEmail,
             subject: `[Automated] Security Audit Result: ${projectName} - ${scanData.score}%`,
-            html: htmlContent
+            html: htmlContent,
+            attachments: pdfBuffer.length > 0 ? [{
+                filename: filename,
+                content: pdfBuffer,
+                contentType: 'application/pdf'
+            }] : []
         });
 
         console.log(`[Scheduler] Email sent to ${userEmail} for project ${projectName}`);

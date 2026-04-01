@@ -164,7 +164,7 @@ const ScanHistoryPage = () => {
                         {scan.project?.name || 'Cloud Project'} <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>({scan.project?.provider?.toUpperCase()})</span>
                       </div>
                       <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                        {new Date(scan.createdAt).toLocaleString()} • {scan.scannedResources} resources scanned
+                        <span style={{ fontWeight: 500 }}>Date:</span> {new Date(scan.createdAt).toLocaleDateString()} &nbsp;|&nbsp; <span style={{ fontWeight: 500 }}>Time:</span> {new Date(scan.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • {scan.scannedResources} resources scanned
                       </div>
                     </div>
                   </div>
