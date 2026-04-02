@@ -23,8 +23,8 @@ COPY prisma ./prisma/
 # Generate Prisma Client
 RUN npx prisma generate
 
-# Create the SQLite database in /tmp (writable at runtime)
-RUN npx prisma db push --accept-data-loss
+# Note: We do not run prisma db push here because DATABASE_URL is not available during build.
+# It will be executed at runtime instead.
 
 # Copy the rest of the application
 COPY . .
@@ -35,5 +35,5 @@ ENV PORT=8080
 # Give Node.js more heap memory for heavy GCP/AWS scanning
 ENV NODE_OPTIONS="--max-old-space-size=768"
 
-# Command to run the application
-CMD [ "node", "server.js" ]
+# Command to run the application (push schema to DB first, then start server)
+CMD npx prisma db push --accept-data-loss && node server.js
