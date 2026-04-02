@@ -292,8 +292,13 @@ async function startServer() {
     await prisma.$connect();
     console.log('Successfully connected to the database.');
 
-    // Initialize Scheduler
-    startScheduler();
+    // Initialize Scheduler only if explicitly enabled or in production
+    // This prevents background audits from unexpectedly running when starting the local dev server.
+    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_SCHEDULER === 'true') {
+      startScheduler();
+    } else {
+      console.log('Scheduler disabled in development mode. Set ENABLE_SCHEDULER=true to enable.');
+    }
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server listening on port ${PORT}`);
