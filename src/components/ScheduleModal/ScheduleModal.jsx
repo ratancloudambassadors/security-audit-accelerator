@@ -38,7 +38,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
         setSubmitting(true);
         try {
             const token = localStorage.getItem('auditscope_token');
-            const res = await fetch('http://localhost:5000/api/schedules', {
+            const res = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/schedules', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

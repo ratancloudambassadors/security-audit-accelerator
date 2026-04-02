@@ -22,7 +22,7 @@ const ScanHistoryPage = () => {
       setLoading(true);
       try {
         const token = localStorage.getItem('auditscope_token');
-        const res = await fetch(`http://localhost:5000/api/projects/all/scans`, {
+        const res = await fetch(`https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/projects/all/scans`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();

@@ -64,7 +64,7 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
       let response;
 
       if (provider === 'aws') {
-        response = await fetch('http://localhost:5000/api/scan/aws', {
+        response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/scan/aws', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -80,13 +80,13 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
           const formData = new FormData();
           formData.append('file', file);
 
-          response = await fetch('http://localhost:5000/api/scan/gcp', {
+          response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/scan/gcp', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData,
           });
         } else {
-          response = await fetch('http://localhost:5000/api/scan/gcp', {
+          response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/scan/gcp', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

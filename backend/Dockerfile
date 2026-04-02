@@ -35,5 +35,5 @@ ENV PORT=8080
 # Give Node.js more heap memory for heavy GCP/AWS scanning
 ENV NODE_OPTIONS="--max-old-space-size=768"
 
-# Command to run the application (push schema to DB first, then start server)
-CMD npx prisma db push --accept-data-loss && node server.js
+# Command to run the application
+CMD [ "node", "server.js" ]

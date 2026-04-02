@@ -289,8 +289,18 @@ const { startScheduler } = require('./services/scheduler');
 
 async function startServer() {
   try {
-    await prisma.$connect();
-    console.log('Successfully connected to the database.');
+    try {
+      await prisma.$connect();
+      console.log('Successfully connected to the database.');
+    } catch (dbError) {
+      console.error('---------------------------------------------------------');
+      console.error('DATABASE CONNECTION FAILED ON STARTUP!');
+      console.error('1. Did you add DATABASE_URL to Cloud Run Environment Variables?');
+      console.error('2. Did you whitelist IP 0.0.0.0/0 in MongoDB Atlas Network Access?');
+      console.error('Detailed Error:', dbError.message);
+      console.error('---------------------------------------------------------');
+      // We intentionally do NOT exit here, so Cloud Run can still successfully bind to port 8080.
+    }
 
     // Initialize Scheduler only if explicitly enabled or in production
     // This prevents background audits from unexpectedly running when starting the local dev server.

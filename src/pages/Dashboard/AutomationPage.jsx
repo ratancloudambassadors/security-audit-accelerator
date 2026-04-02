@@ -20,10 +20,10 @@ const AutomationPage = () => {
     try {
       const token = localStorage.getItem('auditscope_token');
       const [schedRes, projRes] = await Promise.all([
-        fetch('http://localhost:5000/api/schedules', {
+        fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/schedules', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:5000/api/projects/all', {
+        fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/projects/all', {
             headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -43,7 +43,7 @@ const AutomationPage = () => {
   const toggleSchedule = async (id) => {
     try {
       const token = localStorage.getItem('auditscope_token');
-      await fetch(`http://localhost:5000/api/schedules/${id}/toggle`, {
+      await fetch(`https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/schedules/${id}/toggle`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -57,7 +57,7 @@ const AutomationPage = () => {
     if (!window.confirm('Are you sure you want to remove this automation?')) return;
     try {
       const token = localStorage.getItem('auditscope_token');
-      await fetch(`http://localhost:5000/api/schedules/${id}`, {
+      await fetch(`https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/schedules/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
