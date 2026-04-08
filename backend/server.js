@@ -16,6 +16,9 @@ const { auditBigQuery } = require('./services/gcp/auditors/bigqueryAuditor');
 const { auditKMS } = require('./services/gcp/auditors/kmsAuditor');
 const { auditApiKeys } = require('./services/gcp/auditors/apiKeysAuditor');
 const { auditEssentialContacts } = require('./services/gcp/auditors/essentialContactsAuditor');
+const { auditDns } = require('./services/gcp/auditors/dnsAuditor');
+const { auditLogging } = require('./services/gcp/auditors/loggingAuditor');
+const { auditDataproc } = require('./services/gcp/auditors/dataprocAuditor');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -96,11 +99,14 @@ app.post('/api/scan/gcp', authenticateToken, upload.single('file'), async (req, 
       auditVMs(clients.computeClient, clients.projectClient, gcpProjectId),
       auditIAM(clients.googleAuthClient, gcpProjectId),
       auditCloudSQL(clients.googleAuthClient, gcpProjectId),
-      auditNetworking(clients.networksClient, clients.firewallsClient, gcpProjectId),
+      auditNetworking(clients.networksClient, clients.firewallsClient, clients.subnetworksClient, clients.backendServicesClient, gcpProjectId),
       auditBigQuery(clients.bigQueryClient, gcpProjectId),
       auditKMS(clients.googleAuthClient, gcpProjectId),
       auditApiKeys(clients.googleAuthClient, gcpProjectId),
-      auditEssentialContacts(clients.googleAuthClient, gcpProjectId)
+      auditEssentialContacts(clients.googleAuthClient, gcpProjectId),
+      auditDns(clients.googleAuthClient, gcpProjectId),
+      auditLogging(clients.googleAuthClient, gcpProjectId),
+      auditDataproc(clients.googleAuthClient, gcpProjectId)
     ];
 
     const results = await Promise.allSettled(auditPromises);

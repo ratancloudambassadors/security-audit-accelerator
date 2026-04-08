@@ -3,9 +3,11 @@
  * 
  * @param {Object} networksClient - Compute Networks SDK client
  * @param {Object} firewallsClient - Compute Firewalls SDK client
+ * @param {Object} subnetworksClient - Compute Subnetworks SDK client
+ * @param {Object} backendServicesClient - Compute Backend Services SDK client
  * @param {string} projectId - GCP Project ID
  */
-const auditNetworking = async (networksClient, firewallsClient, projectId) => {
+const auditNetworking = async (networksClient, firewallsClient, subnetworksClient, backendServicesClient, projectId) => {
   const findings = [];
   let scannedCount = 0;
 
@@ -86,6 +88,58 @@ const auditNetworking = async (networksClient, firewallsClient, projectId) => {
        }
     } catch (fwErr) {
        console.warn("[Networking] Failed to list Firewalls:", fwErr.message);
+    }
+
+    // 3. Audit Subnetworks (VPC Flow Logs)
+    try {
+      const subnetsAggregated = await subnetworksClient.aggregatedListAsync({ project: projectId });
+      for await (const [region, subnetsObject] of subnetsAggregated) {
+        const subnets = subnetsObject.subnetworks;
+        if (subnets && subnets.length > 0) {
+          for (const subnet of subnets) {
+            scannedCount++;
+            
+            if (!subnet.enableFlowLogs) {
+               findings.push({
+                 id: `GCP-NET-FLOWLOGS-${subnet.name.substring(0, 8)}`,
+                 severity: 'Medium',
+                 resource: `Subnetwork (${subnet.name}) in ${region}`,
+                 issue: `VPC Flow Logs are not enabled for this subnetwork.`,
+                 remediation: `Enable VPC Flow Logs for all subnets to monitor traffic, aid in forensic investigations, and detect anomalous network behavior.`
+               });
+            }
+          }
+        }
+      }
+    } catch (snErr) {
+       console.warn("[Networking] Failed to list Subnetworks:", snErr.message);
+    }
+
+    // 4. Audit Backend Services (HTTP/S Load Balancers)
+    try {
+      const backendServicesAgg = await backendServicesClient.aggregatedListAsync({ project: projectId });
+      for await (const [scope, servicesObject] of backendServicesAgg) {
+        const backendServices = servicesObject.backendServices;
+        if (backendServices && backendServices.length > 0) {
+          for (const service of backendServices) {
+            scannedCount++;
+            
+            if (service.loadBalancingScheme === 'EXTERNAL' || service.loadBalancingScheme === 'INTERNAL_MANAGED') {
+              if (!service.logConfig || !service.logConfig.enable) {
+                 findings.push({
+                   id: `GCP-NET-LBLOG-${service.name.substring(0, 8)}`,
+                   severity: 'Medium',
+                   resource: `Backend Service (${service.name})`,
+                   issue: `Logging is NOT enabled for the HTTP(S) Load Balancer (Backend Service).`,
+                   remediation: `Enable logging on backend services to troubleshoot issues, monitor traffic patterns, and detect anomalous access.`
+                 });
+              }
+            }
+          }
+        }
+      }
+    } catch (bsErr) {
+       console.warn("[Networking] Failed to list Backend Services:", bsErr.message);
     }
 
     return { findings, scannedCount };

@@ -28,6 +28,8 @@ const initializeGcpClients = (credentials) => {
     const networksClient = new compute.NetworksClient(sdkConfig);
     const firewallsClient = new compute.FirewallsClient(sdkConfig);
     const projectClient = new compute.ProjectsClient(sdkConfig);
+    const subnetworksClient = new compute.SubnetworksClient(sdkConfig);
+    const backendServicesClient = new compute.BackendServicesClient(sdkConfig);
     const bigQueryClient = new BigQuery(sdkConfig);
 
     // Some specific apis (like Cloud SQL Admin, IAM) are better accessed via googleapis
@@ -45,6 +47,8 @@ const initializeGcpClients = (credentials) => {
       networksClient,
       firewallsClient,
       projectClient,
+      subnetworksClient,
+      backendServicesClient,
       bigQueryClient,
       googleAuthClient,
       projectId: credentials.project_id

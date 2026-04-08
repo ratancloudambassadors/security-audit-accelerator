@@ -41,6 +41,38 @@ const auditBigQuery = async (bigQueryClient, projectId) => {
             remediation: `Remove 'allUsers' or 'allAuthenticatedUsers' from the dataset's access controls.`
           });
         }
+
+        // Target Vulnerability: Default CMEK at Dataset Level
+        const defaultKmsKeyName = metadata.defaultEncryptionConfiguration?.kmsKeyName;
+        if (!defaultKmsKeyName) {
+           findings.push({
+             id: `GCP-BQ-DATASET-CMEK-${dataset.id.substring(0, 8)}`,
+             severity: 'Medium',
+             resource: `BigQuery Dataset (${dataset.id})`,
+             issue: `No Default Customer-Managed Encryption Key (CMEK) is configured.`,
+             remediation: `Configure a default KMS key to ensure all future tables created in this dataset are encrypted with CMEK standard.`
+           });
+        }
+
+        // Target Vulnerability: Table Level CMEK Encryption
+        try {
+          const [tables] = await dataset.getTables();
+          for (const table of tables) {
+            const [tableMetadata] = await table.getMetadata();
+            const tableKmsKeyName = tableMetadata.encryptionConfiguration?.kmsKeyName;
+            
+            if (!tableKmsKeyName) {
+               findings.push({
+                 id: `GCP-BQ-TABLE-CMEK-${table.id.substring(0, 8)}`,
+                 severity: 'High',
+                 resource: `BigQuery Table (${dataset.id}.${table.id})`,
+                 issue: `Table is NOT encrypted with a Customer-Managed Encryption Key (CMEK).`,
+                 remediation: `Encrypt the table using a CMEK from Cloud KMS rather than Google-managed keys.`
+               });
+            }
+          }
+        } catch (tblErr) { }
+
       } catch (dsErr) {
         console.warn(`[BigQuery] Failed to fetch metadata for dataset ${dataset.id}:`, dsErr.message);
       }

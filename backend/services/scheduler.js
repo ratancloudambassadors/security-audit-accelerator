@@ -12,6 +12,9 @@ const { auditBigQuery } = require('./gcp/auditors/bigqueryAuditor');
 const { auditKMS } = require('./gcp/auditors/kmsAuditor');
 const { auditApiKeys } = require('./gcp/auditors/apiKeysAuditor');
 const { auditEssentialContacts } = require('./gcp/auditors/essentialContactsAuditor');
+const { auditDns } = require('./gcp/auditors/dnsAuditor');
+const { auditLogging } = require('./gcp/auditors/loggingAuditor');
+const { auditDataproc } = require('./gcp/auditors/dataprocAuditor');
 const { auditAwsIam, auditAwsEc2, auditAwsS3 } = require('./awsScanner');
 const { generatePDF } = require('../routes/reports');
 const nodemailer = require('nodemailer');
@@ -92,11 +95,14 @@ const runGcpScan = async ({ credentials, id, userId }) => {
             auditVMs(clients.computeClient, clients.projectClient, gcpProjectId),
             auditIAM(clients.googleAuthClient, gcpProjectId),
             auditCloudSQL(clients.googleAuthClient, gcpProjectId),
-            auditNetworking(clients.networksClient, clients.firewallsClient, gcpProjectId),
+            auditNetworking(clients.networksClient, clients.firewallsClient, clients.subnetworksClient, clients.backendServicesClient, gcpProjectId),
             auditBigQuery(clients.bigQueryClient, gcpProjectId),
             auditKMS(clients.googleAuthClient, gcpProjectId),
             auditApiKeys(clients.googleAuthClient, gcpProjectId),
-            auditEssentialContacts(clients.googleAuthClient, gcpProjectId)
+            auditEssentialContacts(clients.googleAuthClient, gcpProjectId),
+            auditDns(clients.googleAuthClient, gcpProjectId),
+            auditLogging(clients.googleAuthClient, gcpProjectId),
+            auditDataproc(clients.googleAuthClient, gcpProjectId)
         ];
 
         const results = await Promise.allSettled(auditPromises);
