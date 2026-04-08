@@ -99,6 +99,7 @@ const DashboardPage = () => {
 
     return {
       totalItems: filtered.length,
+      filteredAllItems: filtered,
       items: paginatedItems,
       totalPages: totalPages
     };
@@ -270,23 +271,30 @@ const DashboardPage = () => {
           <>
             {/* Metrics overview */}
             <Section style={{ padding: 0, marginBottom: 'var(--spacing-6)' }} darker={false}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)', gap: 'var(--spacing-3)' }}>
-                <Card style={{ padding: 'var(--spacing-4)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }}>
-                  <h3 style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2)', fontWeight: 700 }}>Safety Score</h3>
-                  <div style={{ fontSize: '28px', fontWeight: 800, color: scanData.score > 80 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                    {scanData.score}%
-                  </div>
-                </Card>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)', gap: 'var(--spacing-3)' }}>
                 <Card style={{ padding: 'var(--spacing-4)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }}>
                   <h3 style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2)', fontWeight: 700 }}>Vulnerabilities</h3>
-                  <div style={{ fontSize: '28px', fontWeight: 800, color: scanData.vulnerabilities.length > 0 ? '#f43f5e' : 'var(--color-text)' }}>
-                    {scanData.vulnerabilities.length}
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: processedData.totalItems > 0 ? '#f43f5e' : 'var(--color-text)' }}>
+                    {processedData.totalItems}
                   </div>
                 </Card>
                 <Card style={{ padding: 'var(--spacing-4)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }}>
-                  <h3 style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2)', fontWeight: 700 }}>Resources</h3>
+                  <h3 style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    Resources
+                    <div style={{ position: 'relative', display: 'inline-block' }} onMouseEnter={(e) => e.currentTarget.lastChild.style.display = 'block'} onMouseLeave={(e) => e.currentTarget.lastChild.style.display = 'none'}>
+                      <span style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '14px', height: '14px', borderRadius: '50%', border: '1px solid var(--color-text-muted)', fontSize: '9px', fontWeight: 'bold' }}>?</span>
+                      <div style={{ display: 'none', position: 'absolute', top: '100%', left: '0', marginTop: '8px', width: '220px', padding: '8px 12px', backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '6px', color: 'var(--color-text)', fontSize: '11px', textTransform: 'none', letterSpacing: 'normal', zIndex: 100, boxShadow: 'var(--shadow-lg)' }}>
+                        <strong>What is a Resource?</strong><br/>
+                        A resource is any distinct infrastructure component evaluated during the scan.<br/><br/>
+                        <strong>How is it counted?</strong><br/>
+                        One count equals one individual entity.<br/><br/>
+                        <strong>Example:</strong><br/>
+                        3 Compute VMs + 2 Storage Buckets + 1 Network VPC = 6 counted Resources.
+                      </div>
+                    </div>
+                  </h3>
                   <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-text)' }}>
-                    {scanData.scanned}
+                    {new Set(processedData.filteredAllItems.map(v => v.resource)).size}
                   </div>
                 </Card>
                 <Card style={{ padding: 'var(--spacing-3)', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--color-bg-secondary)' }}>
@@ -311,29 +319,29 @@ const DashboardPage = () => {
                       />
                       <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, fontSize: '14px' }}>🔍</span>
                     </div>
-                    <select
-                      value={severityFilter}
-                      onChange={(e) => { setSeverityFilter(e.target.value); setCurrentPage(1); }}
-                      style={{
-                        backgroundColor: 'rgba(0,0,0,0.25)',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: '6px',
-                        padding: '0 12px',
-                        color: 'var(--color-text)',
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                        outline: 'none',
-                        minWidth: '160px'
-                      }}
-                    >
-                      <optgroup label="Filter Based on Severity">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', backgroundColor: 'rgba(0,0,0,0.25)', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '0 12px' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Filter by Severity:</span>
+                      <select
+                        value={severityFilter}
+                        onChange={(e) => { setSeverityFilter(e.target.value); setCurrentPage(1); }}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          color: 'var(--color-text)',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          outline: 'none',
+                          padding: '8px 0',
+                          minWidth: '110px'
+                        }}
+                      >
                         <option value="All" style={{ background: '#1a1d2e', color: '#fff' }}>All Severities</option>
                         <option value="Critical" style={{ background: '#1a1d2e', color: '#fff' }}>Critical</option>
                         <option value="High" style={{ background: '#1a1d2e', color: '#fff' }}>High</option>
                         <option value="Medium" style={{ background: '#1a1d2e', color: '#fff' }}>Medium</option>
                         <option value="Low" style={{ background: '#1a1d2e', color: '#fff' }}>Low</option>
-                      </optgroup>
-                    </select>
+                      </select>
+                    </div>
                   </div>
                 </Card>
               </div>

@@ -172,7 +172,6 @@ router.post('/send', async (req, res) => {
 
     const pdfBuffer = await generatePDF(scanData, user.name || user.email, projectId);
 
-    // Real SMTP delivery for the PDF report
     if (!process.env.SMTP_USER || process.env.SMTP_USER === 'your-email@gmail.com') {
       console.log('--- DEVELOPMENT MODE: SMTP NOT CONFIGURED ---');
       console.log(`Simulating PDF Email to ${recipientEmail}`);
@@ -185,17 +184,33 @@ router.post('/send', async (req, res) => {
     await transporter.sendMail({
       from: `"AuditScope Security" <${process.env.SMTP_USER}>`,
       to: recipientEmail,
-      subject: `🛡️ Security Audit Report — Score: ${scanData.score}%`,
+      subject: `Confidential Security Audit Report — ${projectId}`,
       html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px;">
-          <h2>Security Audit Report</h2>
-          <p>Please find attached the security audit report for your project <b>${projectId}</b>.</p>
-          <ul>
-            <li><b>Score:</b> ${scanData.score}%</li>
-            <li><b>Vulnerabilities Found:</b> ${scanData.vulnerabilities?.length || 0}</li>
-            <li><b>Resources Scanned:</b> ${scanData.scanned || 0}</li>
-          </ul>
-          <p>Thank you for using AuditScope.</p>
+        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 8px; color: #334155;">
+          <h2 style="color: #0f172a; border-bottom: 2px solid #06b6d4; padding-bottom: 10px; margin-bottom: 20px;">Confidential Security Audit Report</h2>
+          <p style="font-size: 16px; line-height: 1.6;">Dear Stakeholder,</p>
+          <p style="font-size: 16px; line-height: 1.6;">Please find the attached comprehensive security audit report detailing the vulnerability posture and infrastructure analysis for the project: <strong style="color: #0f172a;">${projectId}</strong>.</p>
+          <p style="font-size: 16px; line-height: 1.6;">This automated assessment evaluates identity management, network configurations, compute environments, and storage isolation against established cloud benchmarking standards.</p>
+          
+          <table style="width: 100%; margin: 25px 0; border-collapse: collapse;">
+            <tbody>
+              <tr>
+                <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; width: 40%; background-color: #f8fafc;">Aggregate Safety Score</td>
+                <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; color: ${scanData.score > 80 ? '#16a34a' : scanData.score > 50 ? '#ca8a04' : '#dc2626'};">${scanData.score}%</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; background-color: #f8fafc;">Total Vulnerabilities Identified</td>
+                <td style="padding: 12px; border: 1px solid #e2e8f0;">${scanData.vulnerabilities?.length || 0}</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; background-color: #f8fafc;">Total Infrastructure Entities Scanned</td>
+                <td style="padding: 12px; border: 1px solid #e2e8f0;">${scanData.scanned || 0}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p style="font-size: 14px; line-height: 1.6; color: #64748b;">It is highly recommended that your engineering and security teams review the attached PDF payload for precise remediation directives.</p>
+          <p style="font-size: 14px; line-height: 1.6; color: #64748b; margin-top: 30px;">Regards,<br><strong style="color: #0f172a;">AuditScope Automated Systems</strong><br><em>Do not reply to this automated message.</em></p>
         </div>
       `,
       attachments: [
