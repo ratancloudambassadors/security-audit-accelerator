@@ -47,6 +47,20 @@ const auditIAM = async (googleAuthClient, projectId) => {
                 remediation: `Apply the Principle of Least Privilege by removing primitive roles and replacing them with specific predefined roles.`
               });
             });
+
+            // Added: Warn if human users hold unrestricted owner powers
+            if (binding.role === 'roles/owner') {
+               const users = binding.members.filter(m => m.startsWith('user:'));
+               users.forEach(user => {
+                 findings.push({
+                   id: `GCP-IAM-USER-OWNER-${user.substring(5, 13)}`,
+                   severity: 'Medium',
+                   resource: `IAM Policy (Project: ${projectId})`,
+                   issue: `User ${user.replace('user:', '')} possesses the sweeping primitive 'roles/owner' role.`,
+                   remediation: `Assign specific predefined responsibilities rather than permanent primitive ownership.`
+                 });
+               });
+            }
           }
 
           // Check for Service Account User / Token Creator at project level
@@ -64,15 +78,27 @@ const auditIAM = async (googleAuthClient, projectId) => {
           }
         });
 
-        // 4. Enforce Separation of Duties for KMS-Related Roles
+        // Enforcement of advanced Separation of Duties
         for (const [member, roles] of Object.entries(memberRoles)) {
+          // SoD: KMS roles
           if (roles.has('roles/cloudkms.admin') && (roles.has('roles/cloudkms.cryptoKeyEncrypterDecrypter') || roles.has('roles/owner') || roles.has('roles/editor'))) {
              findings.push({
                id: `GCP-IAM-KMS-SOD-${member.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8)}`,
                severity: 'High',
                resource: `IAM Policy (Project: ${projectId})`,
-               issue: `Identity ${member.replace(/^[a-zA-Z]+:/, '')} has both KMS Admin and Encrypter/Decrypter (or Owner/Editor) roles, violating Separation of Duties.`,
+               issue: `Identity ${member.replace(/^[a-zA-Z]+:/, '')} has both KMS Admin and Encrypter/Decrypter (or primitive Admin) roles, violating Separation of Duties.`,
                remediation: `Remove either the administrative or data access role from this identity. Use distinct accounts for KMS administration and usage.`
+             });
+          }
+
+          // SoD: Network vs Compute Compute Admin
+          if (roles.has('roles/compute.networkAdmin') && roles.has('roles/iam.serviceAccountUser')) {
+             findings.push({
+               id: `GCP-IAM-NET-SOD-${member.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8)}`,
+               severity: 'Medium',
+               resource: `IAM Policy (Project: ${projectId})`,
+               issue: `Identity ${member.replace(/^[a-zA-Z]+:/, '')} holds both Network Admin and Service Account User capabilities.`,
+               remediation: `Isolate network definitions from compute deployment identities to restrict potential lateral escalation routes.`
              });
           }
         }

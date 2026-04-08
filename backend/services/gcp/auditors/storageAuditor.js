@@ -61,6 +61,54 @@ const auditStorageBuckets = async (storageClient, projectId) => {
           });
         }
 
+        // Target Vulnerability 3: Public Access Prevention (PAP)
+        const papEnforced = metadata.iamConfiguration && metadata.iamConfiguration.publicAccessPrevention === 'enforced';
+        if (!papEnforced) {
+          findings.push({
+            id: `GCP-STORAGE-PAP-${bucketName.substring(0, 8)}`,
+            severity: 'High',
+            resource: `Storage Bucket (${bucketName})`,
+            issue: `Public Access Prevention is NOT enforced.`,
+            remediation: `Enforce Public Access Prevention to guarantee that public access to the bucket and its objects is unconditionally blocked.`
+          });
+        }
+
+        // Target Vulnerability 4: Object Versioning
+        const versioningEnabled = metadata.versioning && metadata.versioning.enabled === true;
+        if (!versioningEnabled) {
+          findings.push({
+            id: `GCP-STORAGE-VERS-${bucketName.substring(0, 8)}`,
+            severity: 'Low',
+            resource: `Storage Bucket (${bucketName})`,
+            issue: `Object Versioning is NOT enabled.`,
+            remediation: `Enable object versioning to protect data against accidental deletion or modification (ransomware/malware recovery).`
+          });
+        }
+
+        // Target Vulnerability 5: Data Access Logging
+        const loggingEnabled = metadata.logging && metadata.logging.logBucket;
+        if (!loggingEnabled) {
+          findings.push({
+            id: `GCP-STORAGE-LOG-${bucketName.substring(0, 8)}`,
+            severity: 'Low',
+            resource: `Storage Bucket (${bucketName})`,
+            issue: `Cloud Storage Access Logging is NOT configured.`,
+            remediation: `Configure bucket logging to maintain an audit trail of access usage.`
+          });
+        }
+
+        // Target Vulnerability 6: CMEK
+        const cmekConfigured = metadata.encryption && metadata.encryption.defaultKmsKeyName;
+        if (!cmekConfigured) {
+          findings.push({
+            id: `GCP-STORAGE-CMEK-${bucketName.substring(0, 8)}`,
+            severity: 'Medium',
+            resource: `Storage Bucket (${bucketName})`,
+            issue: `Customer-Managed Encryption Key (CMEK) is NOT configured as default.`,
+            remediation: `Use CMEK instead of Google-managed keys to maintain full centralized control over decryption keys.`
+          });
+        }
+
       } catch (iamError) {
         console.warn(`[Storage] Failed to fetch IAM policy for bucket ${bucketName}. Missing storage.buckets.getIamPolicy permission?`, iamError.message);
         // We could optionally push a 'Warning' finding here about insufficient permissions to audit certain resources

@@ -155,6 +155,51 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
               remediation: `Enable Confidential Computing to encrypt data in-use. Note: Requires specific machine types.`
             });
           }
+
+          // Target 8: Deletion Protection
+          if (!instance.deletionProtection) {
+            findings.push({
+              id: `GCP-VM-DEL-PROT-${instanceName.substring(0, 8)}`,
+              severity: 'Medium',
+              resource: `Compute Instance (${instanceName})`,
+              issue: `Deletion protection is NOT enabled.`,
+              remediation: `Enable deletion protection to prevent accidental termination of critical instances.`
+            });
+          }
+
+          // Target 9: Preemptible Instances in Use
+          if (instance.scheduling && instance.scheduling.preemptible) {
+            findings.push({
+              id: `GCP-VM-PREEMPT-${instanceName.substring(0, 8)}`,
+              severity: 'Low',
+              resource: `Compute Instance (${instanceName})`,
+              issue: `Instance is configured as Preemptible.`,
+              remediation: `Ensure preemptible instances are strictly used for fault-tolerant batch workloads, not production services requiring high availability.`
+            });
+          }
+
+          // Target 10: Instance-Level Metadata Flags
+          const blockKeys = instanceMetadata.find(item => item.key === 'block-project-ssh-keys');
+          if (blockKeys && blockKeys.value.toLowerCase() === 'false') {
+             findings.push({
+              id: `GCP-VM-INST-SSH-${instanceName.substring(0, 8)}`,
+              severity: 'High',
+              resource: `Compute Instance (${instanceName})`,
+              issue: `Instance explicitly allows project-wide SSH keys.`,
+              remediation: `Remove the overriding metadata 'block-project-ssh-keys=false' to honor project-wide SSH key blocking protocols.`
+            });
+          }
+          
+          const osLogin = instanceMetadata.find(item => item.key === 'enable-oslogin');
+          if (osLogin && osLogin.value.toLowerCase() === 'false') {
+             findings.push({
+              id: `GCP-VM-INST-OSLOGIN-${instanceName.substring(0, 8)}`,
+              severity: 'Medium',
+              resource: `Compute Instance (${instanceName})`,
+              issue: `Instance explicitly disables OS Login.`,
+              remediation: `Remove the overriding metadata 'enable-oslogin=false' to honor project-wide centralized identity access control.`
+            });
+          }
         }
       }
     }

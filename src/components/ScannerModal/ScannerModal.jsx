@@ -12,6 +12,7 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
   const [awsSecretKey, setAwsSecretKey] = useState('');
 
   const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
   const [error, setError] = useState(null);
 
   const fileInputRef = useRef(null);
@@ -57,7 +58,18 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
     }
 
     setIsScanning(true);
+    setScanProgress(0);
     setError(null);
+
+    // Simulated progress tick (jumps every 500ms, slowing down as it reaches 99%)
+    const progressInterval = setInterval(() => {
+      setScanProgress(prev => {
+         const remaining = 99 - prev;
+         if (remaining <= 0) return 99;
+         const jump = Math.max(1, Math.floor(remaining * 0.1));
+         return prev + jump;
+      });
+    }, 500);
 
     try {
       const token = localStorage.getItem('auditscope_token');
@@ -98,10 +110,14 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
       }
 
       if (!response.ok) {
+        clearInterval(progressInterval);
         const errData = await response.json();
         throw new Error(errData.error || `Server responded with status: ${response.status}`);
       }
 
+      setScanProgress(100);
+      clearInterval(progressInterval);
+      
       const rawResults = await response.json();
 
       const adaptedResults = {
@@ -121,9 +137,11 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
 
     } catch (err) {
       console.error("Scan Error:", err);
+      clearInterval(progressInterval);
       setError(err.message || "Invalid JSON or network error. Ensure backend is running.");
     } finally {
       setIsScanning(false);
+      setScanProgress(0);
     }
   };
 
@@ -134,6 +152,7 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
         {isScanning ? (
           <div className={styles.scanningState}>
             <div className={styles.scannerRing}></div>
+            <h2 className={styles.scanPercentage}>{scanProgress}%</h2>
             <h2 className={styles.scanTitle}>Auditing {provider.toUpperCase()} Infrastructure</h2>
             <p className={styles.scanSubtitle}>Analyzing IAM configurations, firewalls, and storage blobs...</p>
           </div>

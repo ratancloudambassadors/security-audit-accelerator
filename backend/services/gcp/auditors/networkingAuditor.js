@@ -82,6 +82,19 @@ const auditNetworking = async (networksClient, firewallsClient, subnetworksClien
                       remediation: `Restrict RDP access to specific known IP addresses or utilize Identity-Aware Proxy (IAP) for TCP forwarding.`
                     });
                  }
+
+                 // Target 5: Database Ports unrestricted
+                 const dbPorts = ['3306', '5432', '1433', '27017', '6379'];
+                 const exposedDbPort = ports.find(p => dbPorts.includes(p));
+                 if (allowed.IPProtocol === 'tcp' && exposedDbPort) {
+                    findings.push({
+                      id: `GCP-FW-OPEN-DB-${exposedDbPort}-${firewall.name.substring(0, 8)}`,
+                      severity: 'Critical',
+                      resource: `Firewall Rule (${firewall.name})`,
+                      issue: `Firewall rule allows direct database port (${exposedDbPort}) access from anywhere (0.0.0.0/0).`,
+                      remediation: `Never expose infrastructure databases directly to the public internet.`
+                    });
+                 }
                }
             }
          }
@@ -106,6 +119,16 @@ const auditNetworking = async (networksClient, firewallsClient, subnetworksClien
                  resource: `Subnetwork (${subnet.name}) in ${region}`,
                  issue: `VPC Flow Logs are not enabled for this subnetwork.`,
                  remediation: `Enable VPC Flow Logs for all subnets to monitor traffic, aid in forensic investigations, and detect anomalous network behavior.`
+               });
+            }
+
+            if (!subnet.privateIpGoogleAccess) {
+               findings.push({
+                 id: `GCP-NET-PGA-${subnet.name.substring(0, 8)}`,
+                 severity: 'High',
+                 resource: `Subnetwork (${subnet.name}) in ${region}`,
+                 issue: `Private Google Access is NOT enabled.`,
+                 remediation: `Enable Private Google Access so VMs can reach Google APIs internally without routing across the public internet.`
                });
             }
           }

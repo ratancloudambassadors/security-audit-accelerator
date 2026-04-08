@@ -191,6 +191,16 @@
   100% { transform: rotate(360deg); }
 }
 
+.scanPercentage {
+  position: absolute;
+  top: 96px; /* Inside the spinner */
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+
 .scanTitle {
   font-size: var(--font-size-xl);
   color: var(--color-text);
