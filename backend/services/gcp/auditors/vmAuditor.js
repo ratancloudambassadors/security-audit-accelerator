@@ -94,6 +94,16 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
                 issue: `Instance is configured to use the default Compute Engine service account.`,
                 remediation: `Create a dedicated, least-privilege service account specifically for this workload and assign it to the instance.`
               });
+              
+              if (instance.serviceAccounts[0].scopes && instance.serviceAccounts[0].scopes.includes('https://www.googleapis.com/auth/cloud-platform')) {
+                 findings.push({
+                  id: `GCP-VM-DEF-SA-FULL-${instanceName.substring(0, 8)}`,
+                  severity: 'High',
+                  resource: `Compute Instance (${instanceName})`,
+                  issue: `Instance is configured to use the default Compute Engine service account with full access to all Cloud APIs.`,
+                  remediation: `Limit the access scopes of the instance and explicitly assign a least-privilege service account.`
+                });
+              }
             }
           }
 
@@ -105,6 +115,44 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
               resource: `Compute Instance (${instanceName})`,
               issue: `Secure Boot (Shielded VM) is NOT enabled.`,
               remediation: `Launch instances with Shielded VM features enabled to prevent rootkits and boot-level malware.`
+            });
+          }
+
+          // Target 5: Serial Ports Connecting
+          const instanceMetadata = instance.metadata?.items || [];
+          const serialPortEnable = instanceMetadata.find(item => item.key === 'serial-port-enable');
+          if (serialPortEnable && serialPortEnable.value.toLowerCase() === 'true') {
+             findings.push({
+              id: `GCP-VM-SERIAL-${instanceName.substring(0, 8)}`,
+              severity: 'Medium',
+              resource: `Compute Instance (${instanceName})`,
+              issue: `Connecting to serial ports is enabled for this instance.`,
+              remediation: `Disable 'Enable connecting to serial ports' on the VM instance unless actively troubleshooting.`
+            });
+          }
+
+          // Target 6: Disks Encrypted with CMEK
+          const disks = instance.disks || [];
+          for (const disk of disks) {
+            if (!disk.diskEncryptionKey || !disk.diskEncryptionKey.kmsKeyName) {
+               findings.push({
+                id: `GCP-VM-DISK-CMEK-${instanceName.substring(0, 8)}`,
+                severity: 'Low',
+                resource: `Compute Instance (${instanceName}) Disk (${disk.deviceName})`,
+                issue: `Disk is not encrypted with a Customer-Managed Encryption Key (CMEK).`,
+                remediation: `Use Customer-Managed Encryption Keys (CMEK) to encrypt disks if your compliance requirements mandate controlling the encryption keys.`
+              });
+            }
+          }
+
+          // Target 7: Confidential Computing
+          if (!instance.confidentialInstanceConfig || !instance.confidentialInstanceConfig.enableConfidentialCompute) {
+             findings.push({
+              id: `GCP-VM-CONFIDENTIAL-${instanceName.substring(0, 8)}`,
+              severity: 'Low',
+              resource: `Compute Instance (${instanceName})`,
+              issue: `Confidential Computing is NOT enabled.`,
+              remediation: `Enable Confidential Computing to encrypt data in-use. Note: Requires specific machine types.`
             });
           }
         }

@@ -17,7 +17,7 @@ const auditIAM = async (googleAuthClient, projectId) => {
     const iam = google.iam({ version: 'v1', auth: googleAuthClient });
     const cloudresourcemanager = google.cloudresourcemanager({ version: 'v1', auth: googleAuthClient });
 
-    // 1. Audit Project-Level IAM Policy (Check for Admin privileges and SA Token Creator)
+    // 1. Audit Project-Level IAM Policy (Check for Admin privileges, SA Token Creator, and SOD)
     try {
       const response = await cloudresourcemanager.projects.getIamPolicy({
         resource: projectId,
@@ -25,8 +25,16 @@ const auditIAM = async (googleAuthClient, projectId) => {
       });
       const policy = response.data;
       
+      const memberRoles = {};
+
       if (policy && policy.bindings) {
         policy.bindings.forEach(binding => {
+          // Track roles per member for SOD
+          binding.members.forEach(member => {
+            if (!memberRoles[member]) memberRoles[member] = new Set();
+            memberRoles[member].add(binding.role);
+          });
+
           // Check if Service Accounts have admin/owner privileges
           if (binding.role === 'roles/owner' || binding.role === 'roles/editor') {
             const serviceAccounts = binding.members.filter(m => m.startsWith('serviceAccount:'));
@@ -55,6 +63,19 @@ const auditIAM = async (googleAuthClient, projectId) => {
             });
           }
         });
+
+        // 4. Enforce Separation of Duties for KMS-Related Roles
+        for (const [member, roles] of Object.entries(memberRoles)) {
+          if (roles.has('roles/cloudkms.admin') && (roles.has('roles/cloudkms.cryptoKeyEncrypterDecrypter') || roles.has('roles/owner') || roles.has('roles/editor'))) {
+             findings.push({
+               id: `GCP-IAM-KMS-SOD-${member.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8)}`,
+               severity: 'High',
+               resource: `IAM Policy (Project: ${projectId})`,
+               issue: `Identity ${member.replace(/^[a-zA-Z]+:/, '')} has both KMS Admin and Encrypter/Decrypter (or Owner/Editor) roles, violating Separation of Duties.`,
+               remediation: `Remove either the administrative or data access role from this identity. Use distinct accounts for KMS administration and usage.`
+             });
+          }
+        }
       }
     } catch (iamPolErr) {
        console.warn("[IAM] Failed to fetch project IAM Policy:", iamPolErr.message);
@@ -76,14 +97,32 @@ const auditIAM = async (googleAuthClient, projectId) => {
         });
 
         const userManagedKeys = keyResponse.data.keys || [];
-        if (userManagedKeys.length > 0) {
+        for (const key of userManagedKeys) {
+          // General warning for user managed keys (not strictly a failure, but noted as info/medium depending on context, keeping medium here)
            findings.push({
             id: `GCP-IAM-USER-KEY-${sa.email.substring(0, 8)}`,
-            severity: 'Medium',
+            severity: 'Low',
             resource: `Service Account (${sa.email})`,
-            issue: `Service Account has ${userManagedKeys.length} User-Managed Key(s). GCP-managed keys are preferred.`,
-            remediation: `Ensure User-Managed keys are strictly necessary. If so, ensure they are rotated every 90 days. Prefer relying on GCP-managed short-lived credentials.`
+            issue: `Service Account has a User-Managed Key (id: ${key.name.split('/').pop()}). GCP-managed keys are preferred.`,
+            remediation: `Prefer relying on GCP-managed short-lived credentials.`
           });
+
+          // Check 3: Ensure User-Managed/External Keys for Service Accounts Are Rotated Every 90 Days
+          if (key.validAfterTime) {
+            const validAfterTime = new Date(key.validAfterTime);
+            const now = new Date();
+            const diffDays = Math.floor((now - validAfterTime) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays > 90) {
+              findings.push({
+                id: `GCP-IAM-KEY-ROTATION-${sa.email.substring(0, 8)}`,
+                severity: 'High',
+                resource: `SA Key (${sa.email})`,
+                issue: `User-managed key is ${diffDays} days old. It has not been rotated in the last 90 days.`,
+                remediation: `Rotate user-managed keys every 90 days.`
+              });
+            }
+          }
         }
       }
     } catch (saErr) {

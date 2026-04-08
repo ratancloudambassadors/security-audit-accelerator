@@ -9,6 +9,9 @@ const { auditIAM } = require('./gcp/auditors/iamAuditor');
 const { auditCloudSQL } = require('./gcp/auditors/sqlAuditor');
 const { auditNetworking } = require('./gcp/auditors/networkingAuditor');
 const { auditBigQuery } = require('./gcp/auditors/bigqueryAuditor');
+const { auditKMS } = require('./gcp/auditors/kmsAuditor');
+const { auditApiKeys } = require('./gcp/auditors/apiKeysAuditor');
+const { auditEssentialContacts } = require('./gcp/auditors/essentialContactsAuditor');
 const { auditAwsIam, auditAwsEc2, auditAwsS3 } = require('./awsScanner');
 const { generatePDF } = require('../routes/reports');
 const nodemailer = require('nodemailer');
@@ -90,7 +93,10 @@ const runGcpScan = async ({ credentials, id, userId }) => {
             auditIAM(clients.googleAuthClient, gcpProjectId),
             auditCloudSQL(clients.googleAuthClient, gcpProjectId),
             auditNetworking(clients.networksClient, clients.firewallsClient, gcpProjectId),
-            auditBigQuery(clients.bigQueryClient, gcpProjectId)
+            auditBigQuery(clients.bigQueryClient, gcpProjectId),
+            auditKMS(clients.googleAuthClient, gcpProjectId),
+            auditApiKeys(clients.googleAuthClient, gcpProjectId),
+            auditEssentialContacts(clients.googleAuthClient, gcpProjectId)
         ];
 
         const results = await Promise.allSettled(auditPromises);
