@@ -53,9 +53,10 @@ const ScanDetailModal = ({ isOpen, onClose, scan }) => {
           <table className={styles.vulnTable}>
             <thead>
               <tr>
-                <th style={{ width: '15%' }}>Severity</th>
-                <th style={{ width: '40%' }}>Resource</th>
-                <th style={{ width: '45%' }}>Issue Description</th>
+                <th style={{ width: '10%' }}>Severity</th>
+                <th style={{ width: '30%' }}>Resource</th>
+                <th style={{ width: '30%' }}>Issue Description</th>
+                <th style={{ width: '30%' }}>Recommendation</th>
               </tr>
             </thead>
             <tbody>
@@ -66,6 +67,7 @@ const ScanDetailModal = ({ isOpen, onClose, scan }) => {
                   </td>
                   <td style={{ fontFamily: 'monospace', fontSize: '0.85em' }}>{vuln.resource || '-'}</td>
                   <td>{vuln.issue || '-'}</td>
+                  <td style={{ color: 'var(--color-primary)', opacity: 0.9 }}>{vuln.remediation || '-'}</td>
                 </tr>
               )) : (
                 <tr>

@@ -323,14 +323,16 @@ const DashboardPage = () => {
                         fontSize: '13px',
                         cursor: 'pointer',
                         outline: 'none',
-                        minWidth: '130px'
+                        minWidth: '160px'
                       }}
                     >
-                      <option value="All" style={{ background: '#1a1d2e', color: '#fff' }}>All Severities</option>
-                      <option value="Critical" style={{ background: '#1a1d2e', color: '#fff' }}>Critical</option>
-                      <option value="High" style={{ background: '#1a1d2e', color: '#fff' }}>High</option>
-                      <option value="Medium" style={{ background: '#1a1d2e', color: '#fff' }}>Medium</option>
-                      <option value="Low" style={{ background: '#1a1d2e', color: '#fff' }}>Low</option>
+                      <optgroup label="Filter Based on Severity">
+                        <option value="All" style={{ background: '#1a1d2e', color: '#fff' }}>All Severities</option>
+                        <option value="Critical" style={{ background: '#1a1d2e', color: '#fff' }}>Critical</option>
+                        <option value="High" style={{ background: '#1a1d2e', color: '#fff' }}>High</option>
+                        <option value="Medium" style={{ background: '#1a1d2e', color: '#fff' }}>Medium</option>
+                        <option value="Low" style={{ background: '#1a1d2e', color: '#fff' }}>Low</option>
+                      </optgroup>
                     </select>
                   </div>
                 </Card>
@@ -374,8 +376,9 @@ const DashboardPage = () => {
                         <tr style={{ backgroundColor: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--color-border)' }}>
                           <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>ID</th>
                           <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>Severity</th>
-                          <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '25%' }}>Resource</th>
-                          <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)' }}>Issue Description</th>
+                          <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '20%' }}>Resource</th>
+                          <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '30%' }}>Issue Description</th>
+                          <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '30%' }}>Recommendation</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -403,6 +406,9 @@ const DashboardPage = () => {
                             </td>
                             <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--color-text-muted)' }}>
                               {vuln.issue}
+                            </td>
+                            <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--color-primary)', opacity: 0.9 }}>
+                              {vuln.remediation || '-'}
                             </td>
                           </tr>
                         ))}

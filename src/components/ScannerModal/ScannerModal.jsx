@@ -126,7 +126,8 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
           id: f.id,
           severity: f.severity,
           resource: f.resource,
-          issue: f.issue
+          issue: f.issue,
+          remediation: f.remediation
         })),
         scanned: rawResults.summary.scannedResources,
         provider: provider

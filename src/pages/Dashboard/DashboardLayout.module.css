@@ -16,7 +16,7 @@
 
 @media (min-width: 1024px) {
   .mainContentArea {
-    margin-left: 260px; /* Exact width of the sidebar */
+    margin-left: 200px; /* Exact width of the sidebar */
   }
 }
 
