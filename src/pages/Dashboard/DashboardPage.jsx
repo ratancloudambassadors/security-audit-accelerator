@@ -195,7 +195,7 @@ const DashboardPage = () => {
             <h1 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-1)', display: 'flex', alignItems: 'center', gap: '10px' }}>
               {scanData ? `${scanData.provider.toUpperCase()} Infrastructure Overview` : 'Overview'}
               {scanData?.isHistory && (
-                <span style={{ fontSize: '10px', padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '10px', color: 'var(--color-text-muted)', fontWeight: 400 }}>Historical</span>
+                <span style={{ fontSize: '10px', padding: '2px 8px', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: '10px', color: 'var(--color-text-muted)', fontWeight: 400 }}>Historical</span>
               )}
             </h1>
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', margin: 0 }}>
@@ -248,7 +248,7 @@ const DashboardPage = () => {
                   <button
                     onClick={handleDownloadReport}
                     style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid #2d3148', color: 'var(--color-text)', textAlign: 'left', cursor: 'pointer', fontSize: 'var(--font-size-sm)', display: 'flex', gap: '8px', alignItems: 'center' }}
-                    onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                    onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.05)'}
                     onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
                     <span>⬇️</span> Download PDF
@@ -256,7 +256,7 @@ const DashboardPage = () => {
                   <button
                     onClick={() => { setReportMenuOpen(false); setEmailModalOpen(true); }}
                     style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid #2d3148', color: 'var(--color-text)', textAlign: 'left', cursor: 'pointer', fontSize: 'var(--font-size-sm)', display: 'flex', gap: '8px', alignItems: 'center' }}
-                    onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                    onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.05)'}
                     onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
                     <span>📧</span> Send via Email
@@ -272,13 +272,13 @@ const DashboardPage = () => {
             {/* Metrics overview */}
             <Section style={{ padding: 0, marginBottom: 'var(--spacing-6)' }} darker={false}>
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)', gap: 'var(--spacing-3)' }}>
-                <Card style={{ padding: 'var(--spacing-4)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }}>
+                <Card style={{ padding: 'var(--spacing-4)', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
                   <h3 style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2)', fontWeight: 700 }}>Vulnerabilities</h3>
                   <div style={{ fontSize: '28px', fontWeight: 800, color: processedData.totalItems > 0 ? '#f43f5e' : 'var(--color-text)' }}>
                     {processedData.totalItems}
                   </div>
                 </Card>
-                <Card style={{ padding: 'var(--spacing-4)', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }}>
+                <Card style={{ padding: 'var(--spacing-4)', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
                   <h3 style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
                     Resources
                     <div style={{ position: 'relative', display: 'inline-block' }} onMouseEnter={(e) => e.currentTarget.lastChild.style.display = 'block'} onMouseLeave={(e) => e.currentTarget.lastChild.style.display = 'none'}>
@@ -308,7 +308,7 @@ const DashboardPage = () => {
                         style={{
                           width: '100%',
                           height: '100%',
-                          backgroundColor: 'rgba(0,0,0,0.25)',
+                          backgroundColor: 'var(--color-bg-secondary)',
                           border: '1px solid var(--color-border)',
                           borderRadius: '6px',
                           padding: '0 12px 0 32px',
@@ -319,7 +319,7 @@ const DashboardPage = () => {
                       />
                       <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, fontSize: '14px' }}>🔍</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', backgroundColor: 'rgba(0,0,0,0.25)', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '0 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '0 12px' }}>
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Filter by Severity:</span>
                       <select
                         value={severityFilter}
@@ -335,11 +335,11 @@ const DashboardPage = () => {
                           minWidth: '110px'
                         }}
                       >
-                        <option value="All" style={{ background: '#1a1d2e', color: '#fff' }}>All Severities</option>
-                        <option value="Critical" style={{ background: '#1a1d2e', color: '#fff' }}>Critical</option>
-                        <option value="High" style={{ background: '#1a1d2e', color: '#fff' }}>High</option>
-                        <option value="Medium" style={{ background: '#1a1d2e', color: '#fff' }}>Medium</option>
-                        <option value="Low" style={{ background: '#1a1d2e', color: '#fff' }}>Low</option>
+                        <option value="All" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}>All Severities</option>
+                        <option value="Critical" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}>Critical</option>
+                        <option value="High" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}>High</option>
+                        <option value="Medium" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}>Medium</option>
+                        <option value="Low" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}>Low</option>
                       </select>
                     </div>
                   </div>
@@ -381,7 +381,7 @@ const DashboardPage = () => {
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--font-size-xs)' }}>
                       <thead>
-                        <tr style={{ backgroundColor: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--color-border)' }}>
+                        <tr style={{ backgroundColor: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
                           <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>ID</th>
                           <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>Severity</th>
                           <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '20%' }}>Resource</th>
@@ -391,7 +391,7 @@ const DashboardPage = () => {
                       </thead>
                       <tbody>
                         {processedData.items.map((vuln, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                          <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)' }}>
                             <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontFamily: 'monospace', color: 'var(--color-primary)' }}>
                               {vuln.id}
                             </td>
@@ -447,7 +447,7 @@ const DashboardPage = () => {
       {/* Email Report Modal */}
       {emailModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ backgroundColor: '#1a1d2e', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '400px', border: '1px solid #2d3148', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+          <div style={{ backgroundColor: 'var(--color-bg-secondary)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '400px', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-lg)' }}>
             <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-2)' }}>Email Report</h2>
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-4)' }}>Enter the recipient email address to receive the full PDF report.</p>
             <input
@@ -455,21 +455,21 @@ const DashboardPage = () => {
               value={emailInput}
               onChange={e => setEmailInput(e.target.value)}
               placeholder="recipient@example.com"
-              style={{ width: '100%', padding: '10px 14px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: 'var(--radius-md)', color: '#fff', marginBottom: 'var(--spacing-4)' }}
+              style={{ width: '100%', padding: '10px 14px', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', marginBottom: 'var(--spacing-4)' }}
               autoFocus
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-3)' }}>
               <button
                 onClick={() => setEmailModalOpen(false)}
                 disabled={reportStatus === 'sending'}
-                style={{ padding: '8px 16px', backgroundColor: 'transparent', border: '1px solid #334155', color: '#cbd5e1', borderRadius: 'var(--radius-md)', cursor: reportStatus === 'sending' ? 'not-allowed' : 'pointer' }}
+                style={{ padding: '8px 16px', backgroundColor: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text)', borderRadius: 'var(--radius-md)', cursor: reportStatus === 'sending' ? 'not-allowed' : 'pointer' }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleEmailReport}
                 disabled={!emailInput || reportStatus === 'sending'}
-                style={{ padding: '8px 16px', backgroundColor: '#06b6d4', border: 'none', color: '#fff', borderRadius: 'var(--radius-md)', cursor: (!emailInput || reportStatus === 'sending') ? 'not-allowed' : 'pointer', opacity: (!emailInput || reportStatus === 'sending') ? 0.6 : 1, display: 'flex', gap: '8px', alignItems: 'center' }}
+                style={{ padding: '8px 16px', backgroundColor: 'var(--color-primary)', border: 'none', color: '#fff', borderRadius: 'var(--radius-md)', cursor: (!emailInput || reportStatus === 'sending') ? 'not-allowed' : 'pointer', opacity: (!emailInput || reportStatus === 'sending') ? 0.6 : 1, display: 'flex', gap: '8px', alignItems: 'center' }}
               >
                 {reportStatus === 'sending' ? '⏳ Sending...' : '📧 Send Email'}
               </button>

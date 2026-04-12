@@ -83,6 +83,29 @@ router.get('/all', async (req, res) => {
   }
 });
 
+// Get a single Project by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: req.params.id },
+      include: {
+        _count: {
+          select: { scans: true }
+        }
+      }
+    });
+
+    if (!project || project.userId !== req.user.userId) {
+      return res.status(404).json({ error: 'Project not found or access denied.' });
+    }
+
+    res.json(project);
+  } catch (error) {
+    console.error('Error fetching project:', error);
+    res.status(500).json({ error: 'Failed to fetch project.' });
+  }
+});
+
 // =======================
 // SCAN HISTORY API
 // =======================

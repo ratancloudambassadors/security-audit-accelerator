@@ -14,7 +14,22 @@ const ProjectsPage = () => {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
-        setProjects(data);
+        
+        // Deduplicate locally by name to fix any old data issues
+        const uniqueProjectsMap = new Map();
+        data.forEach(p => {
+          if (!uniqueProjectsMap.has(p.name)) {
+            uniqueProjectsMap.set(p.name, p);
+          } else {
+            // Merge scan count for duplicates
+            const curr = uniqueProjectsMap.get(p.name);
+            curr._count = curr._count || { scans: 0 };
+            const additional = p._count?.scans || 0;
+            curr._count.scans += additional;
+          }
+        });
+        
+        setProjects(Array.from(uniqueProjectsMap.values()));
       } catch (err) {
         console.error('Failed to fetch projects:', err);
       } finally {
@@ -43,7 +58,7 @@ const ProjectsPage = () => {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--spacing-4)' }}>
             {projects.map((proj) => (
-              <a key={proj.id} href={`/dashboard/history?project=${proj.id}`} style={{ textDecoration: 'none' }}>
+              <a key={proj.id} href={`/dashboard/projects/${proj.id}`} style={{ textDecoration: 'none' }}>
                 <Card style={{ cursor: 'pointer', transition: 'transform 0.15s', padding: 'var(--spacing-4)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-3)' }}>
                     <span style={{ fontSize: '1.5rem' }}>{proj.provider === 'gcp' ? '☁️' : proj.provider === 'aws' ? '🟠' : '🔵'}</span>

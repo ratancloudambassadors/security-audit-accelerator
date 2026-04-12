@@ -22,7 +22,7 @@ const LoginPage = () => {
       loading: 'Logging in...',
       success: (result) => {
         if (!result.success) throw new Error(result.error);
-        return 'Welcome back!';
+        return 'Logged in Successfully.';
       },
       error: (err) => err.message
     }).then((result) => {
@@ -68,7 +68,7 @@ const LoginPage = () => {
           </a>
         </div>
         
-        <Button type="submit" variant="primary" className={styles.submitBtn} disabled={loading}>
+        <Button type="submit" variant="primary" className={styles.submitBtn} loading={loading}>
           Log In
         </Button>
       </form>

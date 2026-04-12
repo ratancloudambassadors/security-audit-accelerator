@@ -122,7 +122,7 @@ const DashboardNavbar = () => {
             <div className={styles.userProfile} ref={profileRef} onClick={() => setProfileOpen(!profileOpen)} style={{ position: 'relative', cursor: 'pointer' }}>
               {user?.displayPicture ? (
                 <img
-                  src={`https://security-audit-accelerator-backend-196053730058.asia-south1.run.app${user.displayPicture}`}
+                  src={user.displayPicture.startsWith('data:') ? user.displayPicture : `https://security-audit-accelerator-backend-196053730058.asia-south1.run.app${user.displayPicture}`}
                   alt="Profile"
                   className={styles.avatar}
                 />

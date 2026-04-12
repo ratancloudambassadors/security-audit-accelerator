@@ -20,7 +20,11 @@ const SettingsPage = () => {
         if (user) {
             setName(user.name || '');
             if (user.displayPicture) {
-                setPreviewUrl(`https://security-audit-accelerator-backend-196053730058.asia-south1.run.app${user.displayPicture}`);
+                if (user.displayPicture.startsWith('data:')) {
+                    setPreviewUrl(user.displayPicture);
+                } else {
+                    setPreviewUrl(`https://security-audit-accelerator-backend-196053730058.asia-south1.run.app${user.displayPicture}`);
+                }
             }
         }
     }, [user]);

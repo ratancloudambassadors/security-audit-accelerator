@@ -11,10 +11,43 @@
   color: var(--color-text-muted);
 }
 
+.inputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.inputWithIcon {
+  padding-right: 40px !important;
+}
+
+.eyeBtn {
+  position: absolute;
+  right: var(--spacing-3);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.eyeBtn:hover {
+  color: var(--color-primary);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 .input {
   width: 100%;
   padding: var(--spacing-3) var(--spacing-4);
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text);
@@ -25,11 +58,11 @@
 }
 
 .input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+  color: #94a3b8;
 }
 
 .input:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: #cbd5e1;
 }
 
 .input:focus {

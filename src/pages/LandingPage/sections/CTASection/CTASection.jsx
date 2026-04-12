@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import styles from './CTASection.module.css';
 import Section from '../../../../components/Section/Section';
 import Button from '../../../../components/Button/Button';
@@ -9,20 +10,24 @@ const CTASection = () => {
       id="pricing"
       className={styles.ctaSection}
     >
-      <div className={styles.ctaBox}>
-        <div className={styles.backgroundEffects}>
-          <div className={styles.glowTop}></div>
-          <div className={styles.glowBottom}></div>
-        </div>
+      <div className={styles.islandContainer}>
+        <div className={styles.ambientGlowTop}></div>
+        <div className={styles.ambientGlowBottom}></div>
         
-        <div className={styles.content}>
-          <h2 className={styles.title}>Ready to Make Your Cloud Safe?</h2>
+        <div className={styles.islandContent}>
+          <div className={styles.sparkleBadge}>
+             <Sparkles size={16} className={styles.sparkleIcon} />
+             Get Started
+          </div>
+          <h2 className={styles.title}>Secure your cloud today.</h2>
           <p className={styles.description}>
-            Start your free scan today and protect your business from attacks and data leaks.
+            Join thousands of teams shipping faster with automated security intelligence.
           </p>
           <div className={styles.actions}>
-            <Button variant="primary" size="large" onClick={() => window.location.href = '/register'}>Start Free Scan</Button>
-            <Button variant="secondary" size="large">Contact Sales</Button>
+            <Button className={styles.primaryIslandBtn} size="large" onClick={() => window.location.href = '/register'}>
+              Start Free Scan <ArrowRight size={18} style={{ marginLeft: '8px' }} />
+            </Button>
+            <Button className={styles.secondaryIslandBtn} size="large">Talk to Sales</Button>
           </div>
         </div>
       </div>

@@ -268,8 +268,17 @@ router.put('/profile', upload.single('displayPicture'), async (req, res) => {
     }
 
     if (req.file) {
-      // Create the URL path relative to the server host
-      updateData.displayPicture = `/uploads/avatars/${req.file.filename}`;
+      // Read file from disk and convert to base64 to store in MongoDB instead of ephemeral cloud run disk
+      const fileData = fs.readFileSync(req.file.path);
+      const b64 = fileData.toString('base64');
+      updateData.displayPicture = `data:${req.file.mimetype};base64,${b64}`;
+      
+      // Clean up the temporary file
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {
+        console.error('Failed to cleanup temp file', e);
+      }
     }
 
     const updatedUser = await prisma.user.update({

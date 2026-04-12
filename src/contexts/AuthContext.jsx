@@ -6,13 +6,29 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is logged in on mount
+  // Check if user is logged in on mount and verify token is not expired (1-day limit)
   useEffect(() => {
     const token = localStorage.getItem('auditscope_token');
     const savedUser = localStorage.getItem('auditscope_user');
 
     if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const isExpired = payload.exp * 1000 < Date.now();
+        
+        if (isExpired) {
+          // Token expired (24h/1-day limit has been reached)
+          localStorage.removeItem('auditscope_token');
+          localStorage.removeItem('auditscope_user');
+          setUser(null);
+        } else {
+          setUser(JSON.parse(savedUser));
+        }
+      } catch (err) {
+        console.error('Invalid token format');
+        localStorage.removeItem('auditscope_token');
+        localStorage.removeItem('auditscope_user');
+      }
     }
     setLoading(false);
   }, []);
