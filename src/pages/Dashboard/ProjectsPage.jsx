@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from './DashboardLayout';
+
 import Card from '../../components/Card/Card';
 
 const ProjectsPage = () => {
@@ -40,7 +40,7 @@ const ProjectsPage = () => {
   }, []);
 
   return (
-    <DashboardLayout>
+    <>
       <div style={{ paddingBottom: 'var(--spacing-4)' }}>
         <h1 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-1)' }}>Projects</h1>
         <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-6)' }}>
@@ -81,7 +81,7 @@ const ProjectsPage = () => {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 };
 

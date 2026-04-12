@@ -8,9 +8,8 @@ const navItems = [
   { name: 'Scan History', path: '/dashboard/history', icon: '⏱️' },
 ];
 
-const Sidebar = () => {
-  // Simplistic method to determine active link purely statically for now
-  const currentPath = window.location.pathname;
+const Sidebar = ({ currentPath }) => {
+  // Now using currentPath prop from App.jsx via DashboardLayout
 
   return (
     <aside className={styles.sidebar}>

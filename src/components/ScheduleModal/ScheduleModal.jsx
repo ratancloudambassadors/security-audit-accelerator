@@ -80,7 +80,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                             type="time" 
                             value={time} 
                             onChange={(e) => setTime(e.target.value)}
-                            style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text)', fontSize: '1.2rem' }}
+                            style={{ width: '100%', padding: '12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text)', fontSize: '1.2rem' }}
                         />
                     </div>
                 );
@@ -95,7 +95,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                     onClick={() => toggleDay(d.id)}
                                     style={{
                                         width: '45px', height: '45px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        background: daysOfWeek.includes(d.id) ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)',
+                                        background: daysOfWeek.includes(d.id) ? 'var(--color-primary)' : 'var(--color-bg)',
                                         color: daysOfWeek.includes(d.id) ? '#000' : 'var(--color-text)', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 600, fontSize: '12px'
                                     }}
                                 >
@@ -107,7 +107,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                             type="time" 
                             value={time} 
                             onChange={(e) => setTime(e.target.value)}
-                            style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text)', fontSize: '1.2rem' }}
+                            style={{ width: '100%', padding: '12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text)', fontSize: '1.2rem' }}
                         />
                     </div>
                 );
@@ -123,7 +123,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                     min="1" max="31" 
                                     value={dayOfMonth} 
                                     onChange={(e) => setDayOfMonth(parseInt(e.target.value))}
-                                    style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text)' }}
+                                    style={{ width: '100%', padding: '10px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text)' }}
                                 />
                             </div>
                             <div style={{ flex: 1 }}>
@@ -132,7 +132,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                     type="time" 
                                     value={time} 
                                     onChange={(e) => setTime(e.target.value)}
-                                    style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text)' }}
+                                    style={{ width: '100%', padding: '10px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text)' }}
                                 />
                             </div>
                         </div>
@@ -145,18 +145,18 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000,
+            backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000,
             backdropFilter: 'blur(12px)'
         }}>
             <div style={{ width: '100%', maxWidth: '550px', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                <Card style={{ padding: 'var(--spacing-8)', position: 'relative', overflow: 'hidden', border: '1px solid rgba(0, 229, 255, 0.2)', background: '#0e111d' }}>
+                <Card style={{ padding: 'var(--spacing-8)', position: 'relative', overflow: 'hidden', border: '1px solid var(--color-border)', background: 'var(--color-bg-secondary)', boxShadow: 'var(--shadow-2xl)' }}>
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, var(--color-primary), #a855f7)' }}></div>
                     
                     <button onClick={onClose} style={{ position: 'absolute', top: '24px', right: '24px', background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '18px' }}>✕</button>
 
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
                         {[1, 2, 3].map(s => (
-                            <div key={s} style={{ height: '4px', flex: 1, borderRadius: '4px', background: step >= s ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)' }}></div>
+                            <div key={s} style={{ height: '4px', flex: 1, borderRadius: '4px', background: step >= s ? 'var(--color-primary)' : 'var(--color-border)' }}></div>
                         ))}
                     </div>
 
@@ -187,7 +187,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                             onClick={() => { setProvider(p); setStep(2); }}
                                             style={{
                                                 padding: '30px 20px', borderRadius: '16px', border: provider === p ? '2px solid var(--color-primary)' : '1px solid rgba(255,255,255,0.05)',
-                                                background: provider === p ? 'rgba(0, 229, 255, 0.05)' : 'rgba(0,0,0,0.3)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s'
+                                                background: provider === p ? 'rgba(var(--color-primary-rgb, 0, 120, 212), 0.1)' : 'var(--color-bg)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s'
                                             }}
                                         >
                                             <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>{p === 'gcp' ? '☁️' : '📦'}</div>
@@ -212,7 +212,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                                         reader.readAsText(file);
                                                     }
                                                 }}
-                                                style={{ border: '2px dashed var(--color-border)', borderRadius: '12px', padding: '30px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', transition: 'all 0.3s' }}
+                                                style={{ border: '2px dashed var(--color-border)', borderRadius: '12px', padding: '30px', textAlign: 'center', background: 'var(--color-bg)', cursor: 'pointer', transition: 'all 0.3s' }}
                                                 onClick={() => {
                                                     const input = document.createElement('input');
                                                     input.type = 'file';
@@ -239,7 +239,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                                     placeholder="Paste Service Account JSON content here..."
                                                     value={creds && typeof creds === 'string' ? creds : ''}
                                                     onChange={(e) => setCreds(e.target.value)}
-                                                    style={{ width: '100%', height: '120px', padding: '16px', background: 'rgba(0,0,0,0.4)', color: 'var(--color-primary)', border: '1px solid var(--color-border)', borderRadius: '12px', fontFamily: 'monospace', fontSize: '13px', outline: 'none' }}
+                                                    style={{ width: '100%', height: '120px', padding: '16px', background: 'var(--color-bg)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '12px', fontFamily: 'monospace', fontSize: '13px', outline: 'none' }}
                                                 />
                                             </div>
                                         </div>
@@ -253,7 +253,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                                     placeholder="AKIA..."
                                                     value={typeof creds === 'object' ? creds.accessKeyId : ''}
                                                     onChange={(e) => setCreds(prev => ({ ...(typeof prev === 'object' ? prev : {}), accessKeyId: e.target.value }))}
-                                                    style={{ width: '100%', padding: '14px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '10px', color: 'var(--color-text)', outline: 'none' }}
+                                                    style={{ width: '100%', padding: '14px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '10px', color: 'var(--color-text)', outline: 'none' }}
                                                 />
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -263,17 +263,17 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                                     placeholder="wJal..."
                                                     value={typeof creds === 'object' ? creds.secretAccessKey : ''}
                                                     onChange={(e) => setCreds(prev => ({ ...(typeof prev === 'object' ? prev : {}), secretAccessKey: e.target.value }))}
-                                                    style={{ width: '100%', padding: '14px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '10px', color: 'var(--color-text)', outline: 'none' }}
+                                                    style={{ width: '100%', padding: '14px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '10px', color: 'var(--color-text)', outline: 'none' }}
                                                 />
                                             </div>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                                        <button onClick={() => setStep(1)} style={{ flex: 1, padding: '12px', borderRadius: '8px', background: 'transparent', border: '1px solid #334155', color: 'var(--color-text)', cursor: 'pointer' }}>Back</button>
+                                        <button onClick={() => setStep(1)} style={{ flex: 1, padding: '12px', borderRadius: '8px', background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text)', cursor: 'pointer' }}>Back</button>
                                         <button 
                                             onClick={() => setStep(3)} 
                                             disabled={!creds} 
-                                            style={{ flex: 2, padding: '12px', borderRadius: '8px', background: 'var(--color-primary)', border: 'none', color: '#000', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 15px rgba(0, 229, 255, 0.3)', opacity: creds ? 1 : 0.5 }}
+                                            style={{ flex: 2, padding: '12px', borderRadius: '8px', background: 'var(--color-primary)', border: 'none', color: '#000', fontWeight: 700, cursor: 'pointer', boxShadow: 'var(--shadow-md)', opacity: creds ? 1 : 0.5 }}
                                         >
                                             Next: Configure Schedule
                                         </button>
@@ -288,7 +288,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                             <div 
                                                 key={f} 
                                                 onClick={() => setFrequency(f)}
-                                                style={{ flex: 1, padding: '10px', borderRadius: '8px', textAlign: 'center', background: frequency === f ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)', color: frequency === f ? '#000' : 'var(--color-text-muted)', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize', fontSize: '13px' }}
+                                                style={{ flex: 1, padding: '10px', borderRadius: '8px', textAlign: 'center', background: frequency === f ? 'var(--color-primary)' : 'var(--color-bg)', color: frequency === f ? '#000' : 'var(--color-text-muted)', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize', fontSize: '13px' }}
                                             >
                                                 {f}
                                             </div>
@@ -298,7 +298,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                     {renderFrequencyContent()}
 
                                     <div style={{ display: 'flex', gap: '12px', marginTop: '30px' }}>
-                                        <button onClick={() => setStep(2)} style={{ flex: 1, padding: '12px', borderRadius: '8px', background: 'transparent', border: '1px solid #334155', color: 'var(--color-text)', cursor: 'pointer' }}>Back</button>
+                                        <button onClick={() => setStep(2)} style={{ flex: 1, padding: '12px', borderRadius: '8px', background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text)', cursor: 'pointer' }}>Back</button>
                                         <Button variant="primary" style={{ flex: 2 }} onClick={handleSave} disabled={submitting}>
                                             {submitting ? 'Creating Automation...' : 'Finalize Automation'}
                                         </Button>

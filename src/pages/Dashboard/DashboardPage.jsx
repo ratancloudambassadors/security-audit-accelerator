@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import DashboardLayout from './DashboardLayout';
+
 import Section from '../../components/Section/Section';
 import Card from '../../components/Card/Card';
 import ScheduleModal from '../../components/ScheduleModal/ScheduleModal';
@@ -22,19 +22,26 @@ const DashboardPage = () => {
   useEffect(() => {
     // Check if we came from ScanHistory with a specific scan object
     const historicalScan = localStorage.getItem('last_viewed_scan');
+    const latestScan = localStorage.getItem('latest_scan_result');
+    
     if (historicalScan) {
       console.log('Dashboard loading historical scan data');
       const scan = JSON.parse(historicalScan);
       setScanData(scan);
       
-      // Dispatch event so Navbar knows to update its Service dropdown options
-      // Use short timeout to ensure Navbar's event listener is ready.
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('scanCompleted', { detail: scan }));
       }, 50);
       
-      // Clean up so it doesn't persist forever on refresh
       localStorage.removeItem('last_viewed_scan');
+    } else if (latestScan) {
+      console.log('Dashboard loading latest background scan data');
+      const scan = JSON.parse(latestScan);
+      setScanData(scan);
+      
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('scanCompleted', { detail: scan }));
+      }, 50);
     }
   }, []);
 
@@ -54,11 +61,17 @@ const DashboardPage = () => {
       setCurrentPage(1);
     };
 
+    const handleScanStarted = () => {
+      setScanData(null);
+    };
+
     window.addEventListener('scanCompleted', handleScanComplete);
     window.addEventListener('filterByServiceChanged', handleServiceFilterChanged);
+    window.addEventListener('scanStarted', handleScanStarted);
     return () => {
       window.removeEventListener('scanCompleted', handleScanComplete);
       window.removeEventListener('filterByServiceChanged', handleServiceFilterChanged);
+      window.removeEventListener('scanStarted', handleScanStarted);
     };
   }, []);
 
@@ -188,7 +201,7 @@ const DashboardPage = () => {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div style={{ paddingBottom: 'var(--spacing-4)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 'var(--spacing-4)' }}>
           <div>
@@ -294,7 +307,7 @@ const DashboardPage = () => {
                     </div>
                   </h3>
                   <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-text)' }}>
-                    {new Set(processedData.filteredAllItems.map(v => v.resource)).size}
+                    {scanData?.scanned !== undefined ? scanData.scanned : new Set(processedData.filteredAllItems.map(v => v.resource)).size}
                   </div>
                 </Card>
                 <Card style={{ padding: 'var(--spacing-3)', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--color-bg-secondary)' }}>
@@ -490,7 +503,7 @@ const DashboardPage = () => {
         projectId={scanData?.dbProjectId}
         projectName={scanData?.provider?.toUpperCase() || 'Cloud'}
       />
-    </DashboardLayout>
+    </>
   );
 };
 

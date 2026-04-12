@@ -94,6 +94,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('auditscope_token');
     localStorage.removeItem('auditscope_user');
+    localStorage.removeItem('last_viewed_scan');
+    localStorage.removeItem('latest_scan_result');
     setUser(null);
     window.location.href = '/';
   };

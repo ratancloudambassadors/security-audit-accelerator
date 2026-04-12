@@ -21,6 +21,7 @@ const DashboardNavbar = () => {
   const [dynamicServiceOptions, setDynamicServiceOptions] = useState(defaultServiceOptions);
   const [selectedProvider, setSelectedProvider] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [scanBackgroundStatus, setScanBackgroundStatus] = useState('idle'); // idle, scanning, completed
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
 
@@ -70,9 +71,12 @@ const DashboardNavbar = () => {
   };
 
   const handleScanComplete = (results) => {
-    console.log("Scan Finished with Results:", results);
-    const event = new CustomEvent('scanCompleted', { detail: results });
-    window.dispatchEvent(event);
+    // Store in localStorage for DashboardPage to pick up when it mounts
+    localStorage.setItem('last_viewed_scan', JSON.stringify(results));
+    
+    // Navigate to the Dashboard page directly
+    window.history.pushState(null, '', '/dashboard');
+    window.dispatchEvent(new Event('popstate'));
   };
 
   const getInitial = () => {
@@ -100,6 +104,16 @@ const DashboardNavbar = () => {
           </div>
 
           <div className={styles.actionGroup}>
+            {scanBackgroundStatus !== 'idle' && (
+              <button 
+                className={`${styles.scanIndicator} ${scanBackgroundStatus === 'completed' ? styles.scanIndicatorCompleted : ''}`} 
+                onClick={() => setIsModalOpen(true)}
+                title={scanBackgroundStatus === 'completed' ? "Scan Complete - View Results" : "Scan in Progress - View Details"}
+              >
+                {scanBackgroundStatus === 'completed' ? '✓' : ''}
+              </button>
+            )}
+
             <Select
               options={providerOptions}
               value={selectedProvider}
@@ -132,7 +146,7 @@ const DashboardNavbar = () => {
 
 
               {profileOpen && (
-                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', padding: '8px 0', backgroundColor: '#1a1d2e', border: '1px solid #2d3148', borderRadius: 'var(--radius-md)', minWidth: '150px', boxShadow: '0 4px 12px rgba(0,0,0,0.6)', zIndex: 100 }}>
+                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', padding: '8px 0', backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', minWidth: '200px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 100 }}>
                   <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--color-border)', marginBottom: '4px' }}>
                     <div style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)', color: 'var(--color-text)' }}>{user?.name || 'User'}</div>
                     <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>{user?.email || ''}</div>
@@ -155,6 +169,7 @@ const DashboardNavbar = () => {
         onClose={() => setIsModalOpen(false)}
         provider={selectedProvider}
         onScanComplete={handleScanComplete}
+        onScanStatusChange={setScanBackgroundStatus}
       />
     </>
   );

@@ -118,3 +118,37 @@
   object-fit: cover;
   aspect-ratio: 1 / 1;
 }
+.scanIndicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--color-success);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  box-shadow: 0 0 8px var(--color-success);
+  animation: blink 1.5s infinite;
+  padding: 0;
+  flex-shrink: 0;
+  min-width: 16px;
+  min-height: 16px;
+  aspect-ratio: 1 / 1;
+}
+
+.scanIndicatorCompleted {
+  animation: none;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+}
+
+@keyframes blink {
+  0% { opacity: 1; box-shadow: 0 0 8px var(--color-success); }
+  50% { opacity: 0.4; box-shadow: 0 0 2px var(--color-success); }
+  100% { opacity: 1; box-shadow: 0 0 8px var(--color-success); }
+}

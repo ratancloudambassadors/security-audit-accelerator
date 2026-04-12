@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from './DashboardLayout';
+
 import Card from '../../components/Card/Card';
 import ScanDetailModal from '../../components/ScanDetailModal/ScanDetailModal';
 
@@ -96,7 +96,7 @@ const ScanHistoryPage = () => {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div style={{ paddingBottom: 'var(--spacing-4)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-6)' }}>
           <div>
@@ -231,7 +231,7 @@ const ScanHistoryPage = () => {
         onClose={() => setIsModalOpen(false)} 
         scan={selectedScan} 
       />
-    </DashboardLayout>
+    </>
   );
 };
 

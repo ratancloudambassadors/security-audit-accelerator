@@ -2,8 +2,9 @@ import React, { useState, useRef } from 'react';
 import styles from './ScannerModal.module.css';
 import Button from '../Button/Button';
 
-const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
+const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusChange }) => {
   const [activeTab, setActiveTab] = useState('upload'); // 'upload' or 'paste'
+  const [completedResults, setCompletedResults] = useState(null);
   const [file, setFile] = useState(null);
   const [jsonText, setJsonText] = useState('');
 
@@ -57,9 +58,14 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
       }
     }
 
+    localStorage.removeItem('latest_scan_result');
+    localStorage.removeItem('last_viewed_scan');
+    window.dispatchEvent(new CustomEvent('scanStarted'));
+
     setIsScanning(true);
     setScanProgress(0);
     setError(null);
+    if (onScanStatusChange) onScanStatusChange('scanning');
 
     // Simulated progress tick (jumps every 500ms, slowing down as it reaches 99%)
     const progressInterval = setInterval(() => {
@@ -133,14 +139,16 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
         provider: provider
       };
 
-      onScanComplete(adaptedResults);
-      onClose();
+      if (onScanStatusChange) onScanStatusChange('completed');
+      setCompletedResults(adaptedResults);
+      localStorage.setItem('latest_scan_result', JSON.stringify(adaptedResults));
+      setIsScanning(false);
 
     } catch (err) {
       console.error("Scan Error:", err);
       clearInterval(progressInterval);
       setError(err.message || "Invalid JSON or network error. Ensure backend is running.");
-    } finally {
+      if (onScanStatusChange) onScanStatusChange('idle');
       setIsScanning(false);
       setScanProgress(0);
     }
@@ -150,8 +158,23 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete }) => {
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
 
-        {isScanning ? (
+        {completedResults ? (
+          <div className={styles.completionState}>
+            <div className={styles.successIcon}>✓</div>
+            <h2 className={styles.scanTitle}>Scan Complete</h2>
+            <p className={styles.scanSubtitle}>Audit finished with {completedResults.vulnerabilities.length} vulnerabilities across {completedResults.scanned} resources.</p>
+            <div style={{ marginTop: 'var(--spacing-6)' }}>
+              <Button variant="primary" onClick={() => {
+                onScanComplete(completedResults);
+                setCompletedResults(null);
+                if (onScanStatusChange) onScanStatusChange('idle');
+                onClose();
+              }}>View Results</Button>
+            </div>
+          </div>
+        ) : isScanning ? (
           <div className={styles.scanningState}>
+            <button className={styles.minimizeBtn} onClick={onClose} title="Minimize to background">−</button>
             <div className={styles.scannerRing}></div>
             <h2 className={styles.scanPercentage}>{scanProgress}%</h2>
             <h2 className={styles.scanTitle}>Auditing {provider.toUpperCase()} Infrastructure</h2>

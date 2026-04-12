@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from './DashboardLayout';
+
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import ScheduleModal from '../../components/ScheduleModal/ScheduleModal';
@@ -73,7 +73,7 @@ const AutomationPage = () => {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div style={{ paddingBottom: 'var(--spacing-8)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-8)' }}>
           <div>
@@ -90,7 +90,7 @@ const AutomationPage = () => {
         {loading ? (
           <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '60px' }}>Loading automations...</div>
         ) : schedules.length === 0 ? (
-          <Card style={{ minHeight: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-4)', borderStyle: 'dashed', background: 'rgba(255,255,255,0.01)' }}>
+          <Card style={{ minHeight: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-4)', borderStyle: 'dashed', background: 'var(--color-bg-secondary)', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
             <div style={{ fontSize: '4rem', opacity: 0.2 }}>⏰</div>
             <h3 style={{ margin: 0 }}>No active automations</h3>
             <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', maxWidth: '350px' }}>
@@ -101,7 +101,7 @@ const AutomationPage = () => {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 'var(--spacing-6)' }}>
             {schedules.map((schedule) => (
-              <Card key={schedule.id} style={{ padding: 'var(--spacing-6)', position: 'relative', border: '1px solid var(--color-border)', background: schedule.isActive ? 'rgba(0, 229, 255, 0.02)' : 'rgba(255,255,255,0.01)' }}>
+              <Card key={schedule.id} style={{ padding: 'var(--spacing-6)', position: 'relative', border: '1px solid var(--color-border)', background: schedule.isActive ? 'rgba(var(--color-primary-rgb, 0, 120, 212), 0.03)' : 'var(--color-bg-secondary)', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-4)' }}>
                   <div>
                     <span style={{ 
@@ -119,7 +119,7 @@ const AutomationPage = () => {
                   <div style={{ fontSize: '1.5rem' }}>🔄</div>
                 </div>
 
-                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', marginBottom: 'var(--spacing-6)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{ background: 'var(--color-bg)', padding: '12px', borderRadius: '8px', marginBottom: 'var(--spacing-6)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', border: '1px solid var(--color-border)' }}>
                   <div>
                     <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Next Run:</div>
                     <div style={{ fontSize: '12px', fontWeight: 600 }}>{new Date(schedule.nextRun).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</div>
@@ -133,7 +133,7 @@ const AutomationPage = () => {
                 <div style={{ display: 'flex', gap: 'var(--spacing-4)' }}>
                   <button 
                     onClick={() => toggleSchedule(schedule.id)}
-                    style={{ flex: 1, padding: '10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', color: 'var(--color-text)', cursor: 'pointer', fontSize: '13px' }}
+                    style={{ flex: 1, padding: '10px', borderRadius: '6px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text)', cursor: 'pointer', fontSize: '13px' }}
                   >
                     {schedule.isActive ? 'Pause' : 'Resume'}
                   </button>
@@ -156,7 +156,7 @@ const AutomationPage = () => {
         projectId={selectedProject?.id}
         projectName={selectedProject?.name}
       />
-    </DashboardLayout>
+    </>
   );
 };
 
