@@ -25,7 +25,7 @@ const Header = () => {
           <a href="/login" className={`${styles.loginBtn}`} style={{ textDecoration: 'none' }}>
             <Button variant="ghost" as="span">Log In</Button>
           </a>
-          <Button variant="primary" onClick={() => window.location.href = '/register'}>Start Free Scan</Button>
+          <Button variant="primary" onClick={() => window.location.href = '/register'}>Free Scan</Button>
         </div>
       </div>
     </header>

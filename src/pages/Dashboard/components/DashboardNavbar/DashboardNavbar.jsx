@@ -5,6 +5,23 @@ import Button from '../../../../components/Button/Button';
 import ScannerModal from '../../../../components/ScannerModal/ScannerModal';
 import { AuthContext } from '../../../../contexts/AuthContext';
 
+const getServiceName = (resource) => {
+  const match = resource.match(/^([^(]+)/);
+  let sName = match ? match[1].trim() : 'Other';
+  const lowerName = sName.toLowerCase();
+  
+  if (lowerName.includes('compute')) return 'Compute Engine';
+  if (lowerName.includes('iam')) return 'IAM';
+  if (lowerName.includes('storage') || lowerName.includes('bucket')) return 'Storage';
+  if (lowerName.includes('sql') || lowerName.includes('database')) return 'Database';
+  if (lowerName.includes('network') || lowerName.includes('vpc') || lowerName.includes('firewall') || lowerName.includes('router') || lowerName.includes('route')) return 'Network';
+  if (lowerName.includes('kubernetes') || lowerName.includes('gke') || lowerName.includes('eks')) return 'Kubernetes';
+  if (lowerName.includes('kms') || lowerName.includes('key')) return 'KMS';
+  if (lowerName.includes('func') || lowerName.includes('lambda')) return 'Functions';
+  
+  return sName;
+};
+
 const defaultServiceOptions = [
   { value: 'all', label: 'All Services' }
 ];
@@ -31,9 +48,7 @@ const DashboardNavbar = () => {
       if (results && results.vulnerabilities) {
         const uniqueServices = new Set();
         results.vulnerabilities.forEach(v => {
-          const match = v.resource.match(/^([^(]+)/);
-          if (match) uniqueServices.add(match[1].trim());
-          else uniqueServices.add('Other');
+          uniqueServices.add(getServiceName(v.resource));
         });
 
         const newOptions = [
@@ -73,6 +88,9 @@ const DashboardNavbar = () => {
   const handleScanComplete = (results) => {
     // Store in localStorage for DashboardPage to pick up when it mounts
     localStorage.setItem('last_viewed_scan', JSON.stringify(results));
+    
+    // Ensure Dashboard picks up the update if already mounted
+    window.dispatchEvent(new CustomEvent('scanCompleted', { detail: results }));
     
     // Navigate to the Dashboard page directly
     window.history.pushState(null, '', '/dashboard');

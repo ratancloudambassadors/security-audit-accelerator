@@ -142,6 +142,7 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
       if (onScanStatusChange) onScanStatusChange('completed');
       setCompletedResults(adaptedResults);
       localStorage.setItem('latest_scan_result', JSON.stringify(adaptedResults));
+      window.dispatchEvent(new CustomEvent('scanCompleted', { detail: adaptedResults }));
       setIsScanning(false);
 
     } catch (err) {

@@ -25,7 +25,7 @@ const CTASection = () => {
           </p>
           <div className={styles.actions}>
             <Button className={styles.primaryIslandBtn} size="large" onClick={() => window.location.href = '/register'}>
-              Start Free Scan <ArrowRight size={18} style={{ marginLeft: '8px' }} />
+              Free Scan <ArrowRight size={18} style={{ marginLeft: '8px' }} />
             </Button>
             <Button className={styles.secondaryIslandBtn} size="large">Talk to Sales</Button>
           </div>

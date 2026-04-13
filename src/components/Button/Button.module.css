@@ -23,6 +23,13 @@
   opacity: 0;
 }
 
+.contentContainer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -47,7 +54,7 @@
 /* Variants */
 .primary {
   background-color: var(--color-primary);
-  color: #000000; /* Dark text on bright primary for contrast */
+  color: #ffffff; /* White text on blue background */
 }
 
 .primary:hover {

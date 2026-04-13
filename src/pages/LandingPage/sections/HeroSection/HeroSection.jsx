@@ -29,7 +29,7 @@ const HeroSection = () => {
             </p>
             <div className={styles.ctaGroup}>
               <Button variant="primary" size="large" onClick={() => window.location.href = '/register'}>
-                Start Free Scan <ArrowRight size={18} style={{ marginLeft: '8px' }} />
+                Free Scan <ArrowRight size={18} style={{ marginLeft: '8px' }} />
               </Button>
               <div className={styles.trustSnippet}>
                 <CheckCircle2 size={16} className={styles.checkIcon} />

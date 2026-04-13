@@ -4,6 +4,23 @@ import Section from '../../components/Section/Section';
 import Card from '../../components/Card/Card';
 import ScheduleModal from '../../components/ScheduleModal/ScheduleModal';
 
+const getServiceName = (resource) => {
+  const match = resource.match(/^([^(]+)/);
+  let sName = match ? match[1].trim() : 'Other';
+  const lowerName = sName.toLowerCase();
+  
+  if (lowerName.includes('compute')) return 'Compute Engine';
+  if (lowerName.includes('iam')) return 'IAM';
+  if (lowerName.includes('storage') || lowerName.includes('bucket')) return 'Storage';
+  if (lowerName.includes('sql') || lowerName.includes('database')) return 'Database';
+  if (lowerName.includes('network') || lowerName.includes('vpc') || lowerName.includes('firewall') || lowerName.includes('router') || lowerName.includes('route')) return 'Network';
+  if (lowerName.includes('kubernetes') || lowerName.includes('gke') || lowerName.includes('eks')) return 'Kubernetes';
+  if (lowerName.includes('kms') || lowerName.includes('key')) return 'KMS';
+  if (lowerName.includes('func') || lowerName.includes('lambda')) return 'Functions';
+  
+  return sName;
+};
+
 const DashboardPage = () => {
   const [scanData, setScanData] = useState(null);
   const [reportStatus, setReportStatus] = useState(null); // null | 'downloading' | 'sending' | 'sent' | 'error'
@@ -17,7 +34,7 @@ const DashboardPage = () => {
   const [severityFilter, setSeverityFilter] = useState('All');
   const [serviceFilter, setServiceFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const servicesPerPage = 2;
 
   useEffect(() => {
     // Check if we came from ScanHistory with a specific scan object
@@ -75,18 +92,16 @@ const DashboardPage = () => {
     };
   }, []);
 
-  // Compute filtered and paginated results
+  // Compute filtered and paginated results grouped by service
   const processedData = useMemo(() => {
-    if (!scanData || !scanData.vulnerabilities) return { items: [], totalPages: 0 };
+    if (!scanData || !scanData.vulnerabilities) return { paginatedServices: [], totalPages: 0, totalItems: 0, filteredAllItems: [] };
 
     let filtered = scanData.vulnerabilities;
 
     // Apply Service Filter (from Navbar)
     if (serviceFilter !== 'all') {
       filtered = filtered.filter(v => {
-        const match = v.resource.match(/^([^(]+)/);
-        const sName = match ? match[1].trim() : 'Other';
-        return sName === serviceFilter;
+        return getServiceName(v.resource) === serviceFilter;
       });
     }
 
@@ -105,16 +120,29 @@ const DashboardPage = () => {
       );
     }
 
-    // Calculate Pagination
-    const totalPages = Math.ceil(filtered.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedItems = filtered.slice(startIndex, startIndex + itemsPerPage);
+    // Group by Service
+    const groups = {};
+    filtered.forEach(v => {
+      const sName = getServiceName(v.resource);
+      if (!groups[sName]) groups[sName] = [];
+      groups[sName].push(v);
+    });
+
+    const groupedServices = Object.keys(groups).sort().map(sName => ({
+      name: sName,
+      items: groups[sName]
+    }));
+
+    // Calculate Pagination on Services
+    const totalPages = Math.ceil(groupedServices.length / servicesPerPage);
+    const startIndex = (currentPage - 1) * servicesPerPage;
+    const paginatedServices = groupedServices.slice(startIndex, startIndex + servicesPerPage);
 
     return {
       totalItems: filtered.length,
       filteredAllItems: filtered,
-      items: paginatedItems,
-      totalPages: totalPages
+      paginatedServices,
+      totalPages
     };
   }, [scanData, searchTerm, severityFilter, serviceFilter, currentPage]);
 
@@ -389,54 +417,67 @@ const DashboardPage = () => {
                 )}
               </div>
 
-              {processedData.items.length > 0 ? (
-                <Card style={{ padding: 0, overflow: 'hidden' }}>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--font-size-xs)' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
-                          <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>ID</th>
-                          <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>Severity</th>
-                          <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '20%' }}>Resource</th>
-                          <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '30%' }}>Issue Description</th>
-                          <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '30%' }}>Recommendation</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {processedData.items.map((vuln, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)' }}>
-                            <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontFamily: 'monospace', color: 'var(--color-primary)' }}>
-                              {vuln.id}
-                            </td>
-                            <td style={{ padding: 'var(--spacing-2) var(--spacing-3)' }}>
-                              <span style={{
-                                display: 'inline-block',
-                                padding: '2px 6px',
-                                borderRadius: '3px',
-                                backgroundColor: `${getSeverityColor(vuln.severity)}20`,
-                                color: getSeverityColor(vuln.severity),
-                                fontWeight: 600,
-                                fontSize: '10px',
-                                textTransform: 'uppercase'
-                              }}>
-                                {vuln.severity}
-                              </span>
-                            </td>
-                            <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--color-text)' }}>
-                              {vuln.resource}
-                            </td>
-                            <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--color-text-muted)' }}>
-                              {vuln.issue}
-                            </td>
-                            <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--color-primary)', opacity: 0.9 }}>
-                              {vuln.remediation || '-'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
+              {processedData.paginatedServices.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-6)' }}>
+                  {processedData.paginatedServices.map((serviceGroup, gIdx) => (
+                    <div key={gIdx}>
+                      <h3 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-3)', paddingBottom: 'var(--spacing-2)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ backgroundColor: 'var(--color-primary)', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase' }}>Service</span>
+                        {serviceGroup.name}
+                        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', fontWeight: 400, marginLeft: 'auto' }}>
+                          {serviceGroup.items.length} items
+                        </span>
+                      </h3>
+                      <Card style={{ padding: 0, overflow: 'hidden' }}>
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--font-size-xs)' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+                                <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>ID</th>
+                                <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>Severity</th>
+                                <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '20%' }}>Resource</th>
+                                <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '30%' }}>Issue Description</th>
+                                <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '30%' }}>Recommendation</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {serviceGroup.items.map((vuln, idx) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)' }}>
+                                  <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontFamily: 'monospace', color: 'var(--color-primary)' }}>
+                                    {vuln.id}
+                                  </td>
+                                  <td style={{ padding: 'var(--spacing-2) var(--spacing-3)' }}>
+                                    <span style={{
+                                      display: 'inline-block',
+                                      padding: '2px 6px',
+                                      borderRadius: '3px',
+                                      backgroundColor: `${getSeverityColor(vuln.severity)}20`,
+                                      color: getSeverityColor(vuln.severity),
+                                      fontWeight: 600,
+                                      fontSize: '10px',
+                                      textTransform: 'uppercase'
+                                    }}>
+                                      {vuln.severity}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--color-text)' }}>
+                                    {vuln.resource}
+                                  </td>
+                                  <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--color-text-muted)' }}>
+                                    {vuln.issue}
+                                  </td>
+                                  <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--color-primary)', opacity: 0.9 }}>
+                                    {vuln.remediation || '-'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div style={{ padding: 'var(--spacing-8)', textAlign: 'center', color: 'var(--color-text-muted)', backgroundColor: 'var(--color-background-light)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--color-border)' }}>
                   No vulnerabilities match the current filters.

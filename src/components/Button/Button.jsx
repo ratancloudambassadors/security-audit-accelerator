@@ -22,7 +22,7 @@ const Button = ({
       {...props}
     >
       {loading && <Loader2 className={styles.spinner} size={18} />}
-      <span className={loading ? styles.hiddenText : ''}>{children}</span>
+      <span className={`${styles.contentContainer} ${loading ? styles.hiddenText : ''}`}>{children}</span>
     </button>
   );
 };
