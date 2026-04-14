@@ -4,7 +4,7 @@ import styles from './SettingsPage.module.css';
 import Button from '../../components/Button/Button';
 
 const SettingsPage = () => {
-    const { user, login } = useContext(AuthContext); // Re-using login logic or we can add updateUser to context
+    const { user, login } = useContext(AuthContext);
 
     const [name, setName] = useState('');
     const [displayPicture, setDisplayPicture] = useState(null);
@@ -13,8 +13,18 @@ const SettingsPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
+    const [tourReset, setTourReset] = useState(false);
 
     const fileInputRef = useRef(null);
+
+    const handleReplayTour = () => {
+        localStorage.removeItem('auditscope_tour_done');
+        setTourReset(true);
+        setTimeout(() => {
+            window.history.pushState(null, '', '/dashboard');
+            window.dispatchEvent(new Event('popstate'));
+        }, 400);
+    };
 
     useEffect(() => {
         if (user) {
@@ -185,6 +195,56 @@ const SettingsPage = () => {
                         </div>
 
                     </form>
+                </section>
+            </div>
+
+            {/* ── Product Tour card ── */}
+            <div className={styles.content} style={{ marginTop: '24px' }}>
+                <section className={styles.card}>
+                    <div className={styles.cardHeader}>
+                        <h2 className={styles.cardTitle}>🗺️ Product Tour</h2>
+                        <p className={styles.cardSubtitle}>
+                            Replay the interactive walkthrough that guides you through every feature of AuditScope.
+                        </p>
+                    </div>
+                    <div style={{ padding: '8px 0 4px 0' }}>
+                        <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '16px 20px', borderRadius: '10px',
+                            background: 'rgba(139,92,246,0.06)',
+                            border: '1px solid rgba(139,92,246,0.18)'
+                        }}>
+                            <div>
+                                <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
+                                    Onboarding Walkthrough
+                                </div>
+                                <div style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                                    {tourReset
+                                        ? '✅ Tour reset! Taking you to the Dashboard...'
+                                        : 'Click to replay the step-by-step tour on the Dashboard.'}
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleReplayTour}
+                                disabled={tourReset}
+                                style={{
+                                    padding: '10px 20px', borderRadius: '8px',
+                                    background: tourReset
+                                        ? 'rgba(34,197,94,0.15)'
+                                        : 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+                                    border: 'none',
+                                    color: tourReset ? '#22c55e' : '#fff',
+                                    fontWeight: 700, fontSize: '13px',
+                                    cursor: tourReset ? 'default' : 'pointer',
+                                    boxShadow: tourReset ? 'none' : '0 4px 14px rgba(139,92,246,0.35)',
+                                    whiteSpace: 'nowrap',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {tourReset ? '✅ Done!' : '▶ Replay Tour'}
+                            </button>
+                        </div>
+                    </div>
                 </section>
             </div>
         </div>

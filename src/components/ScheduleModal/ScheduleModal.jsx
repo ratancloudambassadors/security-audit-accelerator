@@ -10,6 +10,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
     const [time, setTime] = useState('09:00');
     const [daysOfWeek, setDaysOfWeek] = useState(['Monday']);
     const [dayOfMonth, setDayOfMonth] = useState(1);
+    const [targetEmail, setTargetEmail] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
 
@@ -22,6 +23,19 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
         { id: 'Saturday', label: 'Sat' },
         { id: 'Sunday', label: 'Sun' }
     ];
+
+    // Pre-fill email from logged-in user profile
+    useEffect(() => {
+        if (isOpen) {
+            try {
+                const userStr = localStorage.getItem('auditscope_user');
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    if (user.email) setTargetEmail(user.email);
+                }
+            } catch (e) {}
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -108,6 +122,10 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
 
     const handleSave = async (e) => {
         e.preventDefault();
+        if (!targetEmail || !targetEmail.includes('@')) {
+            alert('Please enter a valid email address to receive the report.');
+            return;
+        }
         setSubmitting(true);
         try {
             // Frontend Timezone Spoofing algorithm mapping target time cleanly onto UTC
@@ -151,7 +169,8 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                     frequency,
                     time: spoofedTime,
                     daysOfWeek: spoofedDaysOfWeek,
-                    dayOfMonth: spoofedDayOfMonth
+                    dayOfMonth: spoofedDayOfMonth,
+                    targetEmail: targetEmail.trim()
                 })
             });
 
@@ -161,10 +180,15 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                     setSuccess(false);
                     onClose();
                     setStep(1); // Reset
-                }, 1500);
+                    setTargetEmail('');
+                }, 2000);
+            } else {
+                const errData = await res.json();
+                alert(`Failed to save schedule: ${errData.error || 'Unknown error'}`);
             }
         } catch (err) {
-            console.error('Failed to save schedule');
+            console.error('Failed to save schedule', err);
+            alert('Network error. Please check your connection and try again.');
         } finally {
             setSubmitting(false);
         }
@@ -252,7 +276,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                         <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
                             {step === 1 ? 'Which cloud ecosystem are we securing today?' : 
                              step === 2 ? 'Paste your Access Keys or Service Account JSON' : 
-                             'When should we perform the automated audit?'}
+                             'When should we run the audit and where to send the report?'}
                         </p>
                     </div>
 
@@ -260,7 +284,9 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                         <div style={{ textAlign: 'center', color: 'var(--color-success)', padding: 'var(--spacing-8)', animation: 'scaleUp 0.4s' }}>
                             <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏆</div>
                             <h3 style={{ margin: 0 }}>Automation Configured!</h3>
-                            <p style={{ color: 'var(--color-text-muted)' }}>We'll notify you via email at {time} on your schedule.</p>
+                            <p style={{ color: 'var(--color-text-muted)', marginTop: '8px' }}>
+                                Reports will be delivered to <strong style={{ color: 'var(--color-primary)' }}>{targetEmail}</strong> at {time} on your schedule.
+                            </p>
                         </div>
                     ) : (
                         <div>
@@ -314,8 +340,12 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                                 }}
                                             >
                                                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📄</div>
-                                                <div style={{ fontWeight: 600, color: 'var(--color-text)' }}>Drop Service Account JSON</div>
-                                                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>or click to browse...</div>
+                                                <div style={{ fontWeight: 600, color: creds ? 'var(--color-success)' : 'var(--color-text)' }}>
+                                                    {creds ? '✓ JSON Loaded' : 'Drop Service Account JSON'}
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                                    {creds ? 'Click to replace file' : 'or click to browse...'}
+                                                </div>
                                             </div>
                                             
                                             <div style={{ position: 'relative' }}>
@@ -382,9 +412,63 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
 
                                     {renderFrequencyContent()}
 
-                                    <div style={{ display: 'flex', gap: '12px', marginTop: '30px' }}>
+                                    {/* ── Report Email Field ── */}
+                                    <div style={{ 
+                                        marginTop: '20px',
+                                        background: 'var(--color-bg)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: '10px',
+                                        padding: '14px 16px'
+                                    }}>
+                                        <label style={{ 
+                                            display: 'flex', alignItems: 'center', gap: '6px',
+                                            fontSize: '11px', fontWeight: 700, 
+                                            color: 'var(--color-text-muted)', 
+                                            textTransform: 'uppercase', letterSpacing: '0.05em',
+                                            marginBottom: '10px'
+                                        }}>
+                                            <span>📧</span> Report Delivery Email
+                                        </label>
+                                        <input
+                                            type="email"
+                                            placeholder="e.g. security@yourcompany.com"
+                                            value={targetEmail}
+                                            onChange={(e) => setTargetEmail(e.target.value)}
+                                            style={{ 
+                                                width: '100%',
+                                                padding: '12px 14px',
+                                                background: 'var(--color-bg-secondary)', 
+                                                color: 'var(--color-text)', 
+                                                border: targetEmail && !targetEmail.includes('@') 
+                                                    ? '1px solid rgba(239,68,68,0.5)' 
+                                                    : '1px solid var(--color-border)', 
+                                                borderRadius: '8px', 
+                                                outline: 'none', 
+                                                fontSize: '14px',
+                                                fontFamily: 'inherit',
+                                                boxSizing: 'border-box',
+                                                transition: 'border-color 0.2s'
+                                            }}
+                                        />
+                                        <p style={{ 
+                                            fontSize: '11px', 
+                                            color: targetEmail && !targetEmail.includes('@') ? '#ef4444' : 'var(--color-text-muted)', 
+                                            margin: '8px 0 0 0' 
+                                        }}>
+                                            {targetEmail && !targetEmail.includes('@') 
+                                                ? 'Please enter a valid email address.' 
+                                                : 'The PDF audit report will be emailed here after each automated scan.'}
+                                        </p>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
                                         <button onClick={() => setStep(2)} style={{ flex: 1, padding: '12px', borderRadius: '8px', background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text)', cursor: 'pointer' }}>Back</button>
-                                        <Button variant="primary" style={{ flex: 2 }} onClick={handleSave} disabled={submitting}>
+                                        <Button 
+                                            variant="primary" 
+                                            style={{ flex: 2 }} 
+                                            onClick={handleSave} 
+                                            disabled={submitting || !targetEmail || !targetEmail.includes('@')}
+                                        >
                                             {submitting ? 'Creating Automation...' : 'Finalize Automation'}
                                         </Button>
                                     </div>

@@ -132,26 +132,36 @@ const DashboardNavbar = () => {
               </button>
             )}
 
-            <Select
-              options={providerOptions}
-              value={selectedProvider}
-              onChange={(e) => setSelectedProvider(e.target.value)}
-              placeholder="Choose Provider..."
-              className={styles.selectProvider}
-            />
+            <div data-tour="tour-navbar-provider">
+              <Select
+                options={providerOptions}
+                value={selectedProvider}
+                onChange={(e) => setSelectedProvider(e.target.value)}
+                placeholder="Choose Provider..."
+                className={styles.selectProvider}
+              />
+            </div>
 
-            <Button
-              variant={selectedProvider ? "primary" : "secondary"}
-              size="small"
-              className={styles.scanBtn}
-              disabled={!selectedProvider}
-              onClick={handleScanClick}
-              title={!selectedProvider ? "Please select a provider first" : "Start Audit Scan"}
+            <div data-tour="tour-navbar-scan">
+              <Button
+                variant={selectedProvider ? "primary" : "secondary"}
+                size="small"
+                className={styles.scanBtn}
+                disabled={!selectedProvider}
+                onClick={handleScanClick}
+                title={!selectedProvider ? "Please select a provider first" : "Start Audit Scan"}
+              >
+                Scan
+              </Button>
+            </div>
+
+            <div
+              data-tour="tour-navbar-profile"
+              className={styles.userProfile}
+              ref={profileRef}
+              onClick={() => setProfileOpen(!profileOpen)}
+              style={{ position: 'relative', cursor: 'pointer' }}
             >
-              Scan
-            </Button>
-
-            <div className={styles.userProfile} ref={profileRef} onClick={() => setProfileOpen(!profileOpen)} style={{ position: 'relative', cursor: 'pointer' }}>
               {user?.displayPicture ? (
                 <img
                   src={user.displayPicture.startsWith('data:') ? user.displayPicture : `https://security-audit-accelerator-backend-196053730058.asia-south1.run.app${user.displayPicture}`}
