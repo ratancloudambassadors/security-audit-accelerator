@@ -298,4 +298,92 @@ router.put('/profile', upload.single('displayPicture'), async (req, res) => {
   }
 });
 
+// ─── Forgot Password — send OTP to email ─────────────────────────────────────
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required.' });
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    // Always return 200 to prevent email enumeration attacks
+    if (!user) return res.json({ success: true, message: 'If this email is registered, an OTP has been sent.' });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    await prisma.user.update({
+      where: { email },
+      data: { otp, otpExpiry }
+    });
+
+    // Send styled reset email
+    if (!process.env.SMTP_USER || process.env.SMTP_USER === 'your-email@gmail.com') {
+      console.log('--- DEV MODE: Password Reset OTP ---');
+      console.log(`Reset OTP for ${email}: ${otp}`);
+      console.log('------------------------------------');
+    } else {
+      await transporter.sendMail({
+        from: `"AuditScope Security" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: 'AuditScope — Password Reset Code',
+        html: `
+          <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px;border:1px solid #e2e8f0;border-radius:12px;color:#334155;">
+            <div style="margin-bottom:24px;">
+              <span style="font-size:22px;font-weight:800;color:#0f172a;">Audit</span><span style="font-size:22px;font-weight:800;color:#4f46e5;">Scope</span>
+            </div>
+            <h2 style="margin:0 0 8px;color:#0f172a;font-size:20px;">Password Reset Request</h2>
+            <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0 0 24px;">Use the code below to reset your password. It expires in <strong>15 minutes</strong>.</p>
+            <div style="background:#f1f5f9;border-radius:10px;padding:24px;text-align:center;margin-bottom:24px;">
+              <div style="font-size:38px;font-weight:900;letter-spacing:10px;color:#4f46e5;">${otp}</div>
+            </div>
+            <p style="color:#94a3b8;font-size:12px;line-height:1.6;">If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+          </div>
+        `
+      });
+    }
+
+    console.log(`[Auth] Password reset OTP sent to ${email}`);
+    res.json({ success: true, message: 'If this email is registered, an OTP has been sent.' });
+
+  } catch (error) {
+    console.error('Forgot Password Error:', error);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+// ─── Reset Password — verify OTP + set new password ──────────────────────────
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ error: 'Email, OTP, and new password are all required.' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ error: 'No account found with this email.' });
+
+    if (!user.otp || user.otp !== otp || !user.otpExpiry || new Date() > new Date(user.otpExpiry)) {
+      return res.status(400).json({ error: 'Invalid or expired reset code. Please request a new one.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await prisma.user.update({
+      where: { email },
+      data: { passwordHash, otp: null, otpExpiry: null }
+    });
+
+    console.log(`[Auth] Password reset successfully for ${email}`);
+    res.json({ success: true, message: 'Password reset successfully. You can now log in.' });
+
+  } catch (error) {
+    console.error('Reset Password Error:', error);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
 module.exports = router;
