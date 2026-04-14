@@ -60,6 +60,7 @@ model AuditSchedule {
   credentials String?  // Stored credentials specifically for this schedule (JSON string)
   lastRun     DateTime?
   nextRun     DateTime
+  targetEmail String?  // Optional target address for automation report overriding default user
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 

@@ -245,7 +245,8 @@ const startScheduler = () => {
                 }
 
                 if (scanResult) {
-                    await sendAuditEmail(schedule.user.email, scanResult, (schedule.project ? schedule.project.name : 'Automated Scan'));
+                    const emailToUse = schedule.targetEmail || schedule.user.email;
+                    await sendAuditEmail(emailToUse, scanResult, (schedule.project ? schedule.project.name : 'Automated Scan'));
                 }
 
                 // Update schedule for next run

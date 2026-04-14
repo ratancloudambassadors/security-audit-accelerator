@@ -31,6 +31,24 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+const getServiceName = (resource) => {
+  if (!resource) return 'Other';
+  const match = resource.match(/^([^(]+)/);
+  let sName = match ? match[1].trim() : 'Other';
+  const lowerName = sName.toLowerCase();
+  
+  if (lowerName.includes('compute')) return 'Compute Engine';
+  if (lowerName.includes('iam')) return 'IAM';
+  if (lowerName.includes('storage') || lowerName.includes('bucket')) return 'Storage';
+  if (lowerName.includes('sql') || lowerName.includes('database')) return 'Database';
+  if (lowerName.includes('network') || lowerName.includes('vpc') || lowerName.includes('firewall') || lowerName.includes('router') || lowerName.includes('route')) return 'Network';
+  if (lowerName.includes('kubernetes') || lowerName.includes('gke') || lowerName.includes('eks')) return 'Kubernetes';
+  if (lowerName.includes('kms') || lowerName.includes('key')) return 'KMS';
+  if (lowerName.includes('func') || lowerName.includes('lambda')) return 'Functions';
+  
+  return sName;
+};
+
 router.use(authenticateToken);
 
 // Helper: generate the PDF buffer from scan data
@@ -74,37 +92,62 @@ function generatePDF(scanData, userName, projectId) {
 
     doc.moveDown(4);
 
-    // --- FINDINGS TABLE ---
+    // --- FINDINGS TABLES BY SERVICE ---
     const vulnerabilities = scanData.vulnerabilities || [];
     if (vulnerabilities.length > 0) {
-      const tableTop = 230;
+      let currentY = 230;
 
-      doc.fontSize(14).fillColor('#0f172a').text('Vulnerability Findings', 50, tableTop);
-      doc.moveTo(50, tableTop + 20).lineTo(doc.page.width - 50, tableTop + 20).strokeColor('#cbd5e1').stroke();
+      // Group by Service
+      const groups = {};
+      vulnerabilities.forEach(v => {
+        const sName = getServiceName(v.resource);
+        if (!groups[sName]) groups[sName] = [];
+        groups[sName].push(v);
+      });
 
-      const headerY = tableTop + 28;
-      doc.fontSize(8).fillColor('#475569');
-      doc.text('SEVERITY', 50, headerY);
-      doc.text('RESOURCE', 130, headerY);
-      doc.text('ISSUE', 310, headerY);
-      doc.moveTo(50, headerY + 14).lineTo(doc.page.width - 50, headerY + 14).strokeColor('#e2e8f0').stroke();
+      const groupedServices = Object.keys(groups).sort().map(sName => ({
+        name: sName,
+        items: groups[sName]
+      }));
 
-      let rowY = headerY + 22;
-
-      for (const vuln of vulnerabilities) {
-        if (rowY > doc.page.height - 80) {
+      for (const serviceGroup of groupedServices) {
+        if (currentY > doc.page.height - 120) {
           doc.addPage();
-          rowY = 50;
+          currentY = 50;
         }
 
-        const sevColor = vuln.severity === 'Critical' ? '#dc2626' : vuln.severity === 'High' ? '#ea580c' : vuln.severity === 'Medium' ? '#ca8a04' : '#2563eb';
+        // Service Header
+        doc.fontSize(14).fillColor('#0f172a').text(`Service: ${serviceGroup.name}`, 50, currentY);
+        doc.fontSize(10).fillColor('#64748b').text(`(${serviceGroup.items.length} items)`, 50 + doc.widthOfString(`Service: ${serviceGroup.name}`) + 10, currentY + 3);
+        
+        doc.moveTo(50, currentY + 20).lineTo(doc.page.width - 50, currentY + 20).strokeColor('#cbd5e1').stroke();
 
-        doc.fontSize(8).fillColor(sevColor).text(vuln.severity.toUpperCase(), 50, rowY, { width: 70 });
-        doc.fontSize(8).fillColor('#1e293b').text(vuln.resource || '-', 130, rowY, { width: 170 });
-        doc.fontSize(8).fillColor('#475569').text(vuln.issue || '-', 310, rowY, { width: 240 });
+        const headerY = currentY + 28;
+        doc.fontSize(8).fillColor('#475569');
+        doc.text('SEVERITY', 50, headerY);
+        doc.text('RESOURCE', 130, headerY);
+        doc.text('ISSUE', 310, headerY);
+        doc.moveTo(50, headerY + 14).lineTo(doc.page.width - 50, headerY + 14).strokeColor('#e2e8f0').stroke();
 
-        rowY += Math.max(doc.heightOfString(vuln.issue || '-', { width: 240, fontSize: 8 }), 14) + 6;
-        doc.moveTo(50, rowY - 3).lineTo(doc.page.width - 50, rowY - 3).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+        let rowY = headerY + 22;
+
+        for (const vuln of serviceGroup.items) {
+          if (rowY > doc.page.height - 80) {
+            doc.addPage();
+            rowY = 50;
+          }
+
+          const sevColor = vuln.severity === 'Critical' ? '#dc2626' : vuln.severity === 'High' ? '#ea580c' : vuln.severity === 'Medium' ? '#ca8a04' : '#2563eb';
+
+          doc.fontSize(8).fillColor(sevColor).text(vuln.severity.toUpperCase(), 50, rowY, { width: 70 });
+          doc.fontSize(8).fillColor('#1e293b').text(vuln.resource || '-', 130, rowY, { width: 170 });
+          doc.fontSize(8).fillColor('#475569').text(vuln.issue || '-', 310, rowY, { width: 240 });
+
+          rowY += Math.max(doc.heightOfString(vuln.issue || '-', { width: 240, fontSize: 8 }), 14) + 6;
+          doc.moveTo(50, rowY - 3).lineTo(doc.page.width - 50, rowY - 3).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+        }
+        
+        currentY = rowY + 20; // Add space before next service table
       }
     } else {
       doc.fontSize(14).fillColor('#16a34a').text('No vulnerabilities found. Your infrastructure looks secure!', 50, 230);
@@ -125,10 +168,18 @@ function generatePDF(scanData, userName, projectId) {
 // POST /api/reports/download — generates and returns the PDF directly
 router.post('/download', async (req, res) => {
   try {
-    const { scanData } = req.body;
+    const { scanData, selectedServices } = req.body;
 
     if (!scanData) {
       return res.status(400).json({ error: 'scanData is required in the request body.' });
+    }
+
+    if (selectedServices && !selectedServices.includes('ALL')) {
+      scanData.vulnerabilities = scanData.vulnerabilities.filter(v => 
+        selectedServices.includes(getServiceName(v.resource))
+      );
+      scanData.score = scanData.score; // Or recalculate score if necessary
+      scanData.scanned = new Set(scanData.vulnerabilities.map(v => v.resource)).size;
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
@@ -156,13 +207,20 @@ router.post('/download', async (req, res) => {
 // POST /api/reports/send — generates PDF and securely emails it via Nodemailer
 router.post('/send', async (req, res) => {
   try {
-    const { scanData, recipientEmail } = req.body;
+    const { scanData, recipientEmail, selectedServices } = req.body;
 
     if (!scanData) {
       return res.status(400).json({ error: 'scanData is required in the request body.' });
     }
     if (!recipientEmail) {
       return res.status(400).json({ error: 'recipientEmail is required.' });
+    }
+
+    if (selectedServices && !selectedServices.includes('ALL')) {
+      scanData.vulnerabilities = scanData.vulnerabilities.filter(v => 
+        selectedServices.includes(getServiceName(v.resource))
+      );
+      scanData.scanned = new Set(scanData.vulnerabilities.map(v => v.resource)).size;
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user.userId } });

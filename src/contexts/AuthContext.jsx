@@ -8,29 +8,51 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is logged in on mount and verify token is not expired (1-day limit)
   useEffect(() => {
-    const token = localStorage.getItem('auditscope_token');
-    const savedUser = localStorage.getItem('auditscope_user');
+    const checkAuth = () => {
+      const token = localStorage.getItem('auditscope_token');
+      const savedUser = localStorage.getItem('auditscope_user');
 
-    if (token && savedUser) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const isExpired = payload.exp * 1000 < Date.now();
-        
-        if (isExpired) {
-          // Token expired (24h/1-day limit has been reached)
+      if (token && savedUser) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const isExpired = payload.exp * 1000 < Date.now();
+          
+          if (isExpired) {
+            // Token expired (24h/1-day limit has been reached)
+            localStorage.removeItem('auditscope_token');
+            localStorage.removeItem('auditscope_user');
+            setUser(null);
+          } else {
+            setUser(JSON.parse(savedUser));
+          }
+        } catch (err) {
+          console.error('Invalid token format');
           localStorage.removeItem('auditscope_token');
           localStorage.removeItem('auditscope_user');
           setUser(null);
-        } else {
-          setUser(JSON.parse(savedUser));
         }
-      } catch (err) {
-        console.error('Invalid token format');
-        localStorage.removeItem('auditscope_token');
-        localStorage.removeItem('auditscope_user');
+      } else {
+        setUser(null);
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    checkAuth();
+
+    // Prevent BFcache from showing authenticated pages after logout
+    const onPageShow = (e) => {
+      if (e.persisted) checkAuth();
+    };
+    window.addEventListener('pageshow', onPageShow);
+    
+    // Sync logout across tabs
+    const onStorage = () => checkAuth();
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('pageshow', onPageShow);
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
 
   const login = async (email, password) => {
@@ -97,7 +119,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('last_viewed_scan');
     localStorage.removeItem('latest_scan_result');
     setUser(null);
-    window.location.href = '/';
+    window.location.replace('/');
   };
 
   return (

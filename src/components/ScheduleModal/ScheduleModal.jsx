@@ -33,10 +33,110 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
         }
     };
 
+    const renderTimePicker = () => {
+        const [h, m] = time.split(':');
+        let hour24 = parseInt(h);
+        const ampm = hour24 >= 12 ? 'PM' : 'AM';
+        let hour12 = hour24 % 12 || 12;
+
+        const updateTime = (newHour12, newMinute, newAmPm) => {
+            let h24 = parseInt(newHour12) || 12;
+            let mInt = parseInt(newMinute) || 0;
+            
+            if (newAmPm === 'PM' && h24 < 12) h24 += 12;
+            if (newAmPm === 'AM' && h24 === 12) h24 = 0;
+            
+            const finalTime = `${h24.toString().padStart(2, '0')}:${mInt.toString().padStart(2, '0')}`;
+            setTime(finalTime);
+        };
+        
+        const inputStyle = {
+            padding: '10px 8px', background: 'var(--color-bg-secondary)', color: 'var(--color-text)', 
+            border: '1px solid var(--color-border)', borderRadius: '6px', outline: 'none', 
+            fontSize: '1.2rem', textAlign: 'center', width: '65px', fontWeight: 600, fontFamily: 'monospace'
+        };
+
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 600, background: 'rgba(120, 120, 212, 0.1)', padding: '6px 10px', borderRadius: '4px', borderLeft: '2px solid var(--color-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>⏱️</span> 12-hour clock (IST) format actively applied.
+                </div>
+                
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'var(--color-bg)', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                    <input 
+                        type="number" 
+                        min="1" max="12" 
+                        value={hour12} 
+                        onChange={e => updateTime(e.target.value, m, ampm)}
+                        onBlur={e => {
+                            let val = parseInt(e.target.value);
+                            if (isNaN(val) || val < 1) val = 1;
+                            if (val > 12) val = 12;
+                            updateTime(val, m, ampm);
+                        }}
+                        style={inputStyle}
+                        title="Hour (1-12)"
+                    />
+                    <span style={{ fontSize: '1.6rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>:</span>
+                    <input 
+                        type="number" 
+                        min="0" max="59" step="15"
+                        value={m} 
+                        onChange={e => updateTime(hour12, e.target.value, ampm)}
+                        onBlur={e => {
+                            let val = parseInt(e.target.value);
+                            if (isNaN(val) || val < 0) val = 0;
+                            if (val > 59) val = 59;
+                            updateTime(hour12, val, ampm);
+                        }}
+                        style={inputStyle}
+                        title="Minute (0-59)"
+                    />
+                    <div style={{ width: '8px', flex: 1 }}></div>
+                    <select 
+                        value={ampm} 
+                        onChange={e => updateTime(hour12, m, e.target.value)}
+                        style={{ padding: '10px 14px', background: 'rgba(120, 120, 212, 0.15)', color: 'var(--color-primary)', fontWeight: 800, border: '1px solid rgba(120, 120, 212, 0.3)', borderRadius: '6px', outline: 'none', fontSize: '1.1rem', cursor: 'pointer', textAlign: 'center' }}
+                    >
+                        <option value="AM" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>AM</option>
+                        <option value="PM" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>PM</option>
+                    </select>
+                </div>
+            </div>
+        );
+    };
+
     const handleSave = async (e) => {
         e.preventDefault();
         setSubmitting(true);
         try {
+            // Frontend Timezone Spoofing algorithm mapping target time cleanly onto UTC
+            const d = new Date();
+            const [localHours, localMinutes] = time.split(':').map(Number);
+            d.setHours(localHours, localMinutes, 0, 0);
+            
+            let localDay = d.getDay();
+            let utcDay = d.getUTCDay();
+            
+            let dayShift = utcDay - localDay;
+            if (dayShift === -6) dayShift = 1;
+            if (dayShift === 6) dayShift = -1;
+            
+            const spoofedTime = `${d.getUTCHours().toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}`;
+            
+            const allDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const spoofedDaysOfWeek = daysOfWeek.map(dayStr => {
+                let idx = allDays.indexOf(dayStr);
+                let shiftedIdx = (idx + dayShift + 7) % 7;
+                return allDays[shiftedIdx];
+            });
+
+            let spoofedDayOfMonth = dayOfMonth;
+            if (spoofedDayOfMonth) {
+                spoofedDayOfMonth += dayShift;
+                if (spoofedDayOfMonth <= 0) spoofedDayOfMonth = 0; // Triggers end-of-previous-month logic natively in UTC
+            }
+
             const token = localStorage.getItem('auditscope_token');
             const res = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/schedules', {
                 method: 'POST',
@@ -49,9 +149,9 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                     provider,
                     credentials: typeof creds === 'object' ? JSON.stringify(creds) : creds,
                     frequency,
-                    time,
-                    daysOfWeek,
-                    dayOfMonth
+                    time: spoofedTime,
+                    daysOfWeek: spoofedDaysOfWeek,
+                    dayOfMonth: spoofedDayOfMonth
                 })
             });
 
@@ -76,12 +176,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                 return (
                     <div style={{ animation: 'fadeIn 0.3s' }}>
                         <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', marginBottom: '12px' }}>Runs every single day at the specified time.</p>
-                        <input 
-                            type="time" 
-                            value={time} 
-                            onChange={(e) => setTime(e.target.value)}
-                            style={{ width: '100%', padding: '12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text)', fontSize: '1.2rem' }}
-                        />
+                        {renderTimePicker()}
                     </div>
                 );
             case 'weekly':
@@ -103,12 +198,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                 </div>
                             ))}
                         </div>
-                        <input 
-                            type="time" 
-                            value={time} 
-                            onChange={(e) => setTime(e.target.value)}
-                            style={{ width: '100%', padding: '12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text)', fontSize: '1.2rem' }}
-                        />
+                        {renderTimePicker()}
                     </div>
                 );
             case 'monthly':
@@ -128,12 +218,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                             </div>
                             <div style={{ flex: 1 }}>
                                 <label style={{ display: 'block', fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>Time</label>
-                                <input 
-                                    type="time" 
-                                    value={time} 
-                                    onChange={(e) => setTime(e.target.value)}
-                                    style={{ width: '100%', padding: '10px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text)' }}
-                                />
+                                {renderTimePicker()}
                             </div>
                         </div>
                     </div>

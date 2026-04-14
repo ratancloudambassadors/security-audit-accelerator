@@ -25,9 +25,11 @@ const DashboardPage = () => {
   const [scanData, setScanData] = useState(null);
   const [reportStatus, setReportStatus] = useState(null); // null | 'downloading' | 'sending' | 'sent' | 'error'
   const [reportMenuOpen, setReportMenuOpen] = useState(false);
-  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportType, setExportType] = useState('email'); // 'email' | 'download'
   const [emailInput, setEmailInput] = useState('');
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [selectedEmailServices, setSelectedEmailServices] = useState(['ALL']);
 
   // Filtering and Pagination State
   const [searchTerm, setSearchTerm] = useState('');
@@ -146,6 +148,40 @@ const DashboardPage = () => {
     };
   }, [scanData, searchTerm, severityFilter, serviceFilter, currentPage]);
 
+  const allServices = useMemo(() => {
+    if (!scanData || !scanData.vulnerabilities) return [];
+    const services = new Set();
+    scanData.vulnerabilities.forEach(v => {
+      services.add(getServiceName(v.resource));
+    });
+    return Array.from(services).sort();
+  }, [scanData]);
+
+  const handleServiceCheckboxChange = (service) => {
+    if (service === 'ALL') {
+       setSelectedEmailServices(['ALL']);
+       return;
+    }
+    
+    let newSelected = selectedEmailServices.filter(s => s !== 'ALL');
+    
+    if (selectedEmailServices.includes('ALL')) {
+      newSelected = [service];
+    } else {
+      if (newSelected.includes(service)) {
+         newSelected = newSelected.filter(s => s !== service);
+      } else {
+         newSelected.push(service);
+      }
+    }
+    
+    if (newSelected.length === 0 || newSelected.length === allServices.length) {
+       newSelected = ['ALL'];
+    }
+    
+    setSelectedEmailServices(newSelected);
+  };
+
   // Handle page change ensuring boundaries
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= processedData.totalPages) {
@@ -166,8 +202,17 @@ const DashboardPage = () => {
   const handleDownloadReport = async () => {
     if (!scanData) return;
     setReportMenuOpen(false);
+    setExportModalOpen(false);
     setReportStatus('downloading');
     try {
+      let payloadData = JSON.parse(JSON.stringify(scanData));
+      if (!selectedEmailServices.includes('ALL')) {
+        payloadData.vulnerabilities = payloadData.vulnerabilities.filter(v => 
+          selectedEmailServices.includes(getServiceName(v.resource))
+        );
+        payloadData.scanned = new Set(payloadData.vulnerabilities.map(v => v.resource)).size;
+      }
+
       const token = localStorage.getItem('auditscope_token');
       const res = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/reports/download', {
         method: 'POST',
@@ -175,7 +220,7 @@ const DashboardPage = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ scanData })
+        body: JSON.stringify({ scanData: payloadData, selectedServices: selectedEmailServices })
       });
       if (!res.ok) {
         const errData = await res.json();
@@ -203,6 +248,14 @@ const DashboardPage = () => {
     if (!scanData || !emailInput) return;
     setReportStatus('sending');
     try {
+      let payloadData = JSON.parse(JSON.stringify(scanData));
+      if (!selectedEmailServices.includes('ALL')) {
+        payloadData.vulnerabilities = payloadData.vulnerabilities.filter(v => 
+          selectedEmailServices.includes(getServiceName(v.resource))
+        );
+        payloadData.scanned = new Set(payloadData.vulnerabilities.map(v => v.resource)).size;
+      }
+
       const token = localStorage.getItem('auditscope_token');
       const res = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/reports/send', {
         method: 'POST',
@@ -210,7 +263,7 @@ const DashboardPage = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ scanData, recipientEmail: emailInput })
+        body: JSON.stringify({ scanData: payloadData, recipientEmail: emailInput, selectedServices: selectedEmailServices })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -218,7 +271,7 @@ const DashboardPage = () => {
       setReportStatus('sent');
       setTimeout(() => {
         setReportStatus(null);
-        setEmailModalOpen(false);
+        setExportModalOpen(false);
         setEmailInput('');
       }, 2000);
     } catch (err) {
@@ -287,7 +340,7 @@ const DashboardPage = () => {
                   overflow: 'hidden'
                 }}>
                   <button
-                    onClick={handleDownloadReport}
+                    onClick={() => { setReportMenuOpen(false); setExportType('download'); setExportModalOpen(true); }}
                     style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid #2d3148', color: 'var(--color-text)', textAlign: 'left', cursor: 'pointer', fontSize: 'var(--font-size-sm)', display: 'flex', gap: '8px', alignItems: 'center' }}
                     onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.05)'}
                     onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
@@ -295,7 +348,7 @@ const DashboardPage = () => {
                     <span>⬇️</span> Download PDF
                   </button>
                   <button
-                    onClick={() => { setReportMenuOpen(false); setEmailModalOpen(true); }}
+                    onClick={() => { setReportMenuOpen(false); setExportType('email'); setExportModalOpen(true); }}
                     style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid #2d3148', color: 'var(--color-text)', textAlign: 'left', cursor: 'pointer', fontSize: 'var(--font-size-sm)', display: 'flex', gap: '8px', alignItems: 'center' }}
                     onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.05)'}
                     onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
@@ -498,35 +551,78 @@ const DashboardPage = () => {
         )}
       </div>
 
-      {/* Email Report Modal */}
-      {emailModalOpen && (
+      {/* Export Report Modal */}
+      {exportModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ backgroundColor: 'var(--color-bg-secondary)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '400px', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-lg)' }}>
-            <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-2)' }}>Email Report</h2>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-4)' }}>Enter the recipient email address to receive the full PDF report.</p>
-            <input
-              type="email"
-              value={emailInput}
-              onChange={e => setEmailInput(e.target.value)}
-              placeholder="recipient@example.com"
-              style={{ width: '100%', padding: '10px 14px', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', marginBottom: 'var(--spacing-4)' }}
-              autoFocus
-            />
+            <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-2)' }}>
+              {exportType === 'email' ? 'Email Report' : 'Download PDF Report'}
+            </h2>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-3)' }}>
+              {exportType === 'email' ? 'Select services and enter the recipient email address to receive the PDF report.' : 'Select services to include in your downloaded PDF report.'}
+            </p>
+            
+            <div style={{ marginBottom: 'var(--spacing-4)' }}>
+              <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text)', marginBottom: 'var(--spacing-2)', fontWeight: 600 }}>Include Services:</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto', padding: '8px', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--color-text)', cursor: 'pointer' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={selectedEmailServices.includes('ALL')}
+                    onChange={() => handleServiceCheckboxChange('ALL')}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  ALL
+                </label>
+                {allServices.map(service => (
+                  <label key={service} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--color-text)', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedEmailServices.includes('ALL') || selectedEmailServices.includes(service)}
+                      onChange={() => handleServiceCheckboxChange(service)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    {service}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {exportType === 'email' && (
+              <input
+                type="email"
+                value={emailInput}
+                onChange={e => setEmailInput(e.target.value)}
+                placeholder="recipient@example.com"
+                style={{ width: '100%', padding: '10px 14px', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', marginBottom: 'var(--spacing-4)' }}
+                autoFocus
+              />
+            )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--spacing-3)' }}>
               <button
-                onClick={() => setEmailModalOpen(false)}
-                disabled={reportStatus === 'sending'}
-                style={{ padding: '8px 16px', backgroundColor: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text)', borderRadius: 'var(--radius-md)', cursor: reportStatus === 'sending' ? 'not-allowed' : 'pointer' }}
+                onClick={() => setExportModalOpen(false)}
+                disabled={reportStatus === 'sending' || reportStatus === 'downloading'}
+                style={{ padding: '8px 16px', backgroundColor: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text)', borderRadius: 'var(--radius-md)', cursor: (reportStatus === 'sending' || reportStatus === 'downloading') ? 'not-allowed' : 'pointer' }}
               >
                 Cancel
               </button>
-              <button
-                onClick={handleEmailReport}
-                disabled={!emailInput || reportStatus === 'sending'}
-                style={{ padding: '8px 16px', backgroundColor: 'var(--color-primary)', border: 'none', color: '#fff', borderRadius: 'var(--radius-md)', cursor: (!emailInput || reportStatus === 'sending') ? 'not-allowed' : 'pointer', opacity: (!emailInput || reportStatus === 'sending') ? 0.6 : 1, display: 'flex', gap: '8px', alignItems: 'center' }}
-              >
-                {reportStatus === 'sending' ? '⏳ Sending...' : '📧 Send Email'}
-              </button>
+              {exportType === 'email' ? (
+                <button
+                  onClick={handleEmailReport}
+                  disabled={!emailInput || reportStatus === 'sending'}
+                  style={{ padding: '8px 16px', backgroundColor: 'var(--color-primary)', border: 'none', color: '#fff', borderRadius: 'var(--radius-md)', cursor: (!emailInput || reportStatus === 'sending') ? 'not-allowed' : 'pointer', opacity: (!emailInput || reportStatus === 'sending') ? 0.6 : 1, display: 'flex', gap: '8px', alignItems: 'center' }}
+                >
+                  {reportStatus === 'sending' ? '⏳ Sending...' : '📧 Send Email'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleDownloadReport}
+                  disabled={reportStatus === 'downloading'}
+                  style={{ padding: '8px 16px', backgroundColor: 'var(--color-primary)', border: 'none', color: '#fff', borderRadius: 'var(--radius-md)', cursor: reportStatus === 'downloading' ? 'not-allowed' : 'pointer', opacity: reportStatus === 'downloading' ? 0.6 : 1, display: 'flex', gap: '8px', alignItems: 'center' }}
+                >
+                  {reportStatus === 'downloading' ? '⏳ Downloading...' : '⬇️ Download'}
+                </button>
+              )}
             </div>
             {reportStatus === 'error' && (
               <p style={{ color: '#ef4444', fontSize: 'var(--font-size-sm)', marginTop: 'var(--spacing-3)', textAlign: 'center' }}>Failed to send email. Check backend logs or SMTP config.</p>

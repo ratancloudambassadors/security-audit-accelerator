@@ -21,51 +21,52 @@ const authenticateToken = (req, res, next) => {
 
 // Create or update a schedule
 router.post('/', authenticateToken, async (req, res) => {
-    const { projectId, provider, credentials, frequency, time, daysOfWeek, dayOfMonth } = req.body;
+    const { projectId, provider, credentials, frequency, time, daysOfWeek, dayOfMonth, timezoneOffset, targetEmail } = req.body;
     
     if (!frequency || !time) {
         return res.status(400).json({ error: 'Frequency and time are required.' });
     }
 
     try {
-        const computeNextRun = (freq, t, days, mDay) => {
+        const computeNextRun = (freq, t, days, mDay, tzOffset = 0) => {
             const now = new Date();
+            const localNow = new Date(now.getTime() - tzOffset * 60000);
             const [hours, minutes] = t.split(':').map(Number);
-            let next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+            
+            let nextLocal = new Date(Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), localNow.getUTCDate(), hours, minutes, 0));
 
-            if (next <= now) {
-                if (freq === 'daily') next.setDate(next.getDate() + 1);
+            if (nextLocal <= localNow) {
+                if (freq === 'daily') nextLocal.setUTCDate(nextLocal.getUTCDate() + 1);
                 else if (freq === 'weekly') {
-                    // Placeholder for actual weekly logic - for now just +7 days if strictly same day or find next
-                    next.setDate(next.getDate() + 1);
-                } else if (freq === 'monthly') next.setMonth(next.getMonth() + 1);
+                    nextLocal.setUTCDate(nextLocal.getUTCDate() + 1);
+                } else if (freq === 'monthly') nextLocal.setUTCMonth(nextLocal.getUTCMonth() + 1);
             }
 
-            // More complex weekly logic
+            // More complex weekly logic relative to user's local day boundaries
             if (freq === 'weekly' && days && days.length > 0) {
                 const dayMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
                 const dayIndices = days.map(d => dayMap[d]);
-                
-                // Find next day in the selected set
-                let foundNext = false;
                 for(let i=0; i<8; i++) {
-                    const checkDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, hours, minutes, 0);
-                    if (checkDate > now && dayIndices.includes(checkDate.getDay())) {
-                         return checkDate;
+                    const checkDate = new Date(Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), localNow.getUTCDate() + i, hours, minutes, 0));
+                    if (checkDate > localNow && dayIndices.includes(checkDate.getUTCDay())) {
+                         nextLocal = checkDate;
+                         break;
                     }
                 }
             }
 
+            // Monthly logic aligned to user's timezone date
             if (freq === 'monthly' && mDay) {
-                const nextMonth = new Date(now.getFullYear(), now.getMonth(), mDay, hours, minutes, 0);
-                if (nextMonth <= now) nextMonth.setMonth(nextMonth.getMonth() + 1);
-                return nextMonth;
+                let nextMonth = new Date(Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), mDay, hours, minutes, 0));
+                if (nextMonth <= localNow) nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+                nextLocal = nextMonth;
             }
 
-            return next;
+            // Convert back to true UTC for tracking and storage
+            return new Date(nextLocal.getTime() + tzOffset * 60000);
         };
 
-        const nextRun = computeNextRun(frequency, time, daysOfWeek, dayOfMonth);
+        const nextRun = computeNextRun(frequency, time, daysOfWeek, dayOfMonth, timezoneOffset || 0);
         let finalProjectId = projectId;
 
         // If no project ID provided, we create a new project for this automation
@@ -98,6 +99,7 @@ router.post('/', authenticateToken, async (req, res) => {
                 dayOfMonth,
                 credentials, 
                 nextRun,
+                targetEmail,
                 userId: req.user.userId,
                 projectId: finalProjectId
             }

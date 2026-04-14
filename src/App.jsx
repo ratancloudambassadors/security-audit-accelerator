@@ -57,7 +57,7 @@ function App() {
 
     const handleClick = (e) => {
       const a = e.target.closest('a');
-      if (a && a.href && a.origin === window.location.origin && a.target !== '_blank') {
+      if (a && a.href && a.origin === window.location.origin && a.target !== '_blank' && !a.hasAttribute('download')) {
         const isDashboard = a.pathname.startsWith('/dashboard');
         // Prevent default and use HTML5 history API for internal links
         e.preventDefault();
