@@ -1,9 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, ShieldCheck, Activity, SearchCode, CheckCircle2 } from 'lucide-react';
 import styles from './HeroSection.module.css';
 import Button from '../../../../components/Button/Button';
 
+const isLoggedIn = () => {
+  try {
+    const token     = localStorage.getItem('auditscope_token');
+    if (!token) return false;
+    const payload   = JSON.parse(atob(token.split('.')[1]));
+    const loginTime = parseInt(localStorage.getItem('auditscope_login_time') || '0', 10);
+    if (loginTime && Date.now() - loginTime > 6 * 60 * 60 * 1000) return false;
+    return payload.exp * 1000 > Date.now();
+  } catch { return false; }
+};
+
 const HeroSection = () => {
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setLoggedIn(isLoggedIn());
+  }, []);
+
+  const handleCTA = () => {
+    window.location.href = loggedIn ? '/dashboard' : '/register';
+  };
+
   return (
     <section className={styles.hero}>
       <div className={styles.meshBackground}>
@@ -28,13 +49,15 @@ const HeroSection = () => {
               The modern security audit accelerator. We detect vulnerabilities instantly so you can focus on building your next big thing.
             </p>
             <div className={styles.ctaGroup}>
-              <Button variant="primary" size="large" onClick={() => window.location.href = '/register'}>
-                Free Scan <ArrowRight size={18} style={{ marginLeft: '8px' }} />
+              <Button variant="primary" size="large" onClick={handleCTA}>
+                {loggedIn ? 'Go to Dashboard' : 'Free Scan'} <ArrowRight size={18} style={{ marginLeft: '8px' }} />
               </Button>
-              <div className={styles.trustSnippet}>
-                <CheckCircle2 size={16} className={styles.checkIcon} />
-                <span>No credit card required</span>
-              </div>
+              {!loggedIn && (
+                <div className={styles.trustSnippet}>
+                  <CheckCircle2 size={16} className={styles.checkIcon} />
+                  <span>No credit card required</span>
+                </div>
+              )}
             </div>
           </div>
 

@@ -19,16 +19,19 @@ import './App.css';
 import { AuthContext } from './contexts/AuthContext';
 import DashboardLayout from './pages/Dashboard/DashboardLayout';
 
+// Redirects unauthenticated users → /login
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
+  if (loading) return null;
+  if (!user) { window.location.replace('/login'); return null; }
+  return children;
+};
 
-  if (loading) return null; // wait until auth state is resolved
-
-  if (!user) {
-    window.location.href = '/login';
-    return null;
-  }
-
+// Redirects already-logged-in users → /dashboard (for /login, /register)
+const GuestRoute = ({ children }) => {
+  const { user, loading } = useContext(AuthContext);
+  if (loading) return null;
+  if (user) { window.location.replace('/dashboard'); return null; }
   return children;
 };
 
@@ -77,8 +80,8 @@ function App() {
 
   if (path.startsWith('/dashboard')) return <ProtectedRoute><DashboardRouter path={path} /></ProtectedRoute>;
 
-  if (path === '/login') return <LoginPage />;
-  if (path === '/register') return <RegisterPage />;
+  if (path === '/login')    return <GuestRoute><LoginPage /></GuestRoute>;
+  if (path === '/register') return <GuestRoute><RegisterPage /></GuestRoute>;
   if (path === '/forgot-password') return <ForgotPasswordPage />;
   if (path === '/reset-password') return <ResetPasswordPage />;
   if (path === '/verify-otp') return <OTPVerifyPage />;

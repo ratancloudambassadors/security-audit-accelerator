@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../../../contexts/AuthContext';
 import AuthLayout from '../AuthLayout';
 import Input from '../../../components/Input/Input';
@@ -7,24 +7,45 @@ import styles from './LoginPage.module.css';
 import toast from 'react-hot-toast';
 
 const LoginPage = () => {
-  const { login } = useContext(AuthContext);
-  const [email, setEmail] = useState('');
+  const { login, user, loading } = useContext(AuthContext);
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [busy,     setBusy]     = useState(false);
+
+  // ── If already logged in → skip straight to dashboard ────────────
+  useEffect(() => {
+    if (!loading && user) {
+      window.location.replace('/dashboard');
+    }
+  }, [user, loading]);
+
+  // ── Show session-expired message (set by auto-logout) ────────────
+  useEffect(() => {
+    const reason = sessionStorage.getItem('logout_reason');
+    if (reason) {
+      sessionStorage.removeItem('logout_reason');
+      // Small delay so the toast renders after the page mounts
+      setTimeout(() => toast(reason, {
+        icon: '⏰',
+        duration: 5000,
+        style: { background: '#1e293b', color: '#f1f5f9', fontSize: '13px' },
+      }), 300);
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    
+    setBusy(true);
+
     const loginPromise = login(email, password);
-    
+
     toast.promise(loginPromise, {
       loading: 'Logging in...',
       success: (result) => {
         if (!result.success) throw new Error(result.error);
-        return 'Logged in Successfully.';
+        return 'Logged in successfully!';
       },
-      error: (err) => err.message
+      error: (err) => err.message,
     }).then((result) => {
       if (result && result.success) {
         window.location.href = '/dashboard';
@@ -35,30 +56,33 @@ const LoginPage = () => {
           window.location.href = `/verify-otp?email=${encodeURIComponent(email)}`;
         }, 1500);
       }
-    })
-    .finally(() => setLoading(false));
+    }).finally(() => setBusy(false));
   };
 
+  // Don't render the form while we're still checking auth state
+  // (avoids a flash of the login form before the redirect fires)
+  if (loading || user) return null;
+
   return (
-    <AuthLayout 
-      title="Welcome Back" 
+    <AuthLayout
+      title="Welcome Back"
       subtitle="Enter your credentials to access your account"
     >
       <form onSubmit={handleSubmit} className={styles.form}>
-        <Input 
-          label="Email Address" 
-          type="email" 
-          placeholder="name@company.com" 
+        <Input
+          label="Email Address"
+          type="email"
+          placeholder="name@company.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-        
+
         <div className={styles.passwordGroup}>
-          <Input 
-            label="Password" 
-            type="password" 
-            placeholder="••••••••" 
+          <Input
+            label="Password"
+            type="password"
+            placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -67,8 +91,8 @@ const LoginPage = () => {
             Forgot password?
           </a>
         </div>
-        
-        <Button type="submit" variant="primary" className={styles.submitBtn} loading={loading}>
+
+        <Button type="submit" variant="primary" className={styles.submitBtn} loading={busy}>
           Log In
         </Button>
       </form>
