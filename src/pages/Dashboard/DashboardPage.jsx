@@ -22,6 +22,10 @@ const getServiceName = (resource) => {
 };
 
 const DashboardPage = () => {
+  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000' 
+    : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+
   const [scanData, setScanData] = useState(null);
   const [reportStatus, setReportStatus] = useState(null); // null | 'downloading' | 'sending' | 'sent' | 'error'
   const [reportMenuOpen, setReportMenuOpen] = useState(false);
@@ -214,7 +218,7 @@ const DashboardPage = () => {
       }
 
       const token = localStorage.getItem('auditscope_token');
-      const res = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/reports/download', {
+      const res = await fetch(`${API_BASE}/api/reports/download`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -257,7 +261,7 @@ const DashboardPage = () => {
       }
 
       const token = localStorage.getItem('auditscope_token');
-      const res = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/reports/send', {
+      const res = await fetch(`${API_BASE}/api/reports/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -276,6 +280,50 @@ const DashboardPage = () => {
       }, 2000);
     } catch (err) {
       console.error('Email error:', err);
+      setReportStatus('error');
+      setTimeout(() => setReportStatus(null), 4000);
+    }
+  };
+
+  const handleDownloadExcel = async () => {
+    if (!scanData) return;
+    setReportMenuOpen(false);
+    setReportStatus('downloading');
+    try {
+      const token = localStorage.getItem('auditscope_token');
+      // For Excel, we use the scan record ID if available, or pass the current data
+      // If scanData.id is from DB, use it, otherwise use the scanId if it's history
+      const scanId = scanData.id || scanData.dbScanId;
+      
+      const res = await fetch(`${API_BASE}/api/reports/export-excel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          scanId: scanId,
+          scanData: !scanId ? scanData : null // Send raw data only if ID is missing
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to export Excel.');
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AuditScope_Report_${scanData.provider.toUpperCase()}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      setReportStatus(null);
+    } catch (err) {
+      console.error('Excel export error:', err);
       setReportStatus('error');
       setTimeout(() => setReportStatus(null), 4000);
     }
@@ -354,6 +402,14 @@ const DashboardPage = () => {
                     onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
                     <span>📧</span> Send via Email
+                  </button>
+                  <button
+                    onClick={handleDownloadExcel}
+                    style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: 'var(--color-text)', textAlign: 'left', cursor: 'pointer', fontSize: 'var(--font-size-sm)', display: 'flex', gap: '8px', alignItems: 'center' }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.05)'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                  >
+                    <span>📊</span> Download Excel
                   </button>
                 </div>
               )}

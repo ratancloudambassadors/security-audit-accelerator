@@ -96,7 +96,8 @@ export const AuthProvider = ({ children }) => {
   // ── login ────────────────────────────────────────────────────────
   const login = async (email, password) => {
     try {
-      const response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/auth/login', {
+      const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:5000' : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ email, password })

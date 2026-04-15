@@ -17,24 +17,30 @@ const { auditLogging } = require('./gcp/auditors/loggingAuditor');
 const { auditDataproc } = require('./gcp/auditors/dataprocAuditor');
 const { auditAwsIam, auditAwsEc2, auditAwsS3 } = require('./awsScanner');
 const { generatePDF } = require('../routes/reports');
+const { generateExcelReport } = require('./excelGenerator');
 const nodemailer = require('nodemailer');
+
+// Use structured transporter matching reports.js for higher reliability
+const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: process.env.SMTP_PORT || 587,
+    secure: false, // true for 465, false for other ports
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+    },
+});
 
 // Helper to send email with PDF attachment
 const sendAuditEmail = async (userEmail, scanData, projectName) => {
-    console.log(`[Scheduler] Attempting to send email to ${userEmail} using ${process.env.SMTP_USER}`);
+    console.log(`[Scheduler] ✉️  Attempting to send report to ${userEmail}...`);
+    
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-        console.error('[Scheduler] ERROR: SMTP_USER or SMTP_PASS is missing in environment variables!');
+        console.error('[Scheduler] ERROR: SMTP_USER or SMTP_PASS is missing!');
         return;
     }
-    try {
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-        });
 
+    try {
         const htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
@@ -92,18 +98,33 @@ const sendAuditEmail = async (userEmail, scanData, projectName) => {
             console.error('[Scheduler] Failed to generate PDF for automation:', e);
         }
 
+        let excelBuffer = Buffer.from('');
+        try {
+            excelBuffer = await generateExcelReport(scanData, projectName);
+        } catch (e) {
+            console.error('[Scheduler] Failed to generate Excel for automation:', e);
+        }
+
         const filename = `AuditScope_Report_${projectName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        const excelFilename = filename.replace('.pdf', '.xlsx');
 
         await transporter.sendMail({
             from: `"AuditScope Automation" <${process.env.SMTP_USER}>`,
             to: userEmail,
             subject: `[Automated] Security Audit: ${projectName} — Score ${scanData.score}%`,
             html: htmlContent,
-            attachments: pdfBuffer.length > 0 ? [{
-                filename: filename,
-                content: pdfBuffer,
-                contentType: 'application/pdf'
-            }] : []
+            attachments: [
+                ...(pdfBuffer.length > 0 ? [{
+                    filename: filename,
+                    content: pdfBuffer,
+                    contentType: 'application/pdf'
+                }] : []),
+                ...(excelBuffer.length > 0 ? [{
+                    filename: excelFilename,
+                    content: excelBuffer,
+                    contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                }] : [])
+            ]
         });
 
         console.log(`[Scheduler] ✉️  Email sent to ${userEmail} for project "${projectName}"`);
@@ -322,89 +343,101 @@ const computeNextRun = (freq, t, days, mDay) => {
     return next;
 };
 
+let isProcessing = false;
+
 const startScheduler = () => {
-    console.log('[Scheduler] ⏰ Starting scheduler service — checking every minute for due audits...');
+    console.log('[Scheduler] ⏰ Starting scheduler service — checking for due audits...');
 
     // Check every minute
     cron.schedule('* * * * *', async () => {
+        if (isProcessing) {
+            console.log('[Scheduler] Tick skipped: Previous audit loop still running.');
+            return;
+        }
+
         const now = new Date();
-        console.log(`[Scheduler] Tick — ${now.toISOString()} — checking for due audits...`);
+        isProcessing = true;
 
         try {
             const dueSchedules = await prisma.auditSchedule.findMany({
                 where: {
                     isActive: true,
                     nextRun: { lte: now }
-                },
-                include: {
-                    user: true,
-                    project: true
                 }
+                // include removed to prevent whole-set crash due to orphan relations
             });
 
             if (dueSchedules.length === 0) {
-                console.log('[Scheduler] No audits due right now.');
+                isProcessing = false;
                 return;
             }
 
-            console.log(`[Scheduler] 🚀 Found ${dueSchedules.length} due audit(s). Starting...`);
+            console.log(`[Scheduler] 🚀 Found ${dueSchedules.length} due audit(s).`);
 
             for (const schedule of dueSchedules) {
-                console.log(`[Scheduler] ─── Running audit for schedule ID: ${schedule.id}, user: ${schedule.user.email}`);
+                try {
+                    // Fetch related data individually to isolate orphan errors
+                    const user = await prisma.user.findUnique({ where: { id: schedule.userId } });
+                    const project = schedule.projectId ? await prisma.project.findUnique({ where: { id: schedule.projectId } }) : null;
 
-                // Determine the credentials to use: schedule-level credentials take priority, then project credentials
-                const credentialsSource = schedule.credentials || (schedule.project && schedule.project.credentials);
-
-                if (!credentialsSource) {
-                    console.error(`[Scheduler] ❌ No credentials found for schedule ${schedule.id}. Skipping.`);
-                    continue;
-                }
-
-                // Ensure a project is linked so we can persist scan results to DB
-                const resolvedProjectId = await ensureProjectLinked(schedule, credentialsSource);
-                if (!resolvedProjectId) {
-                    console.error(`[Scheduler] ❌ Could not resolve a project for schedule ${schedule.id}. Skipping.`);
-                    continue;
-                }
-
-                const provider = schedule.project ? schedule.project.provider : 'gcp';
-                let scanResult = null;
-
-                console.log(`[Scheduler] Running ${provider.toUpperCase()} scan for project ${resolvedProjectId}...`);
-
-                if (provider === 'gcp') {
-                    scanResult = await runGcpScan({ credentials: credentialsSource, projectId: resolvedProjectId });
-                } else if (provider === 'aws') {
-                    scanResult = await runAwsScan({ credentials: credentialsSource, projectId: resolvedProjectId });
-                } else {
-                    console.warn(`[Scheduler] Unknown provider "${provider}" for schedule ${schedule.id}`);
-                }
-
-                if (scanResult) {
-                    // Use targetEmail if set, otherwise fall back to the user's registered email
-                    const emailToUse = schedule.targetEmail || schedule.user.email;
-                    const projectName = schedule.project ? schedule.project.name : 'Automated Scan';
-                    await sendAuditEmail(emailToUse, scanResult, projectName);
-                } else {
-                    console.warn(`[Scheduler] ⚠️  Scan returned no result for schedule ${schedule.id}`);
-                }
-
-                // Compute and persist the next run time
-                const nextRun = computeNextRun(schedule.frequency, schedule.time, schedule.daysOfWeek, schedule.dayOfMonth);
-                console.log(`[Scheduler] Next run for schedule ${schedule.id} set to: ${nextRun.toISOString()}`);
-
-                await prisma.auditSchedule.update({
-                    where: { id: schedule.id },
-                    data: {
-                        lastRun: now,
-                        nextRun: nextRun
+                    if (!user) {
+                        console.warn(`[Scheduler] ⚠️ Skipping schedule ${schedule.id}: User ${schedule.userId} not found.`);
+                        continue;
                     }
-                });
 
-                console.log(`[Scheduler] ✅ Schedule ${schedule.id} updated — lastRun: ${now.toISOString()}, nextRun: ${nextRun.toISOString()}`);
+                    console.log(`[Scheduler] ─── Running audit for schedule: ${schedule.id}`);
+
+                    // Update nextRun to far future IMMEDIATELY to prevent double-triggering
+                    // if this scan takes longer than 60 seconds (next tick).
+                    await prisma.auditSchedule.update({
+                        where: { id: schedule.id },
+                        data: { nextRun: new Date(now.getTime() + 1000 * 60 * 60 * 24) } // +1 day safety bump
+                    });
+
+                    const credentialsSource = schedule.credentials || (project && project.credentials);
+
+                    if (!credentialsSource) {
+                        console.error(`[Scheduler] ❌ No credentials found for ${schedule.id}`);
+                        continue;
+                    }
+
+                    const resolvedProjectId = await ensureProjectLinked(schedule, credentialsSource);
+                    if (!resolvedProjectId) continue;
+
+                    const provider = project ? project.provider : 'gcp';
+                    let scanResult = null;
+
+                    if (provider === 'gcp') {
+                        scanResult = await runGcpScan({ credentials: credentialsSource, projectId: resolvedProjectId });
+                    } else if (provider === 'aws') {
+                        scanResult = await runAwsScan({ credentials: credentialsSource, projectId: resolvedProjectId });
+                    }
+
+                    if (scanResult) {
+                        const emailToUse = schedule.targetEmail || user.email;
+                        const projectName = project ? project.name : 'Automated Scan';
+                        await sendAuditEmail(emailToUse, scanResult, projectName);
+                    }
+
+                    // Compute and persist the ACTUAL next run time
+                    const nextRun = computeNextRun(schedule.frequency, schedule.time, schedule.daysOfWeek, schedule.dayOfMonth);
+                    await prisma.auditSchedule.update({
+                        where: { id: schedule.id },
+                        data: {
+                            lastRun: now,
+                            nextRun: nextRun
+                        }
+                    });
+
+                    console.log(`[Scheduler] ✅ Finished schedule ${schedule.id}. Next: ${nextRun.toISOString()}`);
+                } catch (err) {
+                    console.error(`[Scheduler] Failed processing schedule ${schedule.id}:`, err);
+                }
             }
         } catch (err) {
-            console.error('[Scheduler] ❌ Critical error in cron job:', err);
+            console.error('[Scheduler] ❌ Critical loop error:', err);
+        } finally {
+            isProcessing = false;
         }
     });
 

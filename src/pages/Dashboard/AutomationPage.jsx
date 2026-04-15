@@ -4,7 +4,9 @@ import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import ScheduleModal from '../../components/ScheduleModal/ScheduleModal';
 
-const API_BASE = 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000' 
+  : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
 const POLL_INTERVAL_MS = 30000; // 30 seconds
 
 const AutomationPage = () => {

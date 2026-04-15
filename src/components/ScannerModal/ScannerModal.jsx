@@ -77,12 +77,13 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
       });
     }, 500);
 
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:5000' : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
     try {
       const token = localStorage.getItem('auditscope_token');
       let response;
 
       if (provider === 'aws') {
-        response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/scan/aws', {
+        response = await fetch(`${API_BASE}/api/scan/aws`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -98,13 +99,13 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
           const formData = new FormData();
           formData.append('file', file);
 
-          response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/scan/gcp', {
+          response = await fetch(`${API_BASE}/api/scan/gcp`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData,
           });
         } else {
-          response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/scan/gcp', {
+          response = await fetch(`${API_BASE}/api/scan/gcp`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -127,6 +128,9 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
       const rawResults = await response.json();
 
       const adaptedResults = {
+        id: rawResults.dbScanId, // Store the DB ID for exports
+        dbScanId: rawResults.dbScanId,
+        dbProjectId: rawResults.dbProjectId,
         score: rawResults.summary.score,
         vulnerabilities: (rawResults.vulnerabilities || []).map(f => ({
           id: f.id,

@@ -3,6 +3,7 @@ const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
+const { generateExcelReport } = require('../services/excelGenerator');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -647,6 +648,47 @@ router.post('/project-summary', async (req, res) => {
   } catch (err) {
     console.error('[Report] project-summary error:', err);
     res.status(500).json({ error: err.message || 'Failed to generate project summary PDF.' });
+  }
+});
+
+/**
+ * Endpoint for exporting scan history as Excel
+ */
+router.post('/export-excel', authenticateToken, async (req, res) => {
+  try {
+    const { scanId, scanData } = req.body;
+    let scan;
+    let projectName = 'Security Audit';
+
+    if (scanId) {
+      scan = await prisma.scanHistory.findUnique({
+        where: { id: scanId },
+        include: { project: true }
+      });
+      if (!scan) return res.status(404).json({ error: 'Scan record not found in database.' });
+      projectName = scan.project ? scan.project.name : 'Security Audit';
+    } else if (scanData) {
+      // Allow exporting live results that haven't reach DB yet
+      scan = scanData;
+      projectName = scanData.projectName || scanData.provider || 'Security Audit';
+    } else {
+      return res.status(400).json({ error: 'Either scanId or scanData is required.' });
+    }
+
+    const excelBuffer = await generateExcelReport(scan, projectName);
+
+    const filename = `Security_Audit_${projectName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', excelBuffer.length);
+    res.send(excelBuffer);
+
+    console.log(`[Report] Excel report downloaded for "${projectName}" by ${req.user.email}`);
+
+  } catch (err) {
+    console.error('[Report] export-excel error:', err);
+    res.status(500).json({ error: 'Failed to generate Excel report: ' + err.message });
   }
 });
 
