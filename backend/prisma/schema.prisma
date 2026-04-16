@@ -41,6 +41,8 @@ model ScanHistory {
   id               String   @id @default(auto()) @map("_id") @db.ObjectId
   score            Float
   scannedResources Int
+  totalChecks      Int?     @default(0)
+  skippedChecks    String?  // Stored as JSON string
   criticalCount    Int
   highCount        Int
   mediumCount      Int

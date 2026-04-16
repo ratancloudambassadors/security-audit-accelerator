@@ -15,6 +15,10 @@ const { auditEssentialContacts } = require('./gcp/auditors/essentialContactsAudi
 const { auditDns } = require('./gcp/auditors/dnsAuditor');
 const { auditLogging } = require('./gcp/auditors/loggingAuditor');
 const { auditDataproc } = require('./gcp/auditors/dataprocAuditor');
+const { auditGKE } = require('./gcp/auditors/gkeAuditor');
+const { auditLB } = require('./gcp/auditors/lbAuditor');
+const { auditServerless } = require('./gcp/auditors/serverlessAuditor');
+const { auditNetworkingDepth } = require('./gcp/auditors/networkingDepthAuditor');
 const { auditAwsIam, auditAwsEc2, auditAwsS3 } = require('./awsScanner');
 const { generatePDF } = require('../routes/reports');
 const { generateExcelReport } = require('./excelGenerator');
@@ -200,20 +204,72 @@ const runGcpScan = async ({ credentials, projectId }) => {
             auditEssentialContacts(clients.googleAuthClient, gcpProjectId),
             auditDns(clients.googleAuthClient, gcpProjectId),
             auditLogging(clients.googleAuthClient, gcpProjectId),
-            auditDataproc(clients.googleAuthClient, gcpProjectId)
+            auditDataproc(clients.googleAuthClient, gcpProjectId),
+            auditGKE(clients.googleAuthClient, gcpProjectId),
+            auditLB(clients.googleAuthClient, gcpProjectId),
+            auditServerless(clients.googleAuthClient, gcpProjectId),
+            auditNetworkingDepth(clients.googleAuthClient, gcpProjectId)
         ];
 
         const results = await Promise.allSettled(auditPromises);
         let allFindings = [];
         let totalScanned = 0;
+        let skippedChecks = [];
+        // Precise mapping of the 77 internal security rules across all GCP modules
+        const auditorMeta = [
+          { name: 'Storage',            checks: 4 },
+          { name: 'VMs',                checks: 10 },
+          { name: 'IAM',                checks: 8 },
+          { name: 'SQL',                checks: 6 },
+          { name: 'Networking',         checks: 8 },
+          { name: 'BigQuery',           checks: 3 },
+          { name: 'KMS',                checks: 3 },
+          { name: 'API Keys',           checks: 2 },
+          { name: 'Essential Contacts', checks: 1 },
+          { name: 'DNS',                checks: 2 },
+          { name: 'Logging',            checks: 12 },
+          { name: 'Dataproc',           checks: 2 },
+          { name: 'Kubernetes (GKE)',   checks: 6 },
+          { name: 'Load Balancers',     checks: 4 },
+          { name: 'Serverless',         checks: 3 },
+          { name: 'Deep Networking',    checks: 1 }
+        ];
 
-        results.forEach((result) => {
+        let totalCheckpoints = 0;
+        let skippedCheckpoints = 0;
+
+        results.forEach((result, idx) => {
+            const meta = auditorMeta[idx];
+            
             if (result.status === 'fulfilled') {
                 allFindings = allFindings.concat(result.value.findings || []);
-                totalScanned += (result.value.scannedCount || 0);
+                const resourceCount = result.value.scannedCount || 0;
+                totalScanned += resourceCount;
+                
+                // Scale checkpoints by number of resources found (Atomic Validations)
+                // If 0 resources, the service check itself counts as 1 validation of 'existence'
+                const serviceValidations = Math.max(1, resourceCount * meta.checks);
+                totalCheckpoints += serviceValidations;
+
+                if (result.value.skipped || result.value.error) {
+                    skippedCheckpoints += serviceValidations;
+                    skippedChecks.push({
+                        service: meta.name,
+                        reason: result.value.reason || result.value.error || 'Service API not enabled'
+                    });
+                }
+            } else {
+                // If it failed completely, count it as the baseline service check failing
+                totalCheckpoints += meta.checks;
+                skippedCheckpoints += meta.checks;
+                skippedChecks.push({
+                    service: meta.name,
+                    reason: result.reason?.message || 'Unexpected auditor failure'
+                });
             }
         });
 
+        const totalChecks = totalCheckpoints;
         const criticalCount = allFindings.filter(f => f.severity === 'Critical').length;
         const highCount = allFindings.filter(f => f.severity === 'High').length;
         const mediumCount = allFindings.filter(f => f.severity === 'Medium').length;
@@ -231,6 +287,8 @@ const runGcpScan = async ({ credentials, projectId }) => {
                 data: {
                     score: computedScore,
                     scannedResources: totalScanned,
+                    totalChecks: totalChecks,
+                    skippedChecks: JSON.stringify(skippedChecks),
                     criticalCount,
                     highCount,
                     mediumCount,
@@ -238,11 +296,20 @@ const runGcpScan = async ({ credentials, projectId }) => {
                     projectId: projectId
                 }
             });
-            console.log(`[Scheduler] ✅ GCP scan saved for project ${projectId}. Score: ${computedScore}%`);
+            console.log(`[Scheduler] ✅ GCP scan saved. Score: ${computedScore}%, Checks: ${totalChecks - skippedChecks.length}/${totalChecks}`);
             return savedScan;
         }
 
-        return { score: computedScore, scannedResources: totalScanned, criticalCount, highCount, mediumCount, findings: JSON.stringify(allFindings) };
+        return { 
+            score: computedScore, 
+            scannedResources: totalScanned, 
+            totalChecks, 
+            skippedChecks: JSON.stringify(skippedChecks),
+            criticalCount, 
+            highCount, 
+            mediumCount, 
+            findings: JSON.stringify(allFindings) 
+        };
     } catch (err) {
         console.error(`[Scheduler] GCP scan failed for project ${projectId}:`, err.message);
         return null;

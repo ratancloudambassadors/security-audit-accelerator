@@ -24,7 +24,7 @@ const auditKMS = async (googleAuthClient, projectId) => {
       });
     } catch (locErr) {
       console.warn("[KMS] Failed to list locations or API not enabled:", locErr.message);
-      return { findings, scannedCount };
+      return { findings, scannedCount, skipped: true, reason: locErr.message || "API not enabled" };
     }
 
     const locations = locationsResponse.data.locations || [];

@@ -581,10 +581,10 @@ router.post('/project-summary', async (req, res) => {
 
       // 4 stat cards — 62px tall, 4px gap
       const stats = [
-        { label: 'TOTAL SCANS',     value: String(totalScans ?? 0),                 color: indigo,    bg: '#eef2ff' },
-        { label: 'LATEST SCORE',    value: `${scoreNum}%`,                          color: scoreCol,  bg: slate50   },
-        { label: 'TOTAL RESOURCES', value: (totalResources ?? 0).toLocaleString(),  color: '#059669', bg: '#ecfdf5' },
-        { label: 'TOTAL ISSUES',    value: (totalIssues    ?? 0).toLocaleString(),  color: (totalIssues ?? 0) > 0 ? '#dc2626' : '#059669', bg: (totalIssues ?? 0) > 0 ? '#fef2f2' : '#ecfdf5' },
+        { label: 'TOTAL SCANS',      value: String(totalScans ?? 0),                 color: indigo,    bg: '#eef2ff' },
+        { label: 'LATEST SCORE',     value: `${scoreNum}%`,                          color: scoreCol,  bg: slate50   },
+        { label: 'LATEST RESOURCES', value: (totalResources ?? 0).toLocaleString(),  color: '#059669', bg: '#ecfdf5' },
+        { label: 'ACTIVE ISSUES',    value: (totalIssues    ?? 0).toLocaleString(),  color: (totalIssues ?? 0) > 0 ? '#dc2626' : '#059669', bg: (totalIssues ?? 0) > 0 ? '#fef2f2' : '#ecfdf5' },
       ];
       const cardW = (W - 100 - 18) / 4; // 3 × 6px gap
       const cardH = 62;
@@ -607,100 +607,84 @@ router.post('/project-summary', async (req, res) => {
       doc.fontSize(8).fillColor(slate500)
          .text('VULNERABILITY BREAKDOWN', 50, y, { characterSpacing: 1.5, continued: true });
       doc.fontSize(7.5).fillColor('#94a3b8')
-         .text('  — cumulative across all scans', { characterSpacing: 0 });
+         .text('  — based on the latest scan', { characterSpacing: 0 });
       doc.moveTo(50, y + 13).lineTo(W - 50, y + 13)
          .strokeColor(slate200).lineWidth(0.7).stroke();
       y += 20;
 
-      // ── SEVERITY CHIPS (3 across, 50px tall so value+label fit cleanly) ──
       const sevItems = [
         { label: 'Critical', value: totalCritical ?? 0, color: '#dc2626', bg: '#fef2f2' },
         { label: 'High',     value: totalHigh     ?? 0, color: '#ea580c', bg: '#fff7ed' },
         { label: 'Medium',   value: totalMedium   ?? 0, color: '#ca8a04', bg: '#fefce8' },
       ];
-      const sevChipW = 110;   // wider chips
-      const sevChipH = 52;    // taller so value(font18) + label(font8) + padding fit
-      const sevGap   = 14;
+      const sevChipW = 110, sevChipH = 52, sevGap = 14;
 
       sevItems.forEach((sv, i) => {
         const cx = 50 + i * (sevChipW + sevGap);
         doc.roundedRect(cx, y, sevChipW, sevChipH, 6).fill(sv.bg);
         doc.roundedRect(cx, y, sevChipW, 3, 2).fill(sv.color);
-        // Value: font 18, starts at y+10 → bottom of text ≈ y+32
-        doc.fontSize(18).fillColor(sv.color)
-           .text(sv.value.toLocaleString(), cx, y + 10, { width: sevChipW, align: 'center' });
-        // Label: font 8, starts at y+36 → well below value
-        doc.fontSize(8).fillColor(sv.color)
-           .text(sv.label, cx, y + 36, { width: sevChipW, align: 'center' });
+        doc.fontSize(18).fillColor(sv.color).text(sv.value.toLocaleString(), cx, y + 10, { width: sevChipW, align: 'center' });
+        doc.fontSize(8).fillColor(sv.color).text(sv.label, cx, y + 36, { width: sevChipW, align: 'center' });
       });
+      y += sevChipH + 28;
 
-      y += sevChipH + 18;
+      // ── SECURITY SCORE TREND LINE CHART ─────────────────────────────
+      doc.fontSize(8).fillColor(slate500).text('HISTORICAL SECURITY SCORE TREND', 50, y, { characterSpacing: 1 });
+      doc.moveTo(50, y + 12).lineTo(W - 50, y + 12).strokeColor(slate200).lineWidth(0.5).stroke();
+      y += 24;
 
-      // ── BAR CHART ────────────────────────────────────────────────────
-      // 20px top padding inside the chart area so value labels above bars
-      // have room without overflowing outside the chart box.
-      const chartTopPad = 22;   // vertical space above bars for labels
-      const chartH      = 120;  // total chart height (bars + top pad)
-      const innerChartH = chartH - chartTopPad;  // actual bar height area
-      const chartLeft   = 62;   // left margin for Y-axis labels
-      const chartW      = W - chartLeft - 50;
-      const maxV        = Math.max(totalCritical ?? 0, totalHigh ?? 0, totalMedium ?? 0, 1);
-
-      // Chart background
-      doc.roundedRect(chartLeft, y, chartW, chartH, 4).fill('#fafafa');
-
-      // Y-axis grid lines (4 ticks, only inside bar area)
-      for (let t = 0; t <= 4; t++) {
-        const ty = y + chartTopPad + innerChartH - (t / 4) * innerChartH;
-        const tv = Math.round((maxV / 4) * t);
-        doc.moveTo(chartLeft, ty).lineTo(chartLeft + chartW, ty)
-           .strokeColor(slate200).lineWidth(0.5).stroke();
-        // Y-tick label flush-right before chartLeft
-        doc.fontSize(6.5).fillColor(slate500)
-           .text(tv.toLocaleString(), chartLeft - 30, ty - 4, { width: 28, align: 'right' });
+      const chH = 100, chW = W - 140, chL = 80;
+      doc.roundedRect(50, y - 10, W - 100, chH + 30, 8).fill('#fafafa');
+      
+      for (let i = 0; i <= 4; i++) {
+        const gy = y + chH - (i / 4) * chH;
+        doc.moveTo(chL, gy).lineTo(chL + chW, gy).strokeColor(slate200).lineWidth(0.5).stroke();
+        doc.fontSize(7).fillColor(slate500).text(`${i * 25}%`, chL - 25, gy - 3);
       }
 
-      // Bars — calculate width so they fill most of the chart width
-      const barCount = sevItems.length;
-      const barW     = Math.floor(chartW * 0.18);  // ~18% of chart width each
-      const totalBarSpace = barCount * barW;
-      const totalGapSpace = chartW - totalBarSpace;
-      const barGap  = totalGapSpace / (barCount + 1);
-
-      sevItems.forEach((sv, i) => {
-        const bx = chartLeft + barGap + i * (barW + barGap);
-        const bh = maxV > 0 ? (sv.value / maxV) * innerChartH : 0;
-        const barTop = y + chartTopPad + innerChartH - bh;
-
-        // Background column (full inner height)
-        doc.roundedRect(bx, y + chartTopPad, barW, innerChartH, 3).fill(sv.bg);
-
-        // Actual coloured bar
-        if (bh > 0) {
-          doc.roundedRect(bx, barTop, barW, bh, 3).fill(sv.color);
+      const history = req.body.scoreHistory || [];
+      if (history.length > 1) {
+        doc.strokeColor(indigo).lineWidth(2);
+        history.forEach((pt, i) => {
+          const px = chL + (i / (history.length - 1)) * chW;
+          const py = y + chH - (pt.value / 100) * chH;
+          if (i === 0) doc.moveTo(px, py); else doc.lineTo(px, py);
+        });
+        doc.stroke();
+      }
+      
+      history.forEach((pt, i) => {
+        const px = chL + (i / Math.max(history.length - 1, 1)) * chW;
+        const py = y + chH - (pt.value / 100) * chH;
+        doc.circle(px, py, 3).fill(indigo);
+        if (i === 0 || i === history.length - 1 || history.length < 8) {
+          doc.fontSize(6).fillColor(dark).text(`${pt.value}%`, px - 10, py - 10, { width: 20, align: 'center' });
+          doc.fontSize(6).fillColor(slate500).text(pt.label, px - 15, y + chH + 5, { width: 30, align: 'center' });
         }
-
-        // Value label — always placed ABOVE the bar, inside chartTopPad space
-        // Clamp so it never goes above the chart box
-        const labelY = Math.max(y + 4, barTop - 14);
-        doc.fontSize(8).fillColor(sv.color)
-           .text(sv.value.toLocaleString(), bx - 6, labelY, { width: barW + 12, align: 'center' });
-
-        // X-axis category label (below chart)
-        doc.fontSize(8).fillColor(slate700)
-           .text(sv.label, bx - 6, y + chartH + 5, { width: barW + 12, align: 'center' });
       });
+      y += chH + 45;
 
-      // Axis lines drawn last so they appear on top of background rects
-      doc.moveTo(chartLeft, y).lineTo(chartLeft, y + chartH)
-         .strokeColor(slate500).lineWidth(0.7).stroke();
-      doc.moveTo(chartLeft, y + chartH).lineTo(chartLeft + chartW, y + chartH)
-         .strokeColor(slate500).lineWidth(0.7).stroke();
+      // ── RECENT SCAN RESULTS ─────────────────────────────────────────
+      const recent = req.body.recentScans || [];
+      if (recent.length > 0) {
+        doc.fontSize(8).fillColor(slate500).text('RECENT PROJECT SCAN LOGS', 50, y, { characterSpacing: 1 });
+        doc.moveTo(50, y + 12).lineTo(W - 50, y + 12).strokeColor(slate200).lineWidth(0.5).stroke();
+        y += 22;
 
-      y += chartH + 24;
+        recent.forEach((s, i) => {
+          if (y > doc.page.height - 80) { doc.addPage(); y = 50; }
+          doc.roundedRect(50, y, W - 100, 32, 4).fill(slate50);
+          doc.fontSize(10).fillColor(s.score > 80 ? '#16a34a' : '#ef4444').text(`${s.score}%`, 64, y + 10, { width: 30, fontWeight: 700 });
+          doc.fontSize(8).fillColor(dark).text(`Scan on ${s.date} at ${s.time}`, 100, y + 11);
+          doc.fontSize(7.5).fillColor('#dc2626').text(`${s.critical} Critical`, W - 180, y + 11);
+          doc.fontSize(7.5).fillColor('#f97316').text(`${s.high} High`, W - 120, y + 11);
+          y += 38;
+        });
+      }
 
       // ── ALL CLEAR NOTE ───────────────────────────────────────────────
       if ((totalIssues ?? 0) === 0) {
+        if (y > doc.page.height - 80) { doc.addPage(); y = 50; }
         doc.roundedRect(50, y, W - 100, 30, 6).fill('#ecfdf5');
         doc.fontSize(10).fillColor('#16a34a')
            .text('✓  No vulnerabilities found across all scans. Infrastructure looks secure!',

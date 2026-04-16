@@ -134,7 +134,9 @@ const ScanHistoryPage = () => {
           <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: 'var(--spacing-8)' }}>Loading scan history...</div>
         ) : processedData.totalItems === 0 ? (
           <Card style={{ minHeight: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-3)' }}>
-            <div style={{ fontSize: '2.5rem', opacity: 0.5 }}>⏱️</div>
+            <div style={{ opacity: 0.1, marginBottom: '10px' }}>
+              <svg viewBox="0 0 24 24" width="60" height="60"><path fill="var(--color-primary)" d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+            </div>
             <h3 style={{ color: 'var(--color-text)' }}>No scans found</h3>
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
               {selectedProvider !== 'All'
