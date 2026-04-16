@@ -6,7 +6,7 @@ import Button from '../../components/Button/Button';
 const SettingsPage = () => {
     const API_BASE = window.location.hostname.includes('run.app')
         ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
-        : 'http://localhost:5000';
+        : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
 
     const { user, login } = useContext(AuthContext);
 

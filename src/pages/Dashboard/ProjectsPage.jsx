@@ -5,7 +5,7 @@ import Card from '../../components/Card/Card';
 const ProjectsPage = () => {
   const API_BASE = window.location.hostname.includes('run.app')
     ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
-    : 'http://localhost:5000';
+    : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
 
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 
 const ResetPasswordPage = () => {
   const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:5000' 
+    ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
     : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
 
   const [otp,             setOtp]             = useState('');

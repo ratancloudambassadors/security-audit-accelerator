@@ -6,7 +6,7 @@ import ScheduleModal from '../../components/ScheduleModal/ScheduleModal';
 
 const API_BASE = window.location.hostname.includes('run.app')
   ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
-  : 'http://localhost:5000';
+  : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
 const POLL_INTERVAL_MS = 30000; // 30 seconds
 
 const AutomationPage = () => {

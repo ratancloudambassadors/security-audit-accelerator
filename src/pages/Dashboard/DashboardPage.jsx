@@ -67,7 +67,7 @@ const getCheckpointName = (id) => {
 const DashboardPage = () => {
   const API_BASE = window.location.hostname.includes('run.app')
     ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
-    : 'http://localhost:5000';
+    : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
 
   const [scanData, setScanData] = useState(null);
   const [reportStatus, setReportStatus] = useState(null); // null | 'downloading' | 'sending' | 'sent' | 'error'
@@ -77,6 +77,8 @@ const DashboardPage = () => {
   const [emailInput, setEmailInput] = useState('');
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [selectedEmailServices, setSelectedEmailServices] = useState(['ALL']);
+  const [includePdf, setIncludePdf] = useState(true);
+  const [includeExcel, setIncludeExcel] = useState(false);
 
   // Filtering and Pagination State
   const [searchTerm, setSearchTerm] = useState('');
@@ -322,7 +324,7 @@ const DashboardPage = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ scanData: payloadData, recipientEmail: emailInput, selectedServices: selectedEmailServices })
+        body: JSON.stringify({ scanData: payloadData, recipientEmail: emailInput, selectedServices: selectedEmailServices, sendPdf: includePdf, sendExcel: includeExcel })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -451,20 +453,20 @@ const DashboardPage = () => {
                     <span>⬇️</span> Download PDF
                   </button>
                   <button
-                    onClick={() => { setReportMenuOpen(false); setExportType('email'); setExportModalOpen(true); }}
+                    onClick={handleDownloadExcel}
                     style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid #2d3148', color: 'var(--color-text)', textAlign: 'left', cursor: 'pointer', fontSize: 'var(--font-size-sm)', display: 'flex', gap: '8px', alignItems: 'center' }}
                     onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.05)'}
                     onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
-                    <span>📧</span> Send via Email
+                    <span>📊</span> Download Excel
                   </button>
                   <button
-                    onClick={handleDownloadExcel}
+                    onClick={() => { setReportMenuOpen(false); setExportType('email'); setExportModalOpen(true); }}
                     style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: 'var(--color-text)', textAlign: 'left', cursor: 'pointer', fontSize: 'var(--font-size-sm)', display: 'flex', gap: '8px', alignItems: 'center' }}
                     onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.05)'}
                     onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
-                    <span>📊</span> Download Excel
+                    <span>📧</span> Send via Email
                   </button>
                 </div>
               )}
@@ -491,7 +493,6 @@ const DashboardPage = () => {
                 position: 'relative',
                 overflow: 'hidden'
               }}>
-                <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '60px', opacity: 0.05, transform: 'rotate(15deg)' }}>🛡️</div>
                 <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600 }}>Total Vulnerabilities</h3>
                 <div style={{ fontSize: '36px', fontWeight: 800, color: '#ef4444', letterSpacing: '-0.02em' }}>{processedData.totalItems}</div>
                 <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -508,8 +509,88 @@ const DashboardPage = () => {
                 position: 'relative',
                 overflow: 'hidden'
               }}>
-                <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '60px', opacity: 0.03, transform: 'rotate(15deg)' }}>🛠️</div>
-                <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600 }}>Resources Audited</h3>
+                <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Resources Audited
+                  <div style={{ position: 'relative', display: 'inline-block', cursor: 'help' }} 
+                       onMouseEnter={(e) => {
+                         const tooltip = e.currentTarget.querySelector('div[data-tooltip="resources"]');
+                         if (tooltip) tooltip.style.opacity = '1';
+                         if (tooltip) tooltip.style.visibility = 'visible';
+                         if (tooltip) tooltip.style.transform = 'translate(-50%, 8px)';
+                       }}
+                       onMouseLeave={(e) => {
+                         const tooltip = e.currentTarget.querySelector('div[data-tooltip="resources"]');
+                         if (tooltip) tooltip.style.opacity = '0';
+                         if (tooltip) tooltip.style.visibility = 'hidden';
+                         if (tooltip) tooltip.style.transform = 'translate(-50%, 0)';
+                       }}>
+                    <span style={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      width: '16px', 
+                      height: '16px', 
+                      borderRadius: '50%', 
+                      border: '1px solid var(--color-border)', 
+                      backgroundColor: 'rgba(100, 116, 139, 0.1)',
+                      color: 'var(--color-text-muted)', 
+                      fontSize: '10px', 
+                      fontWeight: '700' 
+                    }}>?</span>
+                    <div data-tooltip="resources" style={{
+                      opacity: '0',
+                      visibility: 'hidden',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      position: 'absolute',
+                      top: '100%',
+                      left: '50%',
+                      transform: 'translate(-50%, 0)',
+                      backgroundColor: 'var(--color-bg)',
+                      color: 'var(--color-text)',
+                      padding: '16px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      letterSpacing: 'normal',
+                      textTransform: 'none',
+                      boxShadow: 'var(--shadow-lg)',
+                      width: 'max-content',
+                      maxWidth: '280px',
+                      border: '1px solid var(--color-border)',
+                      zIndex: 10,
+                      pointerEvents: 'none'
+                    }}>
+                      <div style={{ fontWeight: 700, marginBottom: '6px', color: 'var(--color-primary)', fontSize: '13px' }}>What are Resources?</div>
+                      <div style={{ marginBottom: '12px', lineHeight: '1.5', color: 'var(--color-text)' }}>
+                        A resource is a unique cloud entity evaluated during the audit, such as a VM instance, Storage bucket, or IAM role.
+                      </div>
+                      <div style={{ fontWeight: 700, marginBottom: '6px', color: 'var(--color-primary)', fontSize: '13px' }}>How is it calculated?</div>
+                      <div style={{ lineHeight: '1.5', color: 'var(--color-text)' }}>
+                        It's the count of <strong>unique</strong> resources evaluated.<br/><br/>
+                        <span style={{ opacity: 0.85 }}><strong>Example:</strong> If 3 separate vulnerabilities are detected in a single "Backend-VM", it adds up to 3 Total Vulnerabilities, but only <strong>1 Resource Audited</strong>.</span>
+                      </div>
+                      {/* Tooltip Arrow Layer 1 (Border) */}
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        marginLeft: '-6px',
+                        borderWidth: '0 6px 6px 6px',
+                        borderStyle: 'solid',
+                        borderColor: 'transparent transparent var(--color-border) transparent'
+                      }}></div>
+                      {/* Tooltip Arrow Layer 2 (Background) */}
+                      <div style={{
+                        position: 'absolute',
+                        bottom: 'calc(100% - 1px)',
+                        left: '50%',
+                        marginLeft: '-5px',
+                        borderWidth: '0 5px 5px 5px',
+                        borderStyle: 'solid',
+                        borderColor: 'transparent transparent var(--color-bg) transparent'
+                      }}></div>
+                    </div>
+                  </div>
+                </h3>
                 <div style={{ fontSize: '36px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
                   {scanData?.scanned !== undefined ? scanData.scanned : new Set(processedData.filteredAllItems.map(v => v.resource)).size}
                 </div>
@@ -546,7 +627,7 @@ const DashboardPage = () => {
                   style={{
                     width: '100%',
                     height: '42px',
-                    backgroundColor: '#ffffff',
+                    backgroundColor: 'var(--color-bg-secondary)',
                     border: '1px solid rgba(0,0,0,0.1)',
                     borderRadius: '10px',
                     padding: '0 15px 0 40px',
@@ -569,7 +650,7 @@ const DashboardPage = () => {
                   style={{
                     width: '100%',
                     height: '42px',
-                    backgroundColor: '#ffffff',
+                    backgroundColor: 'var(--color-bg-secondary)',
                     border: '1px solid rgba(0,0,0,0.1)',
                     borderRadius: '10px',
                     padding: '0 12px 0 35px',
@@ -595,7 +676,7 @@ const DashboardPage = () => {
                   style={{
                     width: '100%',
                     height: '42px',
-                    backgroundColor: '#ffffff',
+                    backgroundColor: 'var(--color-bg-secondary)',
                     border: '1px solid rgba(0,0,0,0.1)',
                     borderRadius: '10px',
                     padding: '0 12px 0 35px',
@@ -775,6 +856,32 @@ const DashboardPage = () => {
             </div>
 
             {exportType === 'email' && (
+              <div style={{ marginBottom: 'var(--spacing-4)' }}>
+                <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text)', marginBottom: 'var(--spacing-2)', fontWeight: 600 }}>Formats to Send:</label>
+                <div style={{ display: 'flex', gap: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--color-text)', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={includePdf}
+                      onChange={(e) => setIncludePdf(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    PDF Report
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--color-text)', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={includeExcel}
+                      onChange={(e) => setIncludeExcel(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    Excel Report
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {exportType === 'email' && (
               <input
                 type="email"
                 value={emailInput}
@@ -795,8 +902,8 @@ const DashboardPage = () => {
               {exportType === 'email' ? (
                 <button
                   onClick={handleEmailReport}
-                  disabled={!emailInput || reportStatus === 'sending'}
-                  style={{ padding: '8px 16px', backgroundColor: 'var(--color-primary)', border: 'none', color: '#fff', borderRadius: 'var(--radius-md)', cursor: (!emailInput || reportStatus === 'sending') ? 'not-allowed' : 'pointer', opacity: (!emailInput || reportStatus === 'sending') ? 0.6 : 1, display: 'flex', gap: '8px', alignItems: 'center' }}
+                  disabled={!emailInput || (!includePdf && !includeExcel) || reportStatus === 'sending'}
+                  style={{ padding: '8px 16px', backgroundColor: 'var(--color-primary)', border: 'none', color: '#fff', borderRadius: 'var(--radius-md)', cursor: (!emailInput || (!includePdf && !includeExcel) || reportStatus === 'sending') ? 'not-allowed' : 'pointer', opacity: (!emailInput || (!includePdf && !includeExcel) || reportStatus === 'sending') ? 0.6 : 1, display: 'flex', gap: '8px', alignItems: 'center' }}
                 >
                   {reportStatus === 'sending' ? '⏳ Sending...' : '📧 Send Email'}
                 </button>

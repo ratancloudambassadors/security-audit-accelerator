@@ -366,7 +366,7 @@ router.post('/download', async (req, res) => {
 // POST /api/reports/send — generates PDF and securely emails it via Nodemailer
 router.post('/send', async (req, res) => {
   try {
-    const { scanData, recipientEmail, selectedServices } = req.body;
+    const { scanData, recipientEmail, selectedServices, sendPdf, sendExcel } = req.body;
 
     if (!scanData) {
       return res.status(400).json({ error: 'scanData is required in the request body.' });
@@ -387,16 +387,37 @@ router.post('/send', async (req, res) => {
 
     const projectId = scanData.projectId || scanData.provider?.toUpperCase() || 'Cloud Project';
 
-    const pdfBuffer = await generatePDF(scanData, user.name || user.email, projectId);
+    const emailAttachments = [];
+
+    if (sendPdf !== false) {
+      const pdfBuffer = await generatePDF(scanData, user.name || user.email, projectId);
+      emailAttachments.push({
+        filename: `AuditScope_Report_${new Date().toISOString().slice(0, 10)}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      });
+    }
+
+    if (sendExcel === true) {
+      const projectName = scanData.projectName || scanData.provider || 'Security Audit';
+      const excelBuffer = await generateExcelReport(scanData, projectName);
+      emailAttachments.push({
+        filename: `Security_Audit_${projectName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`,
+        content: excelBuffer,
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+    }
+
+    if (emailAttachments.length === 0) {
+      return res.status(400).json({ error: 'No report formats selected.' });
+    }
 
     if (!process.env.SMTP_USER || process.env.SMTP_USER === 'your-email@gmail.com') {
       console.log('--- DEVELOPMENT MODE: SMTP NOT CONFIGURED ---');
-      console.log(`Simulating PDF Email to ${recipientEmail}`);
+      console.log(`Simulating Report Email to ${recipientEmail} with ${emailAttachments.length} attachments`);
       console.log('---------------------------------------------');
       return res.json({ success: true, message: `Report emailed to ${recipientEmail} (Simulated - SMTP not configured)` });
     }
-
-    const filename = `AuditScope_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
 
     await transporter.sendMail({
       from: `"AuditScope Security" <${process.env.SMTP_USER}>`,
@@ -430,16 +451,10 @@ router.post('/send', async (req, res) => {
           <p style="font-size: 14px; line-height: 1.6; color: #64748b; margin-top: 30px;">Regards,<br><strong style="color: #0f172a;">AuditScope Automated Systems</strong><br><em>Do not reply to this automated message.</em></p>
         </div>
       `,
-      attachments: [
-        {
-          filename: filename,
-          content: pdfBuffer,
-          contentType: 'application/pdf'
-        }
-      ]
+      attachments: emailAttachments
     });
 
-    console.log(`[Report] PDF report emailed successfully to ${recipientEmail}`);
+    console.log(`[Report] Report emailed successfully to ${recipientEmail}`);
     res.json({ success: true, message: `Report emailed successfully to ${recipientEmail}` });
 
   } catch (error) {
