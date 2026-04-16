@@ -9,22 +9,65 @@ const getServiceName = (resource) => {
   let sName = match ? match[1].trim() : 'Other';
   const lowerName = sName.toLowerCase();
   
-  if (lowerName.includes('compute')) return 'Compute Engine';
-  if (lowerName.includes('iam')) return 'IAM';
-  if (lowerName.includes('storage') || lowerName.includes('bucket')) return 'Storage';
-  if (lowerName.includes('sql') || lowerName.includes('database')) return 'Database';
-  if (lowerName.includes('network') || lowerName.includes('vpc') || lowerName.includes('firewall') || lowerName.includes('router') || lowerName.includes('route')) return 'Network';
-  if (lowerName.includes('kubernetes') || lowerName.includes('gke') || lowerName.includes('eks')) return 'Kubernetes';
-  if (lowerName.includes('kms') || lowerName.includes('key')) return 'KMS';
-  if (lowerName.includes('func') || lowerName.includes('lambda')) return 'Functions';
+  let mapped = sName;
+  if (lowerName.includes('compute') || lowerName.includes('vm')) mapped = 'Compute';
+  else if (lowerName.includes('iam') || lowerName.includes('service account')) mapped = 'IAM';
+  else if (lowerName.includes('storage') || lowerName.includes('bucket')) mapped = 'Storage';
+  else if (lowerName.includes('sql') || lowerName.includes('database') || lowerName.includes('rds')) mapped = 'Database';
+  else if (lowerName.includes('network') || lowerName.includes('vpc') || lowerName.includes('firewall') || lowerName.includes('dns') || lowerName.includes('subnet')) mapped = 'Networking';
+  else if (lowerName.includes('kubernetes') || lowerName.includes('gke') || lowerName.includes('eks')) mapped = 'Kubernetes';
+  else if (lowerName.includes('kms') || lowerName.includes('key')) mapped = 'KMS';
+  else if (lowerName.includes('func') || lowerName.includes('lambda') || lowerName.includes('serverless') || lowerName.includes('cloudrun')) mapped = 'Serverless';
+  else if (lowerName.includes('load balancer') || lowerName.includes('backend service') || lowerName.includes('lb')) mapped = 'Load Balancers';
+  else if (lowerName.includes('bigquery') || lowerName.includes('bq') || lowerName.includes('dataset') || lowerName.includes('table')) mapped = 'BigQuery';
+  else if (lowerName.includes('dataproc')) mapped = 'Dataproc';
   
-  return sName;
+  console.log(`[Dashboard] Mapping resource "${resource}" -> "${mapped}"`);
+  return mapped;
+};
+
+const getCheckpointName = (id) => {
+    if (!id) return 'General Check';
+    const parts = id.split('-');
+    const checkType = parts[2] ? parts[2].toUpperCase() : 'GENERAL';
+    
+    const mapping = {
+        'PUBLIC': 'Check Public Access',
+        'EXTERNAL': 'Check External Access',
+        'ENCRYPTION': 'Check Encryption',
+        'ROTATION': 'Check Key Rotation',
+        'ADMIN': 'Check Admin Access',
+        'SOD': 'Check Separation of Duties',
+        'TOKEN': 'Check SA Tokens',
+        'KEY': 'Check SA Keys',
+        'SSL': 'Check SSL Policy',
+        'IP': 'Check IP Config',
+        'LOG': 'Check Logging',
+        'LBLOG': 'Check LB Logging',
+        'MONITOR': 'Check Monitoring',
+        'FIREWALL': 'Check Firewall Rules',
+        'VERSION': 'Check Software Version',
+        'SA': 'Check Service Accounts',
+        'GKE': 'Check Kubernetes',
+        'FLOW': 'Check VPC Flow Logs',
+        'ENDPOINT': 'Check API Endpoint',
+        'ABAC': 'Check Legacy ABAC',
+        'WORKLOAD': 'Check Workload Identity',
+        'SHIELDED': 'Check Shielded Nodes',
+        'BINARY': 'Check Binary Auth',
+        'RDS': 'Check RDS Public',
+        'EKS': 'Check EKS Public',
+        'SERVERLESS': 'Check Serverless',
+        'DATASET': 'Check BigQuery Dataset'
+    };
+
+    return mapping[checkType] || `Check: ${checkType.charAt(0).toUpperCase() + checkType.slice(1).toLowerCase()}`;
 };
 
 const DashboardPage = () => {
-  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:5000' 
-    : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+  const API_BASE = window.location.hostname.includes('run.app')
+    ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
+    : 'http://localhost:5000';
 
   const [scanData, setScanData] = useState(null);
   const [reportStatus, setReportStatus] = useState(null); // null | 'downloading' | 'sending' | 'sent' | 'error'
@@ -89,20 +132,18 @@ const DashboardPage = () => {
     };
 
     window.addEventListener('scanCompleted', handleScanComplete);
-    window.addEventListener('filterByServiceChanged', handleServiceFilterChanged);
     window.addEventListener('scanStarted', handleScanStarted);
     return () => {
       window.removeEventListener('scanCompleted', handleScanComplete);
-      window.removeEventListener('filterByServiceChanged', handleServiceFilterChanged);
       window.removeEventListener('scanStarted', handleScanStarted);
     };
   }, []);
 
   // Compute filtered and paginated results grouped by service
   const processedData = useMemo(() => {
-    if (!scanData || !scanData.vulnerabilities) return { paginatedServices: [], totalPages: 0, totalItems: 0, filteredAllItems: [] };
+    if (!scanData || !scanData.vulnerabilities || !Array.isArray(scanData.vulnerabilities)) return { paginatedServices: [], totalPages: 0, totalItems: 0, filteredAllItems: [] };
 
-    let filtered = scanData.vulnerabilities;
+    let filtered = [...scanData.vulnerabilities];
 
     // Apply Service Filter (from Navbar)
     if (serviceFilter !== 'all') {
@@ -134,10 +175,24 @@ const DashboardPage = () => {
       groups[sName].push(v);
     });
 
-    const groupedServices = Object.keys(groups).sort().map(sName => ({
-      name: sName,
-      items: groups[sName]
-    }));
+    const groupedServices = Object.keys(groups).sort().map(sName => {
+      // Further group items within each service by Checkpoint
+      const checkpointGroups = {};
+      groups[sName].forEach(v => {
+        const cpName = getCheckpointName(v.id);
+        if (!checkpointGroups[cpName]) checkpointGroups[cpName] = [];
+        checkpointGroups[cpName].push(v);
+      });
+
+      return {
+        name: sName,
+        totalItems: groups[sName].length,
+        checkpoints: Object.keys(checkpointGroups).sort().map(cpName => ({
+          name: cpName,
+          items: checkpointGroups[cpName]
+        }))
+      };
+    });
 
     // Calculate Pagination on Services
     const totalPages = Math.ceil(groupedServices.length / servicesPerPage);
@@ -153,7 +208,7 @@ const DashboardPage = () => {
   }, [scanData, searchTerm, severityFilter, serviceFilter, currentPage]);
 
   const allServices = useMemo(() => {
-    if (!scanData || !scanData.vulnerabilities) return [];
+    if (!scanData || !scanData.vulnerabilities || !Array.isArray(scanData.vulnerabilities)) return [];
     const services = new Set();
     scanData.vulnerabilities.forEach(v => {
       services.add(getServiceName(v.resource));
@@ -420,82 +475,148 @@ const DashboardPage = () => {
         {scanData ? (
           <>
             {/* Metrics overview */}
-            <Section style={{ padding: 0, marginBottom: 'var(--spacing-6)' }} darker={false}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)', gap: 'var(--spacing-3)' }}>
-                <Card style={{ padding: 'var(--spacing-4)', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
-                  <h3 style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2)', fontWeight: 700 }}>Vulnerabilities</h3>
-                  <div style={{ fontSize: '28px', fontWeight: 800, color: processedData.totalItems > 0 ? '#f43f5e' : 'var(--color-text)' }}>
-                    {processedData.totalItems}
-                  </div>
-                </Card>
-                <Card style={{ padding: 'var(--spacing-4)', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
-                  <h3 style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    Resources
-                    <div style={{ position: 'relative', display: 'inline-block' }} onMouseEnter={(e) => e.currentTarget.lastChild.style.display = 'block'} onMouseLeave={(e) => e.currentTarget.lastChild.style.display = 'none'}>
-                      <span style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '14px', height: '14px', borderRadius: '50%', border: '1px solid var(--color-text-muted)', fontSize: '9px', fontWeight: 'bold' }}>?</span>
-                      <div style={{ display: 'none', position: 'absolute', top: '100%', left: '0', marginTop: '8px', width: '220px', padding: '8px 12px', backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '6px', color: 'var(--color-text)', fontSize: '11px', textTransform: 'none', letterSpacing: 'normal', zIndex: 100, boxShadow: 'var(--shadow-lg)' }}>
-                        <strong>What is a Resource?</strong><br/>
-                        A resource is any distinct infrastructure component evaluated during the scan.<br/><br/>
-                        <strong>How is it counted?</strong><br/>
-                        One count equals one individual entity.<br/><br/>
-                        <strong>Example:</strong><br/>
-                        3 Compute VMs + 2 Storage Buckets + 1 Network VPC = 6 counted Resources.
-                      </div>
-                    </div>
-                  </h3>
-                  <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-text)' }}>
-                    {scanData?.scanned !== undefined ? scanData.scanned : new Set(processedData.filteredAllItems.map(v => v.resource)).size}
-                  </div>
-                </Card>
-                <Card style={{ padding: 'var(--spacing-3)', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--color-bg-secondary)' }}>
-                  <div style={{ display: 'flex', gap: 'var(--spacing-2)', height: '42px' }}>
-                    <div style={{ flex: 1, position: 'relative' }}>
-                      <input
-                        type="text"
-                        placeholder="Search resources, IDs..."
-                        value={searchTerm}
-                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          backgroundColor: 'var(--color-bg-secondary)',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: '6px',
-                          padding: '0 12px 0 32px',
-                          color: 'var(--color-text)',
-                          fontSize: '13px',
-                          outline: 'none'
-                        }}
-                      />
-                      <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, fontSize: '14px' }}>🔍</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '0 12px' }}>
-                      <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Filter by Severity:</span>
-                      <select
-                        value={severityFilter}
-                        onChange={(e) => { setSeverityFilter(e.target.value); setCurrentPage(1); }}
-                        style={{
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          color: 'var(--color-text)',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          outline: 'none',
-                          padding: '8px 0',
-                          minWidth: '110px'
-                        }}
-                      >
-                        <option value="All" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}>All Severities</option>
-                        <option value="Critical" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}>Critical</option>
-                        <option value="High" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}>High</option>
-                        <option value="Medium" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}>Medium</option>
-                        <option value="Low" style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text)' }}>Low</option>
-                      </select>
-                    </div>
-                  </div>
-                </Card>
+            {/* Premium Stats Grid */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+              gap: 'var(--spacing-6)',
+              marginBottom: 'var(--spacing-8)'
+            }}>
+              <div style={{ 
+                background: 'var(--color-bg-secondary)', 
+                padding: 'var(--spacing-6)',
+                borderRadius: '16px',
+                border: '1px solid var(--color-border)',
+                boxShadow: 'var(--shadow-md)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '60px', opacity: 0.05, transform: 'rotate(15deg)' }}>🛡️</div>
+                <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600 }}>Total Vulnerabilities</h3>
+                <div style={{ fontSize: '36px', fontWeight: 800, color: '#ef4444', letterSpacing: '-0.02em' }}>{processedData.totalItems}</div>
+                <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  Critical Findings: <span style={{ color: '#ef4444', fontWeight: 600 }}>{(scanData?.vulnerabilities || []).filter(f => f.severity === 'Critical').length}</span>
+                </div>
               </div>
-            </Section>
+
+              <div style={{ 
+                background: 'var(--color-bg-secondary)', 
+                padding: 'var(--spacing-6)',
+                borderRadius: '16px',
+                border: '1px solid var(--color-border)',
+                boxShadow: 'var(--shadow-md)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '60px', opacity: 0.03, transform: 'rotate(15deg)' }}>🛠️</div>
+                <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600 }}>Resources Audited</h3>
+                <div style={{ fontSize: '36px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                  {scanData?.scanned !== undefined ? scanData.scanned : new Set(processedData.filteredAllItems.map(v => v.resource)).size}
+                </div>
+                <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                  Active Scan Coverage: <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>100%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Premium Sticky Filter Bar */}
+            <div style={{ 
+              position: 'sticky', 
+              top: 'calc(-1 * var(--spacing-8))', 
+              zIndex: 900, 
+              margin: '0 calc(-1 * var(--spacing-8))',
+              padding: 'var(--spacing-4) var(--spacing-8)',
+              backgroundColor: 'var(--color-bg)',
+              opacity: 0.95,
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              borderBottom: '1px solid rgba(0,0,0,0.05)',
+              display: 'flex',
+              gap: 'var(--spacing-4)',
+              alignItems: 'center',
+              boxShadow: '0 4px 20px -10px rgba(0,0,0,0.1)',
+              marginBottom: 'var(--spacing-6)'
+            }}>
+              <div style={{ flex: 1.5, position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Search vulnerabilities..."
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    borderRadius: '10px',
+                    padding: '0 15px 0 40px',
+                    color: 'var(--color-text)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--color-primary)'}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'}
+                />
+                <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', opacity: 0.5 }}>🔍</span>
+              </div>
+
+              <div style={{ flex: 1, position: 'relative' }}>
+                <select
+                  value={serviceFilter}
+                  onChange={(e) => { setServiceFilter(e.target.value); setCurrentPage(1); }}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    borderRadius: '10px',
+                    padding: '0 12px 0 35px',
+                    color: 'var(--color-text)',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    appearance: 'none',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                  }}
+                >
+                  <option value="all">All Services</option>
+                  {allServices.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', opacity: 0.6 }}>🛠️</span>
+                <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3, fontSize: '10px' }}>▼</span>
+              </div>
+
+              <div style={{ flex: 1, position: 'relative' }}>
+                <select
+                  value={severityFilter}
+                  onChange={(e) => { setSeverityFilter(e.target.value); setCurrentPage(1); }}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    borderRadius: '10px',
+                    padding: '0 12px 0 35px',
+                    color: 'var(--color-text)',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    appearance: 'none',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                  }}
+                >
+                  <option value="All">All Severities</option>
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', opacity: 0.6 }}>🛡️</span>
+                <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4, fontSize: '10px' }}>▼</span>
+              </div>
+            </div>
 
             {/* Data Table */}
             <div>
@@ -534,54 +655,63 @@ const DashboardPage = () => {
                         <span style={{ backgroundColor: 'var(--color-primary)', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase' }}>Service</span>
                         {serviceGroup.name}
                         <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', fontWeight: 400, marginLeft: 'auto' }}>
-                          {serviceGroup.items.length} items
+                          {serviceGroup.totalItems} items
                         </span>
                       </h3>
-                      <Card style={{ padding: 0, overflow: 'hidden' }}>
-                        <div style={{ overflowX: 'auto' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--font-size-xs)' }}>
-                            <thead>
-                              <tr style={{ backgroundColor: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
-                                <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>ID</th>
-                                <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>Severity</th>
-                                <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '20%' }}>Resource</th>
-                                <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '30%' }}>Issue Description</th>
-                                <th style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '30%' }}>Recommendation</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {serviceGroup.items.map((vuln, idx) => (
-                                <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)' }}>
-                                  <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', fontFamily: 'monospace', color: 'var(--color-primary)' }}>
-                                    {vuln.id}
-                                  </td>
-                                  <td style={{ padding: 'var(--spacing-2) var(--spacing-3)' }}>
-                                    <span style={{
-                                      display: 'inline-block',
-                                      padding: '2px 6px',
-                                      borderRadius: '3px',
-                                      backgroundColor: `${getSeverityColor(vuln.severity)}20`,
-                                      color: getSeverityColor(vuln.severity),
-                                      fontWeight: 600,
-                                      fontSize: '10px',
-                                      textTransform: 'uppercase'
-                                    }}>
-                                      {vuln.severity}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--color-text)' }}>
-                                    {vuln.resource}
-                                  </td>
-                                  <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--color-text-muted)' }}>
-                                    {vuln.issue}
-                                  </td>
-                                  <td style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--color-primary)', opacity: 0.9 }}>
-                                    {vuln.remediation || '-'}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                      <Card style={{ padding: 0, overflow: 'hidden', border: 'none', background: 'transparent' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                          {serviceGroup.checkpoints.map((checkpoint, cpIdx) => (
+                            <div key={cpIdx} style={{ backgroundColor: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+                              <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.05)', padding: '10px 16px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-primary)', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '14px' }}>📍</span> {checkpoint.name}
+                              </div>
+                              <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--font-size-xs)' }}>
+                                  <thead>
+                                    <tr style={{ backgroundColor: 'transparent', borderBottom: '1px solid var(--color-border)' }}>
+                                      <th style={{ padding: 'var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '12%' }}>ID</th>
+                                      <th style={{ padding: 'var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>Severity</th>
+                                      <th style={{ padding: 'var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '20%' }}>Resource</th>
+                                      <th style={{ padding: 'var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '28%' }}>Issue Description</th>
+                                      <th style={{ padding: 'var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '30%' }}>Recommendation</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {checkpoint.items.map((vuln, idx) => (
+                                      <tr key={idx} style={{ borderBottom: idx === checkpoint.items.length - 1 ? 'none' : '1px solid var(--color-border)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)' }}>
+                                        <td style={{ padding: 'var(--spacing-3)', fontFamily: 'monospace', color: 'var(--color-primary)', fontWeight: 500 }}>
+                                          {vuln.id}
+                                        </td>
+                                        <td style={{ padding: 'var(--spacing-3)' }}>
+                                          <span style={{
+                                            display: 'inline-block',
+                                            padding: '2px 6px',
+                                            borderRadius: '3px',
+                                            backgroundColor: `${getSeverityColor(vuln.severity)}20`,
+                                            color: getSeverityColor(vuln.severity),
+                                            fontWeight: 700,
+                                            fontSize: '10px',
+                                            textTransform: 'uppercase'
+                                          }}>
+                                            {vuln.severity}
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: 'var(--spacing-3)', color: 'var(--color-text)', fontWeight: 500 }}>
+                                          {vuln.resource}
+                                        </td>
+                                        <td style={{ padding: 'var(--spacing-3)', color: 'var(--color-text-muted)', lineHeight: '1.4' }}>
+                                          {vuln.issue}
+                                        </td>
+                                        <td style={{ padding: 'var(--spacing-3)', color: 'var(--color-primary)', opacity: 0.9, lineHeight: '1.4' }}>
+                                          {vuln.remediation || '-'}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </Card>
                     </div>

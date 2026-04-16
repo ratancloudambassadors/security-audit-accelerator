@@ -10,21 +10,22 @@ const getServiceName = (resource) => {
   let sName = match ? match[1].trim() : 'Other';
   const lowerName = sName.toLowerCase();
   
-  if (lowerName.includes('compute')) return 'Compute Engine';
-  if (lowerName.includes('iam')) return 'IAM';
-  if (lowerName.includes('storage') || lowerName.includes('bucket')) return 'Storage';
-  if (lowerName.includes('sql') || lowerName.includes('database')) return 'Database';
-  if (lowerName.includes('network') || lowerName.includes('vpc') || lowerName.includes('firewall') || lowerName.includes('router') || lowerName.includes('route')) return 'Network';
-  if (lowerName.includes('kubernetes') || lowerName.includes('gke') || lowerName.includes('eks')) return 'Kubernetes';
-  if (lowerName.includes('kms') || lowerName.includes('key')) return 'KMS';
-  if (lowerName.includes('func') || lowerName.includes('lambda')) return 'Functions';
+  let mapped = sName;
+  if (lowerName.includes('compute') || lowerName.includes('vm')) mapped = 'Compute';
+  else if (lowerName.includes('iam') || lowerName.includes('service account')) mapped = 'IAM';
+  else if (lowerName.includes('storage') || lowerName.includes('bucket')) mapped = 'Storage';
+  else if (lowerName.includes('sql') || lowerName.includes('database') || lowerName.includes('rds')) mapped = 'Database';
+  else if (lowerName.includes('network') || lowerName.includes('vpc') || lowerName.includes('firewall') || lowerName.includes('dns') || lowerName.includes('subnet')) mapped = 'Networking';
+  else if (lowerName.includes('kubernetes') || lowerName.includes('gke') || lowerName.includes('eks')) mapped = 'Kubernetes';
+  else if (lowerName.includes('kms') || lowerName.includes('key')) mapped = 'KMS';
+  else if (lowerName.includes('func') || lowerName.includes('lambda') || lowerName.includes('serverless') || lowerName.includes('cloudrun')) mapped = 'Serverless';
+  else if (lowerName.includes('load balancer') || lowerName.includes('backend service') || lowerName.includes('lb')) mapped = 'Load Balancers';
+  else if (lowerName.includes('bigquery') || lowerName.includes('bq') || lowerName.includes('dataset') || lowerName.includes('table')) mapped = 'BigQuery';
+  else if (lowerName.includes('dataproc')) mapped = 'Dataproc';
   
-  return sName;
+  console.log(`[Navbar] Mapping resource "${resource}" -> "${mapped}"`);
+  return mapped;
 };
-
-const defaultServiceOptions = [
-  { value: 'all', label: 'All Services' }
-];
 
 const providerOptions = [
   { value: 'aws', label: 'Amazon Web Services (AWS)' },
@@ -34,40 +35,32 @@ const providerOptions = [
 
 const DashboardNavbar = () => {
   const { user, logout } = useContext(AuthContext);
-  const [selectedService, setSelectedService] = useState('all');
-  const [dynamicServiceOptions, setDynamicServiceOptions] = useState(defaultServiceOptions);
   const [selectedProvider, setSelectedProvider] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scanBackgroundStatus, setScanBackgroundStatus] = useState('idle'); // idle, scanning, completed
   const [profileOpen, setProfileOpen] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem('auditscope_theme') || 'light');
   const profileRef = useRef(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('auditscope_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
 
   useEffect(() => {
     const handleScanComplete = (e) => {
       const results = e.detail;
-      if (results && results.vulnerabilities) {
-        const uniqueServices = new Set();
-        results.vulnerabilities.forEach(v => {
-          uniqueServices.add(getServiceName(v.resource));
-        });
-
-        const newOptions = [
-          { value: 'all', label: 'All Services' },
-          ...Array.from(uniqueServices).sort().map(s => ({ value: s, label: s }))
-        ];
-        setDynamicServiceOptions(newOptions);
-        setSelectedService('all');
-        if (results.provider) setSelectedProvider(results.provider);
+      if (results && results.provider) {
+        setSelectedProvider(results.provider);
       }
     };
     window.addEventListener('scanCompleted', handleScanComplete);
     return () => window.removeEventListener('scanCompleted', handleScanComplete);
   }, []);
-
-  useEffect(() => {
-    const event = new CustomEvent('filterByServiceChanged', { detail: selectedService });
-    window.dispatchEvent(event);
-  }, [selectedService]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -106,21 +99,19 @@ const DashboardNavbar = () => {
   return (
     <>
       <header className={styles.navbar}>
+        <div className={styles.brand}>
+          <div className={styles.logoIcon}>A</div>
+          <div className={styles.logoText}>
+            <span className={styles.logoMain}>Audit</span>
+            <span className={styles.logoSub}>Scope</span>
+          </div>
+        </div>
+
         <div className={styles.mobileMenuToggle}>
           <span className={styles.hamburger}>☰</span>
         </div>
 
         <div className={styles.navControls}>
-          <div className={styles.controlGroup}>
-            <span className={styles.label}>Filter:</span>
-            <Select
-              options={dynamicServiceOptions}
-              value={selectedService}
-              onChange={(e) => setSelectedService(e.target.value)}
-              className={styles.selectFilter}
-            />
-          </div>
-
           <div className={styles.actionGroup}>
             {scanBackgroundStatus !== 'idle' && (
               <button 
@@ -155,6 +146,28 @@ const DashboardNavbar = () => {
               </Button>
             </div>
 
+            <button 
+              onClick={toggleTheme}
+              title={theme === 'light' ? "Switch to Night Theme" : "Switch to Day Theme"}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                cursor: 'pointer', 
+                fontSize: '20px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                padding: '8px', 
+                borderRadius: '50%',
+                color: 'var(--color-text)',
+                transition: 'background-color 0.2s',
+                marginRight: '8px'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+
             <div
               data-tour="tour-navbar-profile"
               className={styles.userProfile}
@@ -164,7 +177,7 @@ const DashboardNavbar = () => {
             >
               {user?.displayPicture ? (
                 <img
-                  src={user.displayPicture.startsWith('data:') ? user.displayPicture : `https://security-audit-accelerator-backend-196053730058.asia-south1.run.app${user.displayPicture}`}
+                  src={user.displayPicture.startsWith('data:') ? user.displayPicture : `${window.location.hostname.includes('run.app') ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' : 'http://localhost:5000'}${user.displayPicture}`}
                   alt="Profile"
                   className={styles.avatar}
                 />

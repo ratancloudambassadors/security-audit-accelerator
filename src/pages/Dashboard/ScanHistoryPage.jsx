@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 
 import Card from '../../components/Card/Card';
-import ScanDetailModal from '../../components/ScanDetailModal/ScanDetailModal';
+
 
 const ScanHistoryPage = () => {
+  const API_BASE = window.location.hostname.includes('run.app')
+    ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
+    : 'http://localhost:5000';
+
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Modal State
-  const [selectedScan, setSelectedScan] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Filtering & Pagination State
   const [selectedProvider, setSelectedProvider] = useState('All');
@@ -25,28 +25,34 @@ const ScanHistoryPage = () => {
         const queryParams = new URLSearchParams(window.location.search);
         const projectIdParam = queryParams.get('project') || 'all';
         
-        const res = await fetch(`https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/projects/${projectIdParam}/scans`, {
+        const res = await fetch(`${API_BASE}/api/projects/${projectIdParam}/scans`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
-        setScans(data);
+        if (Array.isArray(data)) {
+          setScans(data);
+        } else {
+          console.error('API did not return an array:', data);
+          setScans([]);
+        }
       } catch (err) {
         console.error('Failed to fetch scans:', err);
+        setScans([]);
       } finally {
         setLoading(false);
       }
     };
     fetchAllScans();
-  }, []);
+  }, [API_BASE]);
 
   // Compute filtered and paginated scans
   const processedData = React.useMemo(() => {
-    let filtered = scans;
+    let filtered = Array.isArray(scans) ? scans : [];
 
     // Apply Provider Filter
     if (selectedProvider !== 'All') {
       filtered = filtered.filter(scan =>
-        scan.project?.provider?.toLowerCase() === selectedProvider.toLowerCase()
+        scan?.project?.provider?.toLowerCase() === selectedProvider.toLowerCase()
       );
     }
 
@@ -68,14 +74,7 @@ const ScanHistoryPage = () => {
     }
   };
 
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'Critical': return '#ef4444';
-      case 'High': return '#f97316';
-      case 'Medium': return '#eab308';
-      default: return '#3b82f6';
-    }
-  };
+
 
   const openScanDetails = (scan) => {
     // Adapt scan history data to the format the dashboard expects
@@ -145,32 +144,39 @@ const ScanHistoryPage = () => {
           </Card>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
-            {processedData.items.map((scan) => (
-              <Card 
-                key={scan.id} 
-                style={{ padding: 'var(--spacing-4)', cursor: 'pointer', transition: 'border-color 0.2s, background-color 0.2s' }}
-                onClick={() => openScanDetails(scan)}
-                onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--color-primary)'}
-                onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--color-border)'}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
-                    <div style={{
-                      fontSize: 'var(--font-size-xl)',
-                      fontWeight: 800,
-                      color: scan.score > 80 ? 'var(--color-success)' : scan.score > 50 ? '#eab308' : 'var(--color-danger)'
-                    }}>
-                      {scan.score}%
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text)' }}>
-                        {scan.project?.name || 'Cloud Project'} <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>({scan.project?.provider?.toUpperCase()})</span>
+            {(processedData?.items || []).map((scan) => {
+              if (!scan) return null;
+              const safeProjectName = scan.project?.name || 'Cloud Project';
+              const safeProvider = (scan.project?.provider || 'gcp').toUpperCase();
+              const safeScore = typeof scan.score === 'number' ? scan.score : 0;
+              const safeDate = scan.createdAt ? new Date(scan.createdAt) : new Date();
+
+              return (
+                <Card 
+                  key={scan.id || Math.random()} 
+                  style={{ padding: 'var(--spacing-4)', cursor: 'pointer', transition: 'border-color 0.2s, background-color 0.2s' }}
+                  onClick={() => openScanDetails(scan)}
+                  onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--color-primary)'}
+                  onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--color-border)'}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
+                      <div style={{
+                        fontSize: 'var(--font-size-xl)',
+                        fontWeight: 800,
+                        color: safeScore > 80 ? 'var(--color-success)' : safeScore > 50 ? '#eab308' : 'var(--color-danger)'
+                      }}>
+                        {safeScore}%
                       </div>
-                      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                        <span style={{ fontWeight: 500 }}>Date:</span> {new Date(scan.createdAt).toLocaleDateString()} &nbsp;|&nbsp; <span style={{ fontWeight: 500 }}>Time:</span> {new Date(scan.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • {scan.scannedResources} resources scanned
+                      <div>
+                        <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text)' }}>
+                          {safeProjectName} <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>({safeProvider})</span>
+                        </div>
+                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                          <span style={{ fontWeight: 500 }}>Date:</span> {safeDate.toLocaleDateString()} &nbsp;|&nbsp; <span style={{ fontWeight: 500 }}>Time:</span> {safeDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • {scan.scannedResources || 0} resources scanned
+                        </div>
                       </div>
                     </div>
-                  </div>
                   <div style={{ display: 'flex', gap: 'var(--spacing-3)', alignItems: 'center' }}>
                     {scan.criticalCount > 0 && (
                       <span style={{ fontSize: 'var(--font-size-xs)', padding: '4px 10px', borderRadius: '4px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', fontWeight: 600 }}>
@@ -188,9 +194,10 @@ const ScanHistoryPage = () => {
                       </span>
                     )}
                   </div>
-                </div>
-              </Card>
-            ))}
+                  </div>
+                </Card>
+              );
+            })}
 
             {/* Pagination Controls */}
             {processedData.totalPages > 1 && (
@@ -226,11 +233,7 @@ const ScanHistoryPage = () => {
         )}
       </div>
 
-      <ScanDetailModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        scan={selectedScan} 
-      />
+
     </>
   );
 };

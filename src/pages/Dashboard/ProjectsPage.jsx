@@ -3,6 +3,10 @@ import React, { useState, useEffect } from 'react';
 import Card from '../../components/Card/Card';
 
 const ProjectsPage = () => {
+  const API_BASE = window.location.hostname.includes('run.app')
+    ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
+    : 'http://localhost:5000';
+
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -10,11 +14,17 @@ const ProjectsPage = () => {
     const fetchProjects = async () => {
       try {
         const token = localStorage.getItem('auditscope_token');
-        const res = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/projects', {
+        const res = await fetch(`${API_BASE}/api/projects`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
         
+        if (!Array.isArray(data)) {
+          console.error('Projects API did not return an array:', data);
+          setProjects([]);
+          return;
+        }
+
         // Deduplicate locally by name to fix any old data issues
         const uniqueProjectsMap = new Map();
         data.forEach(p => {

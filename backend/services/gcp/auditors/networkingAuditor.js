@@ -152,9 +152,9 @@ const auditNetworking = async (networksClient, firewallsClient, subnetworksClien
                  findings.push({
                    id: `GCP-NET-LBLOG-${service.name.substring(0, 8)}`,
                    severity: 'Medium',
-                   resource: `Backend Service (${service.name})`,
-                   issue: `Logging is NOT enabled for the HTTP(S) Load Balancer (Backend Service).`,
-                   remediation: `Enable logging on backend services to troubleshoot issues, monitor traffic patterns, and detect anomalous access.`
+                   resource: `Load Balancer Service (${service.name})`,
+                   issue: `Logging is NOT enabled for the HTTP(S) Load Balancer (Backend).`,
+                   remediation: `Enable logging on backend services to troubleshoot issues and monitor traffic patterns.`
                  });
               }
             }

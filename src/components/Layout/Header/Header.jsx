@@ -7,13 +7,16 @@ const isLoggedIn = () => {
   try {
     const token = localStorage.getItem('auditscope_token');
     if (!token) return false;
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const parts = token.split('.');
+    if (parts.length < 2) return false;
+    const payload = JSON.parse(atob(parts[1]));
     // Also enforce the 6-hour session limit (loginTime stored separately)
     const loginTime = parseInt(localStorage.getItem('auditscope_login_time') || '0', 10);
     const sixHours  = 6 * 60 * 60 * 1000;
     if (loginTime && Date.now() - loginTime > sixHours) return false;
+    if (!payload || !payload.exp) return false;
     return payload.exp * 1000 > Date.now();
-  } catch {
+  } catch (e) {
     return false;
   }
 };

@@ -4,9 +4,9 @@ import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import ScheduleModal from '../../components/ScheduleModal/ScheduleModal';
 
-const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ? 'http://localhost:5000' 
-  : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+const API_BASE = window.location.hostname.includes('run.app')
+  ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
+  : 'http://localhost:5000';
 const POLL_INTERVAL_MS = 30000; // 30 seconds
 
 const AutomationPage = () => {
@@ -36,11 +36,21 @@ const AutomationPage = () => {
 
       if (schedRes.ok) {
         const schedData = await schedRes.json();
-        setSchedules(schedData);
+        if (Array.isArray(schedData)) {
+          setSchedules(schedData);
+        } else {
+          console.error('Schedules API did not return an array:', schedData);
+          setSchedules([]);
+        }
       }
       if (projRes.ok) {
         const projData = await projRes.json();
-        setProjects(projData);
+        if (Array.isArray(projData)) {
+          setProjects(projData);
+        } else {
+          console.error('Projects API did not return an array:', projData);
+          setProjects([]);
+        }
       }
       setLastUpdated(new Date());
     } catch (err) {

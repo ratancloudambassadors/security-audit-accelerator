@@ -51,11 +51,42 @@ const DashboardRouter = ({ path }) => {
   );
 };
 
+// Simple Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("APP CRASH:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '40px', textAlign: 'center', backgroundColor: '#fff', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <h1 style={{ color: '#ef4444' }}>Something went wrong.</h1>
+          <p style={{ color: '#64748b' }}>{this.state.error?.message || "Unknown Error"}</p>
+          <button onClick={() => window.location.replace('/')} style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+            Back to Home
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
 
   useEffect(() => {
-    const handlePopState = () => setCurrentPath(window.location.pathname);
+    const handlePopState = () => {
+      console.log("Popstate detected:", window.location.pathname);
+      setCurrentPath(window.location.pathname);
+    };
     window.addEventListener('popstate', handlePopState);
 
     const handleClick = (e) => {
@@ -78,18 +109,31 @@ function App() {
 
   const path = currentPath;
 
-  if (path.startsWith('/dashboard')) return <ProtectedRoute><DashboardRouter path={path} /></ProtectedRoute>;
-
-  if (path === '/login')    return <GuestRoute><LoginPage /></GuestRoute>;
-  if (path === '/register') return <GuestRoute><RegisterPage /></GuestRoute>;
-  if (path === '/forgot-password') return <ForgotPasswordPage />;
-  if (path === '/reset-password') return <ResetPasswordPage />;
-  if (path === '/verify-otp') return <OTPVerifyPage />;
+  let renderContent = null;
+  if (path.startsWith('/dashboard')) {
+    renderContent = <ProtectedRoute><DashboardRouter path={path} /></ProtectedRoute>;
+  } else if (path === '/login') {
+    renderContent = <GuestRoute><LoginPage /></GuestRoute>;
+  } else if (path === '/register') {
+    renderContent = <GuestRoute><RegisterPage /></GuestRoute>;
+  } else if (path === '/forgot-password') {
+    renderContent = <ForgotPasswordPage />;
+  } else if (path === '/reset-password') {
+    renderContent = <ResetPasswordPage />;
+  } else if (path === '/verify-otp') {
+    renderContent = <OTPVerifyPage />;
+  } else {
+    renderContent = (
+      <div className="app">
+        <LandingPage />
+      </div>
+    );
+  }
 
   return (
-    <div className="app">
-      <LandingPage />
-    </div>
+    <ErrorBoundary>
+      {renderContent}
+    </ErrorBoundary>
   );
 }
 

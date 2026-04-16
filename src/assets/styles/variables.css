@@ -58,3 +58,16 @@
   /* Container bounds */
   --max-width-container: 1200px;
 }
+
+/* Dark Theme Overrides */
+[data-theme='dark'] {
+  --color-bg: #0f172a; /* Slate 900 */
+  --color-bg-secondary: #1e293b; /* Slate 800 */
+  --color-text: #f8fafc; /* Slate 50 */
+  --color-text-muted: #94a3b8; /* Slate 400 */
+  --color-border: #334155; /* Slate 700 */
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}

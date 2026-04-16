@@ -5,9 +5,11 @@ import Button from '../../../components/Button/Button';
 import styles from './ForgotPasswordPage.module.css';
 import toast from 'react-hot-toast';
 
-const API = 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
-
 const ForgotPasswordPage = () => {
+  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000' 
+    : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+
   const [email,    setEmail]    = useState('');
   const [loading,  setLoading]  = useState(false);
   const [sent,     setSent]     = useState(false);
@@ -17,7 +19,7 @@ const ForgotPasswordPage = () => {
     setLoading(true);
 
     try {
-      const res  = await fetch(`${API}/api/auth/forgot-password`, {
+      const res  = await fetch(`${API_BASE}/api/auth/forgot-password`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ email }),

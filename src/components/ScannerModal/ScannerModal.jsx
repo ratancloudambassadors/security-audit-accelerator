@@ -77,7 +77,9 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
       });
     }, 500);
 
-    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:5000' : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+    const API_BASE = window.location.hostname.includes('run.app')
+      ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
+      : 'http://localhost:5000';
     try {
       const token = localStorage.getItem('auditscope_token');
       let response;

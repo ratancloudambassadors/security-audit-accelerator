@@ -155,8 +155,12 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                 if (spoofedDayOfMonth <= 0) spoofedDayOfMonth = 0; // Triggers end-of-previous-month logic natively in UTC
             }
 
+            const API_BASE = window.location.hostname.includes('run.app')
+                ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
+                : 'http://localhost:5000';
+
             const token = localStorage.getItem('auditscope_token');
-            const res = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/schedules', {
+            const res = await fetch(`${API_BASE}/api/schedules`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

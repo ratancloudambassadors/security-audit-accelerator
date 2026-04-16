@@ -1,15 +1,58 @@
 .navbar {
   height: 4.5rem;
-  /* Match sidebar header height */
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 var(--spacing-6);
-  background-color: var(--color-bg);
-  /* Use pure background for contrast with sidebar */
-  border-bottom: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   position: sticky;
   top: 0;
-  z-index: 90;
+  z-index: 1000;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.logoIcon {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, var(--color-primary), #818cf8);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  font-size: 1.4rem;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.logoText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.logoMain {
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+.logoSub {
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .mobileMenuToggle {
@@ -34,36 +77,6 @@
   gap: var(--spacing-6);
 }
 
-@media (min-width: 768px) {
-  .navControls {
-    justify-content: space-between;
-  }
-}
-
-.controlGroup {
-  display: none;
-  /* Hide filter on small screens */
-  align-items: center;
-  gap: var(--spacing-3);
-}
-
-@media (min-width: 768px) {
-  .controlGroup {
-    display: flex;
-  }
-}
-
-.label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.selectFilter {
-  width: 250px;
-}
-
 .actionGroup {
   display: flex;
   align-items: center;
@@ -73,13 +86,12 @@
 .selectProvider {
   width: 180px;
   display: none;
-  /* Hide on smallest screens */
 }
 
 @media (min-width: 640px) {
   .selectProvider {
     display: flex;
-    width: 200px;
+    width: 220px;
   }
 }
 
@@ -91,6 +103,9 @@
   .scanBtn {
     display: inline-flex;
     white-space: nowrap;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
   }
 }
 
@@ -98,8 +113,9 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  border-left: 1px solid var(--color-border);
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
   padding-left: var(--spacing-4);
+  margin-left: var(--spacing-2);
 }
 
 .avatar {
@@ -108,7 +124,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  color: #000;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,7 +133,9 @@
   box-shadow: var(--shadow-glow);
   object-fit: cover;
   aspect-ratio: 1 / 1;
+  border: 2px solid white;
 }
+
 .scanIndicator {
   width: 16px;
   height: 16px;

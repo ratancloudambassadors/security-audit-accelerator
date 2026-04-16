@@ -38,16 +38,57 @@ const getServiceName = (resource) => {
   let sName = match ? match[1].trim() : 'Other';
   const lowerName = sName.toLowerCase();
   
-  if (lowerName.includes('compute')) return 'Compute Engine';
-  if (lowerName.includes('iam')) return 'IAM';
+  if (lowerName.includes('compute') || lowerName.includes('vm')) return 'Compute';
+  if (lowerName.includes('iam') || lowerName.includes('service account')) return 'IAM';
   if (lowerName.includes('storage') || lowerName.includes('bucket')) return 'Storage';
-  if (lowerName.includes('sql') || lowerName.includes('database')) return 'Database';
-  if (lowerName.includes('network') || lowerName.includes('vpc') || lowerName.includes('firewall') || lowerName.includes('router') || lowerName.includes('route')) return 'Network';
+  if (lowerName.includes('sql') || lowerName.includes('database') || lowerName.includes('rds')) return 'Database';
+  if (lowerName.includes('network') || lowerName.includes('vpc') || lowerName.includes('firewall') || lowerName.includes('dns') || lowerName.includes('subnet')) return 'Networking';
   if (lowerName.includes('kubernetes') || lowerName.includes('gke') || lowerName.includes('eks')) return 'Kubernetes';
   if (lowerName.includes('kms') || lowerName.includes('key')) return 'KMS';
-  if (lowerName.includes('func') || lowerName.includes('lambda')) return 'Functions';
+  if (lowerName.includes('func') || lowerName.includes('lambda') || lowerName.includes('serverless') || lowerName.includes('cloudrun')) return 'Serverless';
+  if (lowerName.includes('load balancer') || lowerName.includes('backend service') || lowerName.includes('lb')) return 'Load Balancers';
+  if (lowerName.includes('bigquery') || lowerName.includes('bq') || lowerName.includes('dataset') || lowerName.includes('table')) return 'BigQuery';
+  if (lowerName.includes('dataproc')) return 'Dataproc';
   
   return sName;
+};
+
+const getCheckpointName = (id) => {
+    if (!id) return 'General Check';
+    const parts = id.split('-');
+    const checkType = parts[2] ? parts[2].toUpperCase() : 'GENERAL';
+    
+    const mapping = {
+        'PUBLIC': 'Check Public Access',
+        'EXTERNAL': 'Check External Access',
+        'ENCRYPTION': 'Check Encryption',
+        'ROTATION': 'Check Key Rotation',
+        'ADMIN': 'Check Admin Access',
+        'SOD': 'Check Separation of Duties',
+        'TOKEN': 'Check SA Tokens',
+        'KEY': 'Check SA Keys',
+        'SSL': 'Check SSL Policy',
+        'IP': 'Check IP Config',
+        'LOG': 'Check Logging',
+        'LBLOG': 'Check LB Logging',
+        'MONITOR': 'Check Monitoring',
+        'FIREWALL': 'Check Firewall Rules',
+        'VERSION': 'Check Software Version',
+        'SA': 'Check Service Accounts',
+        'GKE': 'Check Kubernetes',
+        'FLOW': 'Check VPC Flow Logs',
+        'ENDPOINT': 'Check API Endpoint',
+        'ABAC': 'Check Legacy ABAC',
+        'WORKLOAD': 'Check Workload Identity',
+        'SHIELDED': 'Check Shielded Nodes',
+        'BINARY': 'Check Binary Auth',
+        'RDS': 'Check RDS Public',
+        'EKS': 'Check EKS Public',
+        'SERVERLESS': 'Check Serverless',
+        'DATASET': 'Check BigQuery Dataset'
+    };
+
+    return mapping[checkType] || `Check: ${checkType.charAt(0).toUpperCase() + checkType.slice(1).toLowerCase()}`;
 };
 
 router.use(authenticateToken);
@@ -65,6 +106,7 @@ function generatePDF(scanData, userName, projectId) {
     const indigo  = '#4f46e5';
     const darkBg  = '#0f172a';
     const slate50 = '#f8fafc';
+    const slate100= '#f1f5f9';
     const slate200= '#e2e8f0';
     const slate600= '#475569';
     const slate800= '#1e293b';
@@ -190,51 +232,76 @@ function generatePDF(scanData, userName, projectId) {
       doc.moveTo(50, currentY + 16).lineTo(doc.page.width - 50, currentY + 16).strokeColor(slate200).lineWidth(1).stroke();
       currentY += 26;
 
-      // Group by Service
-      const groups = {};
+      // Group by Service and then by Checkpoint
+      const serviceGroups = {};
       vulnerabilities.forEach(v => {
         const sName = getServiceName(v.resource);
-        if (!groups[sName]) groups[sName] = [];
-        groups[sName].push(v);
+        if (!serviceGroups[sName]) serviceGroups[sName] = {};
+        
+        const cpName = getCheckpointName(v.id);
+        if (!serviceGroups[sName][cpName]) serviceGroups[sName][cpName] = [];
+        serviceGroups[sName][cpName].push(v);
       });
 
-      const groupedServices = Object.keys(groups).sort().map(sName => ({ name: sName, items: groups[sName] }));
+      const sortedServices = Object.keys(serviceGroups).sort();
 
-      for (const serviceGroup of groupedServices) {
-        if (currentY > doc.page.height - 120) { doc.addPage(); currentY = 50; }
+      for (const sName of sortedServices) {
+        if (currentY > doc.page.height - 100) { doc.addPage(); currentY = 50; }
 
         // Service header
-        doc.roundedRect(50, currentY, doc.page.width - 100, 22, 4).fill('#f1f5f9');
-        doc.fontSize(9).fillColor(indigo).text(`SERVICE: ${serviceGroup.name.toUpperCase()}`, 58, currentY + 7, { continued: true });
-        doc.fillColor(slate600).text(`  (${serviceGroup.items.length} item${serviceGroup.items.length !== 1 ? 's' : ''})`);
-        currentY += 28;
+        doc.roundedRect(50, currentY, doc.page.width - 100, 24, 4).fill('#f1f5f9');
+        doc.fontSize(10).fillColor(indigo).text(`SERVICE: ${sName.toUpperCase()}`, 60, currentY + 7);
+        currentY += 32;
 
-        // Column headers
-        doc.fontSize(7).fillColor(slate600);
-        doc.text('SEVERITY', 50,  currentY);
-        doc.text('RESOURCE', 130, currentY);
-        doc.text('ISSUE',    310, currentY);
-        doc.moveTo(50, currentY + 12).lineTo(doc.page.width - 50, currentY + 12).strokeColor(slate200).lineWidth(0.5).stroke();
-        currentY += 18;
+        const checkpointGroups = serviceGroups[sName];
+        const sortedCheckpoints = Object.keys(checkpointGroups).sort();
 
-        for (const vuln of serviceGroup.items) {
-          if (currentY > doc.page.height - 80) { doc.addPage(); currentY = 50; }
+        for (const cpName of sortedCheckpoints) {
+          if (currentY > doc.page.height - 100) { doc.addPage(); currentY = 50; }
 
-          const sevColor = vuln.severity === 'Critical' ? '#dc2626'
-                         : vuln.severity === 'High'     ? '#ea580c'
-                         : vuln.severity === 'Medium'   ? '#ca8a04' : '#2563eb';
+          // Checkpoint sub-header
+          doc.fontSize(9).fillColor(slate800).font('Helvetica-Bold').text(`>> ${cpName}`, 50, currentY);
+          doc.font('Helvetica'); // Reset to normal font
+          doc.moveTo(50, currentY + 14).lineTo(doc.page.width - 50, currentY + 14).strokeColor(slate200).lineWidth(0.5).stroke();
+          currentY += 20;
 
-          const issueH = Math.max(doc.heightOfString(vuln.issue || '-', { width: 240, fontSize: 8 }), 12);
+          // Column headers
+          doc.fontSize(7).fillColor(slate600);
+          doc.text('SEVERITY', 50,  currentY);
+          doc.text('RESOURCE', 110, currentY);
+          doc.text('ISSUE DESCRIPTION & REMEDIATION', 280, currentY);
+          currentY += 12;
 
-          doc.fontSize(8).fillColor(sevColor).text(vuln.severity?.toUpperCase() || '-', 50,  currentY, { width: 70 });
-          doc.fontSize(8).fillColor(slate800) .text(vuln.resource || '-',               130, currentY, { width: 170 });
-          doc.fontSize(8).fillColor(slate600) .text(vuln.issue    || '-',               310, currentY, { width: 240 });
+          for (const vuln of checkpointGroups[cpName]) {
+            const issueText = `Issue: ${vuln.issue || '-'}\nRemediation: ${vuln.remediation || '-'}`;
+            const issueH = doc.heightOfString(issueText, { width: 270, fontSize: 7.5 });
+            
+            // Check if room for at least one info block
+            if (currentY + issueH + 10 > doc.page.height - 60) {
+              doc.addPage();
+              currentY = 50;
+              // Re-draw headers on new page
+              doc.fontSize(7).fillColor(slate600);
+              doc.text('SEVERITY', 50,  currentY);
+              doc.text('RESOURCE', 110, currentY);
+              doc.text('ISSUE DESCRIPTION & REMEDIATION', 280, currentY);
+              currentY += 12;
+            }
 
-          currentY += issueH + 8;
-          doc.moveTo(50, currentY - 3).lineTo(doc.page.width - 50, currentY - 3).strokeColor(slate200).lineWidth(0.4).stroke();
+            const sevColor = vuln.severity === 'Critical' ? '#dc2626'
+                           : vuln.severity === 'High'     ? '#ea580c'
+                           : vuln.severity === 'Medium'   ? '#ca8a04' : '#2563eb';
+
+            doc.fontSize(7.5).fillColor(sevColor).text(vuln.severity || '-', 50,  currentY, { width: 55 });
+            doc.fontSize(7.5).fillColor(slate800).text(vuln.resource || '-', 110, currentY, { width: 160 });
+            doc.fontSize(7.5).fillColor(slate600).text(issueText, 280, currentY, { width: 270, lineGap: 1 });
+
+            currentY += Math.max(issueH, 15) + 12;
+            doc.moveTo(50, currentY - 6).lineTo(doc.page.width - 50, currentY - 6).strokeColor(slate100).lineWidth(0.3).stroke();
+          }
+          currentY += 10;
         }
-
-        currentY += 14;
+        currentY += 15;
       }
     } else {
       if (currentY > doc.page.height - 60) { doc.addPage(); currentY = 50; }

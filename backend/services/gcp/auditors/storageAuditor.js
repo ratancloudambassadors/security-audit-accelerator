@@ -11,7 +11,7 @@ const auditStorageBuckets = async (storageClient, projectId) => {
 
   try {
     console.log(`[Storage] Starting bucket audit for project: ${projectId}`);
-    
+
     // 1. Fetch all buckets in the project
     const [buckets] = await storageClient.getBuckets();
     console.log(`[Storage] Found ${buckets.length} buckets.`);
@@ -20,16 +20,16 @@ const auditStorageBuckets = async (storageClient, projectId) => {
     for (const bucket of buckets) {
       scannedCount++;
       const bucketName = bucket.name;
-      
+
       try {
         const [policy] = await bucket.iam.getPolicy({ requestedPolicyVersion: 3 });
         const [metadata] = await bucket.getMetadata();
-        
+
         // Target Vulnerability 1: Publicly accessible bucket
         if (policy.bindings) {
           const publicBindings = policy.bindings.filter(binding => {
             return binding.members && (
-              binding.members.includes('allUsers') || 
+              binding.members.includes('allUsers') ||
               binding.members.includes('allAuthenticatedUsers')
             );
           });
@@ -47,10 +47,10 @@ const auditStorageBuckets = async (storageClient, projectId) => {
         }
 
         // Target Vulnerability 2: Uniform Bucket-Level Access disabled
-        const ublaEnabled = metadata.iamConfiguration && 
-                            metadata.iamConfiguration.uniformBucketLevelAccess && 
-                            metadata.iamConfiguration.uniformBucketLevelAccess.enabled === true;
-                            
+        const ublaEnabled = metadata.iamConfiguration &&
+          metadata.iamConfiguration.uniformBucketLevelAccess &&
+          metadata.iamConfiguration.uniformBucketLevelAccess.enabled === true;
+
         if (!ublaEnabled) {
           findings.push({
             id: `GCP-STORAGE-UBLA-${bucketName.substring(0, 8)}`,

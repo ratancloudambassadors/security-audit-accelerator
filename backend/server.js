@@ -19,6 +19,10 @@ const { auditEssentialContacts } = require('./services/gcp/auditors/essentialCon
 const { auditDns } = require('./services/gcp/auditors/dnsAuditor');
 const { auditLogging } = require('./services/gcp/auditors/loggingAuditor');
 const { auditDataproc } = require('./services/gcp/auditors/dataprocAuditor');
+const { auditGKE } = require('./services/gcp/auditors/gkeAuditor');
+const { auditServerless } = require('./services/gcp/auditors/serverlessAuditor');
+const { auditLoadBalancers } = require('./services/gcp/auditors/lbAuditor');
+const { auditNetworkingDepth } = require('./services/gcp/auditors/networkingDepthAuditor');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -106,8 +110,12 @@ app.post('/api/scan/gcp', authenticateToken, upload.single('file'), async (req, 
       auditApiKeys(clients.googleAuthClient, gcpProjectId),
       auditEssentialContacts(clients.googleAuthClient, gcpProjectId),
       auditDns(clients.googleAuthClient, gcpProjectId),
-      auditLogging(clients.googleAuthClient, gcpProjectId),
-      auditDataproc(clients.googleAuthClient, gcpProjectId)
+      auditLogging(clients.loggingClient, gcpProjectId),
+      auditDataproc(clients.dataprocClient, gcpProjectId),
+      auditGKE(clients.googleAuthClient, gcpProjectId),
+      auditServerless(clients.googleAuthClient, gcpProjectId),
+      auditLoadBalancers(clients.googleAuthClient, gcpProjectId),
+      auditNetworkingDepth(clients.googleAuthClient, gcpProjectId)
     ];
 
     const results = await Promise.allSettled(auditPromises);
@@ -196,7 +204,7 @@ app.post('/api/scan/gcp', authenticateToken, upload.single('file'), async (req, 
 });
 
 // AWS Comprehensive Scan Route
-const { auditAwsIam, auditAwsEc2, auditAwsS3 } = require('./services/awsScanner');
+const { auditAwsIam, auditAwsEc2, auditAwsS3, auditAwsRds, auditAwsEks, auditAwsLb, auditAwsServerless } = require('./services/awsScanner');
 
 app.post('/api/scan/aws', authenticateToken, async (req, res) => {
   console.log("--- Received COMPREHENSIVE LIVE AWS Scan Request ---");
@@ -216,7 +224,11 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
     const auditPromises = [
       auditAwsIam(credentials),
       auditAwsEc2(credentials),
-      auditAwsS3(credentials)
+      auditAwsS3(credentials),
+      auditAwsRds(credentials),
+      auditAwsEks(credentials),
+      auditAwsLb(credentials),
+      auditAwsServerless(credentials)
     ];
 
     const results = await Promise.allSettled(auditPromises);

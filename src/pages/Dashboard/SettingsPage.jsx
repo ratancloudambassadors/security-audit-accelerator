@@ -4,6 +4,10 @@ import styles from './SettingsPage.module.css';
 import Button from '../../components/Button/Button';
 
 const SettingsPage = () => {
+    const API_BASE = window.location.hostname.includes('run.app')
+        ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
+        : 'http://localhost:5000';
+
     const { user, login } = useContext(AuthContext);
 
     const [name, setName] = useState('');
@@ -33,11 +37,11 @@ const SettingsPage = () => {
                 if (user.displayPicture.startsWith('data:')) {
                     setPreviewUrl(user.displayPicture);
                 } else {
-                    setPreviewUrl(`https://security-audit-accelerator-backend-196053730058.asia-south1.run.app${user.displayPicture}`);
+                    setPreviewUrl(`${API_BASE}${user.displayPicture}`);
                 }
             }
         }
-    }, [user]);
+    }, [user, API_BASE]);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -77,7 +81,7 @@ const SettingsPage = () => {
                 return;
             }
 
-            const response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/auth/profile', {
+            const response = await fetch(`${API_BASE}/api/auth/profile`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`

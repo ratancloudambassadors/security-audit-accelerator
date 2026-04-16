@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API = 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+
 
 const PROVIDER_META = {
   gcp:   { label: 'Google Cloud',       color: '#4285F4', bg: 'rgba(66,133,244,0.10)',   icon: '☁️' },
@@ -77,6 +77,10 @@ const StatCard = ({ label, value, icon, accent }) => (
 );
 
 const ProjectDetailsPage = ({ projectId }) => {
+  const API_BASE = window.location.hostname.includes('run.app')
+    ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
+    : 'http://localhost:5000';
+
   const [project,  setProject]  = useState(null);
   const [scans,    setScans]    = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -89,14 +93,19 @@ const ProjectDetailsPage = ({ projectId }) => {
         const token = localStorage.getItem('auditscope_token');
         const h = { 'Authorization': `Bearer ${token}` };
 
-        const projRes = await fetch(`${API}/api/projects/${projectId}`, { headers: h });
+        const projRes = await fetch(`${API_BASE}/api/projects/${projectId}`, { headers: h });
         if (!projRes.ok) throw new Error('Not found');
         const projData = await projRes.json();
         setProject(projData);
 
-        const scanRes  = await fetch(`${API}/api/projects/all/scans`, { headers: h });
+        const scanRes  = await fetch(`${API_BASE}/api/projects/all/scans`, { headers: h });
         const allScans = await scanRes.json();
-        setScans(allScans.filter(s => s.project && s.project.name === projData.name));
+        if (Array.isArray(allScans)) {
+          setScans(allScans.filter(s => s.project && s.project.name === projData.name));
+        } else {
+          console.error('Scans API did not return an array:', allScans);
+          setScans([]);
+        }
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
@@ -124,7 +133,7 @@ const ProjectDetailsPage = ({ projectId }) => {
       };
 
       const token = localStorage.getItem('auditscope_token');
-      const res = await fetch(`${API}/api/reports/project-summary`, {
+      const res = await fetch(`${API_BASE}/api/reports/project-summary`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body:    JSON.stringify(payload),

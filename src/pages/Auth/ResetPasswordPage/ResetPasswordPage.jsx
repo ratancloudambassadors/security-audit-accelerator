@@ -5,9 +5,11 @@ import Button from '../../../components/Button/Button';
 import styles from './ResetPasswordPage.module.css';
 import toast from 'react-hot-toast';
 
-const API = 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
-
 const ResetPasswordPage = () => {
+  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000' 
+    : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+
   const [otp,             setOtp]             = useState('');
   const [newPassword,     setNewPassword]     = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -25,7 +27,7 @@ const ResetPasswordPage = () => {
 
   const handleResend = async () => {
     try {
-      await fetch(`${API}/api/auth/forgot-password`, {
+      await fetch(`${API_BASE}/api/auth/forgot-password`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ email }),
@@ -51,7 +53,7 @@ const ResetPasswordPage = () => {
     setLoading(true);
 
     try {
-      const res  = await fetch(`${API}/api/auth/reset-password`, {
+      const res  = await fetch(`${API_BASE}/api/auth/reset-password`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ email, otp: otp.trim(), newPassword }),

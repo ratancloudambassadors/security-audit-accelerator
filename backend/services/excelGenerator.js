@@ -7,21 +7,25 @@ const getCategoryFromId = (id) => {
     if (!id) return 'General';
     const prefix = id.split('-')[1] || '';
     switch (prefix.toUpperCase()) {
-        case 'IAM': return 'Identity & Access Management';
-        case 'STORAGE': return 'Cloud Storage';
-        case 'KMS': return 'Key Management Service';
+        case 'IAM': return 'IAM';
+        case 'STORAGE': return 'Storage';
+        case 'KMS': return 'KMS';
         case 'SQL': return 'Cloud SQL';
         case 'NET':
         case 'DNS':
         case 'FIREWALL': return 'Networking';
         case 'COMPUTE':
-        case 'VM': return 'Compute Engine';
+        case 'VM': return 'Compute';
         case 'LOG':
-        case 'MONITOR': return 'Logging & Monitoring';
-        case 'K8S':
-        case 'GKE': return 'Kubernetes Engine';
+        case 'MONITOR': return 'Logging';
+        case 'GKE': return 'GKE';
+        case 'CLOUDRUN':
+        case 'FUNCTION': return 'Serverless';
+        case 'LB': return 'Load Balancers';
         case 'DATAPROC': return 'Dataproc';
-        default: return 'Cloud Services';
+        case 'RDS': return 'AWS RDS';
+        case 'EKS': return 'AWS EKS';
+        default: return 'General';
     }
 };
 
@@ -29,30 +33,39 @@ const getCategoryFromId = (id) => {
  * Maps finding IDs to human-readable Checkpoint names
  */
 const getCheckpointName = (id) => {
-    if (!id) return 'General Quality & Security Control';
+    if (!id) return 'General Check';
     const parts = id.split('-');
-    const checkType = parts[2] || 'GENERAL';
+    const checkType = parts[2] ? parts[2].toUpperCase() : 'GENERAL';
     
     const mapping = {
-        'PUBLIC': 'Public Accessibility & Data Exposure Control',
-        'EXTERNAL': 'External Network Connectivity & Perimeter Security',
-        'ENCRYPTION': 'Encryption & Cryptographic Protection',
-        'ROTATION': 'Credential Lifecycle & Rotation Management',
-        'ADMIN': 'Access Control & Principle of Least Privilege',
-        'SOD': 'Segregation of Duties & Operational Security',
-        'TOKEN': 'Service Account Token & Identity Management',
-        'KEY': 'Sensitive Key & Credential Management',
-        'SSL': 'Transmission Security & SSL/TLS Configuration',
-        'IP': 'Network Isolation & IP Addressing',
-        'LOG': 'Audit Logging & Observability',
-        'MONITOR': 'Security Monitoring & Incident Alerting',
-        'FIREWALL': 'Network Perimeter Security & Firewall Rules',
-        'VERSION': 'Configuration Hygiene & Version Management',
-        'SA': 'Service Account Security & Governance',
-        'PROJECT': 'Project-Level Governance & Resource Security'
+        'PUBLIC': 'Check Public Access',
+        'EXTERNAL': 'Check External Access',
+        'ENCRYPTION': 'Check Encryption',
+        'ROTATION': 'Check Key Rotation',
+        'ADMIN': 'Check Admin Access',
+        'SOD': 'Check Separation of Duties',
+        'TOKEN': 'Check SA Tokens',
+        'KEY': 'Check SA Keys',
+        'SSL': 'Check SSL Policy',
+        'IP': 'Check IP Config',
+        'LOG': 'Check Logging',
+        'MONITOR': 'Check Monitoring',
+        'FIREWALL': 'Check Firewall Rules',
+        'VERSION': 'Check Software Version',
+        'SA': 'Check Service Accounts',
+        'GKE': 'Check Kubernetes',
+        'FLOW': 'Check VPC Flow Logs',
+        'ENDPOINT': 'Check API Endpoint',
+        'ABAC': 'Check Legacy ABAC',
+        'WORKLOAD': 'Check Workload Identity',
+        'SHIELDED': 'Check Shielded Nodes',
+        'BINARY': 'Check Binary Auth',
+        'RDS': 'Check RDS Public',
+        'EKS': 'Check EKS Public',
+        'SERVERLESS': 'Check Serverless'
     };
 
-    return mapping[checkType.toUpperCase()] || `${checkType.charAt(0).toUpperCase() + checkType.slice(1).toLowerCase()} Control Check`;
+    return mapping[checkType] || `Check: ${checkType}`;
 };
 
 /**

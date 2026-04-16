@@ -146,6 +146,18 @@ const auditLogging = async (googleAuthClient, projectId) => {
 
     // --- 14 & 15. Access Transparency and Approval ---
     try {
+      // Access Transparency (Organization level check often)
+      const suAssetResponse = await serviceusage.services.get({ name: `projects/${projectId}/services/accesstransparency.googleapis.com` });
+      if (suAssetResponse.data.state !== 'ENABLED') {
+         findings.push({
+            id: `GCP-OBS-TRANSPARENCY-${projectId.substring(0, 8)}`,
+            severity: 'Medium',
+            resource: `Access Transparency API`,
+            issue: `Access Transparency is not enabled.`,
+            remediation: `If using GCP Organizations, enable Access Transparency to ensure Google personnel actions on your data are logged.`
+         });
+      }
+
       // Access Approval
       const approvalRes = await accessapproval.projects.getAccessApprovalSettings({ name: `projects/${projectId}/accessApprovalSettings` });
       if (!approvalRes.data.enrolledServices || approvalRes.data.enrolledServices.length === 0) {
@@ -159,13 +171,16 @@ const auditLogging = async (googleAuthClient, projectId) => {
       }
     } catch(err) {
       if (err.message.includes('Method not found') || err.code === 403 || err.code === 404) {
-          findings.push({
-            id: `GCP-OBS-APPROVAL-${projectId.substring(0, 8)}`,
-            severity: 'Medium',
-            resource: `Access Approval Settings`,
-            issue: `Access Approval is not enabled or accessible (Enterprise organization levels required).`,
-            remediation: `If using GCP Organizations, enable Access Transparency and Access Approval.`
-         });
+          // If we can't check, it's often because it's not enabled or Org is missing
+          if (!findings.some(f => f.id.includes('GCP-OBS-TRANSPARENCY'))) {
+            findings.push({
+              id: `GCP-OBS-TRANSPARENCY-${projectId.substring(0, 8)}`,
+              severity: 'Medium',
+              resource: `Access Transparency`,
+              issue: `Access Transparency is likely not enabled (requires Organization context).`,
+              remediation: `Enable Access Transparency at the organization or project level.`
+            });
+          }
       }
     }
 

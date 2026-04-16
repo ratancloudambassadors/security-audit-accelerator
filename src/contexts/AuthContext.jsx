@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }) => {
   // ── login ────────────────────────────────────────────────────────
   const login = async (email, password) => {
     try {
-      const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:5000' : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+      const API_BASE = window.location.hostname.includes('run.app') ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' : 'http://localhost:5000';
       const response = await fetch(`${API_BASE}/api/auth/login`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,7 +122,8 @@ export const AuthProvider = ({ children }) => {
   // ── register ─────────────────────────────────────────────────────
   const register = async (name, email, password) => {
     try {
-      const response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/auth/register', {
+      const API_BASE = window.location.hostname.includes('run.app') ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' : 'http://localhost:5000';
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ name, email, password })
@@ -140,7 +141,8 @@ export const AuthProvider = ({ children }) => {
   // ── verifyOtp ─────────────────────────────────────────────────────
   const verifyOtp = async (email, otp) => {
     try {
-      const response = await fetch('https://security-audit-accelerator-backend-196053730058.asia-south1.run.app/api/auth/verify-otp', {
+      const API_BASE = window.location.hostname.includes('run.app') ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' : 'http://localhost:5000';
+      const response = await fetch(`${API_BASE}/api/auth/verify-otp`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ email, otp })

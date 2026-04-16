@@ -1,6 +1,7 @@
 .dashboardContainer {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background-color: var(--color-bg);
   color: var(--color-text);
 }

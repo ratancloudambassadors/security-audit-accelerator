@@ -7,11 +7,14 @@ const isLoggedIn = () => {
   try {
     const token     = localStorage.getItem('auditscope_token');
     if (!token) return false;
-    const payload   = JSON.parse(atob(token.split('.')[1]));
+    const parts = token.split('.');
+    if (parts.length < 2) return false;
+    const payload   = JSON.parse(atob(parts[1]));
     const loginTime = parseInt(localStorage.getItem('auditscope_login_time') || '0', 10);
     if (loginTime && Date.now() - loginTime > 6 * 60 * 60 * 1000) return false;
+    if (!payload || !payload.exp) return false;
     return payload.exp * 1000 > Date.now();
-  } catch { return false; }
+  } catch (e) { return false; }
 };
 
 const HeroSection = () => {

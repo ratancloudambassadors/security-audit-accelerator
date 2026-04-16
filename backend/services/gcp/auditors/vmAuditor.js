@@ -7,12 +7,12 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
 
   try {
     console.log(`[Compute Engine] Starting VM audit for project: ${projectId}`);
-    
+
     // First check project-wide compute metadata settings
     try {
       const [projectResource] = await projectClient.get({ project: projectId });
       const commonInstanceMetadata = projectResource.commonInstanceMetadata?.items || [];
-      
+
       const blockSshKeys = commonInstanceMetadata.find(item => item.key === 'block-project-ssh-keys');
       if (!blockSshKeys || blockSshKeys.value.toLowerCase() !== 'true') {
         findings.push({
@@ -62,7 +62,7 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
             }
           }
           if (hasPublicIp) {
-             findings.push({
+            findings.push({
               id: `GCP-VM-PUBLIC-IP-${instanceName.substring(0, 8)}`,
               severity: 'High',
               resource: `Compute Instance (${instanceName})`,
@@ -87,16 +87,16 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
           if (instance.serviceAccounts && instance.serviceAccounts.length > 0) {
             const saEmail = instance.serviceAccounts[0].email;
             if (saEmail.includes('-compute@developer.gserviceaccount.com')) {
-               findings.push({
+              findings.push({
                 id: `GCP-VM-DEF-SA-${instanceName.substring(0, 8)}`,
                 severity: 'Medium',
                 resource: `Compute Instance (${instanceName})`,
                 issue: `Instance is configured to use the default Compute Engine service account.`,
                 remediation: `Create a dedicated, least-privilege service account specifically for this workload and assign it to the instance.`
               });
-              
+
               if (instance.serviceAccounts[0].scopes && instance.serviceAccounts[0].scopes.includes('https://www.googleapis.com/auth/cloud-platform')) {
-                 findings.push({
+                findings.push({
                   id: `GCP-VM-DEF-SA-FULL-${instanceName.substring(0, 8)}`,
                   severity: 'High',
                   resource: `Compute Instance (${instanceName})`,
@@ -109,7 +109,7 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
 
           // Target 4: Shielded VM
           if (!instance.shieldedInstanceConfig || !instance.shieldedInstanceConfig.enableSecureBoot) {
-             findings.push({
+            findings.push({
               id: `GCP-VM-SHIELDED-${instanceName.substring(0, 8)}`,
               severity: 'Low', // Often Low/Medium depending on org risk tolerance
               resource: `Compute Instance (${instanceName})`,
@@ -122,7 +122,7 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
           const instanceMetadata = instance.metadata?.items || [];
           const serialPortEnable = instanceMetadata.find(item => item.key === 'serial-port-enable');
           if (serialPortEnable && serialPortEnable.value.toLowerCase() === 'true') {
-             findings.push({
+            findings.push({
               id: `GCP-VM-SERIAL-${instanceName.substring(0, 8)}`,
               severity: 'Medium',
               resource: `Compute Instance (${instanceName})`,
@@ -135,7 +135,7 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
           const disks = instance.disks || [];
           for (const disk of disks) {
             if (!disk.diskEncryptionKey || !disk.diskEncryptionKey.kmsKeyName) {
-               findings.push({
+              findings.push({
                 id: `GCP-VM-DISK-CMEK-${instanceName.substring(0, 8)}`,
                 severity: 'Low',
                 resource: `Compute Instance (${instanceName}) Disk (${disk.deviceName})`,
@@ -147,7 +147,7 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
 
           // Target 7: Confidential Computing
           if (!instance.confidentialInstanceConfig || !instance.confidentialInstanceConfig.enableConfidentialCompute) {
-             findings.push({
+            findings.push({
               id: `GCP-VM-CONFIDENTIAL-${instanceName.substring(0, 8)}`,
               severity: 'Low',
               resource: `Compute Instance (${instanceName})`,
@@ -181,7 +181,7 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
           // Target 10: Instance-Level Metadata Flags
           const blockKeys = instanceMetadata.find(item => item.key === 'block-project-ssh-keys');
           if (blockKeys && blockKeys.value.toLowerCase() === 'false') {
-             findings.push({
+            findings.push({
               id: `GCP-VM-INST-SSH-${instanceName.substring(0, 8)}`,
               severity: 'High',
               resource: `Compute Instance (${instanceName})`,
@@ -189,10 +189,10 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
               remediation: `Remove the overriding metadata 'block-project-ssh-keys=false' to honor project-wide SSH key blocking protocols.`
             });
           }
-          
+
           const osLogin = instanceMetadata.find(item => item.key === 'enable-oslogin');
           if (osLogin && osLogin.value.toLowerCase() === 'false') {
-             findings.push({
+            findings.push({
               id: `GCP-VM-INST-OSLOGIN-${instanceName.substring(0, 8)}`,
               severity: 'Medium',
               resource: `Compute Instance (${instanceName})`,
@@ -212,7 +212,7 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
   } catch (error) {
     console.error("[Compute Engine] Error during VM audit:", error);
     // Don't completely crash the master audit if one service fails (e.g., API not enabled)
-    return { findings: [], scannedCount: 0, error: error.message }; 
+    return { findings: [], scannedCount: 0, error: error.message };
   }
 };
 

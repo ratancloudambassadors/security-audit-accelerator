@@ -12,7 +12,7 @@ const auditKMS = async (googleAuthClient, projectId) => {
 
   try {
     console.log(`[KMS] Starting KMS audit for project: ${projectId}`);
-    
+
     // Initialize googleapis resources
     const cloudkms = google.cloudkms({ version: 'v1', auth: googleAuthClient });
 
@@ -23,8 +23,8 @@ const auditKMS = async (googleAuthClient, projectId) => {
         name: `projects/${projectId}`
       });
     } catch (locErr) {
-       console.warn("[KMS] Failed to list locations or API not enabled:", locErr.message);
-       return { findings, scannedCount };
+      console.warn("[KMS] Failed to list locations or API not enabled:", locErr.message);
+      return { findings, scannedCount };
     }
 
     const locations = locationsResponse.data.locations || [];
@@ -65,7 +65,7 @@ const auditKMS = async (googleAuthClient, projectId) => {
         const keysResponse = await cloudkms.projects.locations.keyRings.cryptoKeys.list({
           parent: keyRing.name
         }).catch(err => ({ data: { cryptoKeys: [] } }));
-        
+
         const cryptoKeys = keysResponse.data.cryptoKeys || [];
         scannedCount += cryptoKeys.length;
 
@@ -74,7 +74,7 @@ const auditKMS = async (googleAuthClient, projectId) => {
           // Check CryptoKey IAM
           try {
             const keyIamPolicy = await cloudkms.projects.locations.keyRings.cryptoKeys.getIamPolicy({
-                resource: key.name
+              resource: key.name
             });
             const keyBindings = keyIamPolicy.data.bindings || [];
             for (const binding of keyBindings) {
@@ -88,34 +88,34 @@ const auditKMS = async (googleAuthClient, projectId) => {
                 });
               }
             }
-          } catch(e) { }
+          } catch (e) { }
 
           // Check Rotation Period
           if (key.purpose === 'ENCRYPT_DECRYPT') {
-              let rotationDays = -1;
-              if (key.rotationPeriod) {
-                  // rotationPeriod is like "7776000s"
-                  const seconds = parseInt(key.rotationPeriod.replace('s', ''), 10);
-                  rotationDays = Math.floor(seconds / (24 * 60 * 60));
-              }
+            let rotationDays = -1;
+            if (key.rotationPeriod) {
+              // rotationPeriod is like "7776000s"
+              const seconds = parseInt(key.rotationPeriod.replace('s', ''), 10);
+              rotationDays = Math.floor(seconds / (24 * 60 * 60));
+            }
 
-              if (rotationDays === -1) {
-                  findings.push({
-                    id: `GCP-KMS-ROTATION-${key.name.split('/').pop().substring(0, 8)}`,
-                    severity: 'High',
-                    resource: `KMS CryptoKey (${key.name.split('/').pop()})`,
-                    issue: `Customer Managed Key (CMK) does not have a rotation schedule configured.`,
-                    remediation: `Configure automatic rotation for this key, ensuring it rotates at least annually (every 365 days).`
-                  });
-              } else if (rotationDays > 365) {
-                  findings.push({
-                    id: `GCP-KMS-ROTATION-${key.name.split('/').pop().substring(0, 8)}`,
-                    severity: 'Medium',
-                    resource: `KMS CryptoKey (${key.name.split('/').pop()})`,
-                    issue: `Key rotation period is ${rotationDays} days, which exceeds the recommended annual (365 days) rotation.`,
-                    remediation: `Reduce the rotation period to 365 days or fewer.`
-                  });
-              }
+            if (rotationDays === -1) {
+              findings.push({
+                id: `GCP-KMS-ROTATION-${key.name.split('/').pop().substring(0, 8)}`,
+                severity: 'High',
+                resource: `KMS CryptoKey (${key.name.split('/').pop()})`,
+                issue: `Customer Managed Key (CMK) does not have a rotation schedule configured.`,
+                remediation: `Configure automatic rotation for this key, ensuring it rotates at least annually (every 365 days).`
+              });
+            } else if (rotationDays > 365) {
+              findings.push({
+                id: `GCP-KMS-ROTATION-${key.name.split('/').pop().substring(0, 8)}`,
+                severity: 'Medium',
+                resource: `KMS CryptoKey (${key.name.split('/').pop()})`,
+                issue: `Key rotation period is ${rotationDays} days, which exceeds the recommended annual (365 days) rotation.`,
+                remediation: `Reduce the rotation period to 365 days or fewer.`
+              });
+            }
           }
         }
       }
@@ -125,7 +125,7 @@ const auditKMS = async (googleAuthClient, projectId) => {
 
   } catch (error) {
     console.error("[KMS] Critical error during KMS audit:", error);
-    return { findings: [], scannedCount: 0, error: error.message }; 
+    return { findings: [], scannedCount: 0, error: error.message };
   }
 };
 
