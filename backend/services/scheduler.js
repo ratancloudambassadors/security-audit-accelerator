@@ -16,10 +16,10 @@ const { auditDns } = require('./gcp/auditors/dnsAuditor');
 const { auditLogging } = require('./gcp/auditors/loggingAuditor');
 const { auditDataproc } = require('./gcp/auditors/dataprocAuditor');
 const { auditGKE } = require('./gcp/auditors/gkeAuditor');
-const { auditLB } = require('./gcp/auditors/lbAuditor');
+const { auditLoadBalancers } = require('./gcp/auditors/lbAuditor');
 const { auditServerless } = require('./gcp/auditors/serverlessAuditor');
 const { auditNetworkingDepth } = require('./gcp/auditors/networkingDepthAuditor');
-const { auditAwsIam, auditAwsEc2, auditAwsS3 } = require('./awsScanner');
+const { auditAwsIam, auditAwsEc2, auditAwsS3, auditAwsRds, auditAwsEks, auditAwsLb, auditAwsServerless } = require('./awsScanner');
 const { generatePDF } = require('../routes/reports');
 const { generateExcelReport } = require('./excelGenerator');
 const nodemailer = require('nodemailer');
@@ -206,7 +206,7 @@ const runGcpScan = async ({ credentials, projectId }) => {
             auditLogging(clients.googleAuthClient, gcpProjectId),
             auditDataproc(clients.googleAuthClient, gcpProjectId),
             auditGKE(clients.googleAuthClient, gcpProjectId),
-            auditLB(clients.googleAuthClient, gcpProjectId),
+            auditLoadBalancers(clients.googleAuthClient, gcpProjectId),
             auditServerless(clients.googleAuthClient, gcpProjectId),
             auditNetworkingDepth(clients.googleAuthClient, gcpProjectId)
         ];
@@ -322,7 +322,11 @@ const runAwsScan = async ({ credentials, projectId }) => {
         const auditPromises = [
             auditAwsIam(parsedCreds),
             auditAwsEc2(parsedCreds),
-            auditAwsS3(parsedCreds)
+            auditAwsS3(parsedCreds),
+            auditAwsRds(parsedCreds),
+            auditAwsEks(parsedCreds),
+            auditAwsLb(parsedCreds),
+            auditAwsServerless(parsedCreds)
         ];
 
         const results = await Promise.allSettled(auditPromises);

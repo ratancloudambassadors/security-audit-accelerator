@@ -17,7 +17,15 @@ const AutomationPage = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [expandedSchedules, setExpandedSchedules] = useState({});
   const pollTimerRef = useRef(null);
+
+  const toggleExpand = (id) => {
+    setExpandedSchedules(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
   const fetchData = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -286,22 +294,51 @@ const AutomationPage = () => {
                     </div>
 
                     {/* Report email chip */}
-                    {(schedule.targetEmail) && (
-                      <div style={{ 
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        background: 'rgba(120, 120, 212, 0.07)',
-                        border: '1px solid rgba(120, 120, 212, 0.15)',
-                        borderRadius: '8px', padding: '8px 12px',
-                        marginBottom: 'var(--spacing-4)',
-                        paddingLeft: '20px'
-                      }}>
-                        <span style={{ fontSize: '13px' }}>📧</span>
-                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Report to:</span>
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {schedule.targetEmail}
-                        </span>
-                      </div>
-                    )}
+                    {(schedule.targetEmail) && (() => {
+                      const emails = schedule.targetEmail.split(',').map(e => e.trim()).filter(Boolean);
+                      const isExpanded = expandedSchedules[schedule.id];
+                      const visibleEmails = isExpanded ? emails : emails.slice(0, 3);
+                      const hasMore = emails.length > 3;
+
+                      return (
+                        <div style={{ 
+                          display: 'flex', alignItems: 'flex-start', gap: '8px',
+                          background: 'rgba(120, 120, 212, 0.07)',
+                          border: '1px solid rgba(120, 120, 212, 0.15)',
+                          borderRadius: '8px', padding: '10px 12px',
+                          marginBottom: 'var(--spacing-4)',
+                          paddingLeft: '20px'
+                        }}>
+                          <span style={{ fontSize: '13px', marginTop: '2px' }}>📧</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Report to:</span>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {visibleEmails.map((email, i) => (
+                                <span key={i} style={{ 
+                                  fontSize: '11px', fontWeight: 600, color: 'var(--color-primary)', 
+                                  background: 'var(--color-bg)', padding: '2px 6px', borderRadius: '4px', 
+                                  border: '1px solid rgba(120, 120, 212, 0.2)' 
+                                }}>
+                                  {email}
+                                </span>
+                              ))}
+                              {hasMore && (
+                                <span 
+                                  onClick={() => toggleExpand(schedule.id)}
+                                  style={{ 
+                                    fontSize: '11px', fontWeight: 600, color: 'var(--color-primary)', 
+                                    cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'center' 
+                                  }}
+                                  title={isExpanded ? "Collapse" : "View all emails"}
+                                >
+                                  {isExpanded ? 'View Less' : `+${emails.length - 3} more`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     <div style={{ display: 'flex', gap: 'var(--spacing-3)', paddingLeft: '8px' }}>
                       <button 
