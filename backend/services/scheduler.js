@@ -24,16 +24,7 @@ const { generatePDF } = require('../routes/reports');
 const { generateExcelReport } = require('./excelGenerator');
 const nodemailer = require('nodemailer');
 
-// Use structured transporter matching reports.js for higher reliability
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: process.env.SMTP_PORT || 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
+// Email configuration will be injected dynamically inside the worker.
 
 // Helper to send email with PDF attachment
 const sendAuditEmail = async (userEmail, scanData, projectName) => {
@@ -45,6 +36,13 @@ const sendAuditEmail = async (userEmail, scanData, projectName) => {
     }
 
     try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+        });
         const htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
@@ -112,9 +110,12 @@ const sendAuditEmail = async (userEmail, scanData, projectName) => {
         const filename = `AuditScope_Report_${projectName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
         const excelFilename = filename.replace('.pdf', '.xlsx');
 
+        // Safely parse multiple emails into a clean array for Nodemailer
+        const emailArray = userEmail.split(',').map(e => e.trim()).filter(Boolean);
+
         await transporter.sendMail({
             from: `"AuditScope Automation" <${process.env.SMTP_USER}>`,
-            to: userEmail,
+            to: emailArray,
             subject: `[Automated] Security Audit: ${projectName} — Score ${scanData.score}%`,
             html: htmlContent,
             attachments: [
