@@ -451,7 +451,7 @@ const DashboardPage = () => {
                   borderRadius: '6px',
                   cursor: (reportStatus === 'downloading' || reportStatus === 'sending') ? 'wait' : 'pointer',
                   background: reportStatus === 'sent' ? 'var(--color-success)' : reportStatus === 'error' ? 'var(--color-danger)' : 'var(--color-primary)',
-                  color: '#000',
+                  color: '#fff',
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',

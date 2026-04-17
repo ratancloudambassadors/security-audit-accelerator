@@ -204,7 +204,7 @@ app.post('/api/scan/gcp', authenticateToken, upload.single('file'), async (req, 
 });
 
 // AWS Comprehensive Scan Route
-const { auditAwsIam, auditAwsEc2, auditAwsS3, auditAwsRds, auditAwsEks, auditAwsLb, auditAwsServerless } = require('./services/awsScanner');
+const { auditAwsIam, auditAwsEc2, auditAwsS3, auditAwsRds, auditAwsEks, auditAwsLb, auditAwsKms, auditAwsServerless } = require('./services/awsScanner');
 
 app.post('/api/scan/aws', authenticateToken, async (req, res) => {
   console.log("--- Received COMPREHENSIVE LIVE AWS Scan Request ---");
@@ -228,6 +228,7 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
       auditAwsRds(credentials),
       auditAwsEks(credentials),
       auditAwsLb(credentials),
+      auditAwsKms(credentials),
       auditAwsServerless(credentials)
     ];
 
