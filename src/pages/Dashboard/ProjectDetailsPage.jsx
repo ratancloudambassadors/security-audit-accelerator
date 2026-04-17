@@ -60,9 +60,7 @@ const StatCard = ({ label, value, icon, accent, trend, tooltip }) => (
 );
 
 const ProjectDetailsPage = ({ projectId }) => {
-  const API_BASE = window.location.hostname.includes('run.app')
-    ? 'http://localhost:5000' 
-    : 'http://localhost:5000';
+  const API_BASE = window.location.hostname.includes('run.app') ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' : 'http://localhost:5000';
 
   const [project,  setProject]  = useState(null);
   const [scans,    setScans]    = useState([]);

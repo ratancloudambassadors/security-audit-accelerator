@@ -4,9 +4,7 @@ import Card from '../../components/Card/Card';
 
 
 const ScanHistoryPage = () => {
-  const API_BASE = window.location.hostname.includes('run.app')
-    ? 'http://localhost:5000' 
-    : 'http://localhost:5000';
+  const API_BASE = window.location.hostname.includes('run.app') ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' : 'http://localhost:5000';
 
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
