@@ -66,8 +66,8 @@ const getCheckpointName = (id) => {
 
 const DashboardPage = () => {
   const API_BASE = window.location.hostname.includes('run.app')
-    ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
-    : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+    ? 'http://localhost:5000' 
+    : 'http://localhost:5000';
 
   const [scanData, setScanData] = useState(null);
   const [reportStatus, setReportStatus] = useState(null); // null | 'downloading' | 'sending' | 'sent' | 'error'
@@ -423,11 +423,11 @@ const DashboardPage = () => {
               {scanData && (
                 <span style={{ display: 'flex', alignItems: 'center' }}>
                   {scanData.provider === 'aws' ? (
-                    <svg viewBox="0 0 256 154" width="32" height="32"><path fill="#FF9900" d="M128 32c-34 0-61 17-61 46 0 18 10 32 29 39-4 3-5 5-5 8 0 4 3 6 8 6 10 0 22-9 33-19 16 10 36 15 54 15 36 0 61-17 61-46 0-14-6-26-17-34-14-11-36-16-59-16l-43 1z"/><path fill="#FF9900" d="M128 0c-45 0-82 25-82 56 0 20 16 38 41 48-12 13-33 24-58 29-5 1-4 3 1 3 45 0 86-21 106-53 23 10 49 16 77 16 45 0 82-25 82-56S259 0 214 0c-26 0-48 7-66 18C132 8 111 0 86 0z"/></svg>
+                    <img src="/assets/aws-logo.svg" alt="AWS" width="32" height="32" />
                   ) : scanData.provider === 'azure' ? (
-                    <svg viewBox="0 0 24 24" width="28" height="28"><path fill="#0078D4" d="M11.4 5.3l-8.5 13.4H12l2.6-4.1H7.8l5.2-8.3L11.4 5.3z M21.1 18.7l-9.7-15.4L8.8 7.4l6.4 11.3H21.1z"/></svg>
+                    <img src="/assets/azure-logo.svg" alt="Azure" width="28" height="28" />
                   ) : (
-                    <svg viewBox="0 0 24 24" width="22" height="22"><path fill="#4285F4" d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71L12 2z"/></svg>
+                    <img src="/assets/gcp-logo.svg" alt="GCP" width="22" height="22" />
                   )}
                 </span>
               )}
@@ -860,21 +860,16 @@ const DashboardPage = () => {
         ) : (
           <Section style={{ padding: 0 }} darker={false}>
             <Card style={{ minHeight: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-4)' }}>
-              <div style={{ opacity: 0.35, marginBottom: '24px', transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-                {activeProvider === 'aws' ? (
-                  <svg viewBox="0 0 256 154" width="100" height="100"><path fill="var(--color-primary)" d="M128 0c-45 0-82 25-82 56 0 20 16 38 41 48-12 13-33 24-58 29-5 1-4 3 1 3 45 0 86-21 106-53 23 10 49 16 77 16 45 0 82-25 82-56S259 0 214 0c-26 0-48 7-66 18C132 8 111 0 86 0z"/><path fill="var(--color-primary)" opacity="0.6" d="M128 32c-34 0-61 17-61 46 0 18 10 32 29 39-4 3-5 5-5 8 0 4 3 6 8 6 10 0 22-9 33-19 16 10 36 15 54 15 36 0 61-17 61-46 0-14-6-26-17-34-14-11-36-16-59-16l-43 1z"/></svg>
-                ) : activeProvider === 'azure' ? (
-                  <svg viewBox="0 0 24 24" width="100" height="100"><path fill="var(--color-primary)" d="M11.4 5.3l-8.5 13.4H12l2.6-4.1H7.8l5.2-8.3L11.4 5.3z M21.1 18.7l-9.7-15.4L8.8 7.4l6.4 11.3H21.1z"/></svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" width="100" height="100">
-                    <path fill="#4285F4" d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71L12 2z" opacity="0.3"/>
-                    <path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                  </svg>
-                )}
+              <div style={{ display: 'flex', gap: '24px', opacity: 0.5, marginBottom: '24px', transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', alignItems: 'center' }}>
+                <img src="/assets/gcp-logo.svg" alt="GCP" width="50" height="50" />
+                <span style={{ fontSize: '24px', color: 'var(--color-border)' }}>|</span>
+                <img src="/assets/aws-logo.svg" alt="AWS" width="50" height="50" />
+                <span style={{ fontSize: '24px', color: 'var(--color-border)' }}>|</span>
+                <img src="/assets/azure-logo.svg" alt="Azure" width="45" height="45" />
               </div>
               <h3 style={{ color: 'var(--color-text)' }}>No active scans</h3>
               <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', maxWidth: '400px', fontSize: 'var(--font-size-sm)' }}>
-                Select "GCP" from the Choose Provider dropdown in the navigation bar and hit the Scan button to run a comprehensive multi-service audit.
+                Select a cloud provider from the Choose Provider dropdown in the navigation bar and hit the Scan button to run a comprehensive multi-service audit.
               </p>
             </Card>
           </Section>

@@ -181,7 +181,7 @@ const DashboardNavbar = () => {
             >
               {user?.displayPicture ? (
                 <img
-                  src={user.displayPicture.startsWith('data:') ? user.displayPicture : `${window.location.hostname.includes('run.app') ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app'}${user.displayPicture}`}
+                  src={user.displayPicture.startsWith('data:') ? user.displayPicture : `${window.location.hostname.includes('run.app') ? 'http://localhost:5000' : 'http://localhost:5000'}${user.displayPicture}`}
                   alt="Profile"
                   className={styles.avatar}
                 />

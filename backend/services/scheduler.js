@@ -100,36 +100,18 @@ const sendAuditEmail = async (userEmail, scanData, projectName) => {
             console.error('[Scheduler] Failed to generate PDF for automation:', e);
         }
 
-        let excelBuffer = Buffer.from('');
-        try {
-            excelBuffer = await generateExcelReport(scanData, projectName);
-        } catch (e) {
-            console.error('[Scheduler] Failed to generate Excel for automation:', e);
-        }
-
         const filename = `AuditScope_Report_${projectName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
-        const excelFilename = filename.replace('.pdf', '.xlsx');
-
-        // Safely parse multiple emails into a clean array for Nodemailer
-        const emailArray = userEmail.split(',').map(e => e.trim()).filter(Boolean);
 
         await transporter.sendMail({
             from: `"AuditScope Automation" <${process.env.SMTP_USER}>`,
-            to: emailArray,
+            to: userEmail,
             subject: `[Automated] Security Audit: ${projectName} — Score ${scanData.score}%`,
             html: htmlContent,
-            attachments: [
-                ...(pdfBuffer.length > 0 ? [{
-                    filename: filename,
-                    content: pdfBuffer,
-                    contentType: 'application/pdf'
-                }] : []),
-                ...(excelBuffer.length > 0 ? [{
-                    filename: excelFilename,
-                    content: excelBuffer,
-                    contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                }] : [])
-            ]
+            attachments: pdfBuffer.length > 0 ? [{
+                filename: filename,
+                content: pdfBuffer,
+                contentType: 'application/pdf'
+            }] : []
         });
 
         console.log(`[Scheduler] ✉️  Email sent to ${userEmail} for project "${projectName}"`);
@@ -288,8 +270,6 @@ const runGcpScan = async ({ credentials, projectId }) => {
                 data: {
                     score: computedScore,
                     scannedResources: totalScanned,
-                    totalChecks: totalChecks,
-                    skippedChecks: JSON.stringify(skippedChecks),
                     criticalCount,
                     highCount,
                     mediumCount,
@@ -297,7 +277,7 @@ const runGcpScan = async ({ credentials, projectId }) => {
                     projectId: projectId
                 }
             });
-            console.log(`[Scheduler] ✅ GCP scan saved. Score: ${computedScore}%, Checks: ${totalChecks - skippedChecks.length}/${totalChecks}`);
+            console.log(`[Scheduler] ✅ GCP scan saved. Score: ${computedScore}%`);
             return savedScan;
         }
 

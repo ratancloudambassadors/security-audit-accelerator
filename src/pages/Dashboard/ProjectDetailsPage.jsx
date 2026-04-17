@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Card from '../../components/Card/Card';
 
 const PROVIDER_META = {
-  gcp:   { label: 'Google Cloud',       color: '#4285F4', bg: 'rgba(66,133,244,0.10)',   icon: <svg viewBox="0 0 24 24" width="22" height="22"><path fill="#4285F4" d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71L12 2z"/></svg> },
-  aws:   { label: 'Amazon Web Services', color: '#FF9900', bg: 'rgba(255,153,0,0.10)',    icon: <svg viewBox="0 0 256 154" width="22" height="22"><path fill="#232F3E" d="M128 32c-34 0-61 17-61 46 0 18 10 32 29 39-4 3-5 5-5 8 0 4 3 6 8 6 10 0 22-9 33-19 16 10 36 15 54 15 36 0 61-17 61-46 0-14-6-26-17-34-14-11-36-16-59-16l-43 1z"/><path fill="#FF9900" d="M128 0c-45 0-82 25-82 56 0 20 16 38 41 48-12 13-33 24-58 29-5 1-4 3 1 3 45 0 86-21 106-53 23 10 49 16 77 16 45 0 82-25 82-56S259 0 214 0c-26 0-48 7-66 18C132 8 111 0 86 0z"/></svg> },
-  azure: { label: 'Microsoft Azure',     color: '#0078D4', bg: 'rgba(0,120,212,0.10)',    icon: <svg viewBox="0 0 24 24" width="22" height="22"><path fill="#0072C6" d="M11.4 5.3l-8.5 13.4H12l2.6-4.1H7.8l5.2-8.3L11.4 5.3z M21.1 18.7l-9.7-15.4L8.8 7.4l6.4 11.3H21.1z"/></svg> },
+  gcp:   { label: 'Google Cloud',       color: '#4285F4', bg: 'rgba(66,133,244,0.10)',   icon: <img src="/assets/gcp-logo.svg" alt="GCP" width="22" height="22" /> },
+  aws:   { label: 'Amazon Web Services', color: '#FF9900', bg: 'rgba(255,153,0,0.10)',    icon: <img src="/assets/aws-logo.svg" alt="AWS" width="22" height="22" /> },
+  azure: { label: 'Microsoft Azure',     color: '#0078D4', bg: 'rgba(0,120,212,0.10)',    icon: <img src="/assets/azure-logo.svg" alt="Azure" width="22" height="22" /> },
 };
 
 const scoreColor = (s) => {
@@ -61,8 +61,8 @@ const StatCard = ({ label, value, icon, accent, trend, tooltip }) => (
 
 const ProjectDetailsPage = ({ projectId }) => {
   const API_BASE = window.location.hostname.includes('run.app')
-    ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
-    : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+    ? 'http://localhost:5000' 
+    : 'http://localhost:5000';
 
   const [project,  setProject]  = useState(null);
   const [scans,    setScans]    = useState([]);

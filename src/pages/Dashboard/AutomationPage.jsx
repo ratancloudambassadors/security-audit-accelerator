@@ -5,8 +5,8 @@ import Button from '../../components/Button/Button';
 import ScheduleModal from '../../components/ScheduleModal/ScheduleModal';
 
 const API_BASE = window.location.hostname.includes('run.app')
-  ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' 
-  : 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app';
+  ? 'http://localhost:5000' 
+  : 'http://localhost:5000';
 const POLL_INTERVAL_MS = 30000; // 30 seconds
 
 const AutomationPage = () => {
@@ -17,15 +17,7 @@ const AutomationPage = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [expandedSchedules, setExpandedSchedules] = useState({});
   const pollTimerRef = useRef(null);
-
-  const toggleExpand = (id) => {
-    setExpandedSchedules(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
-  };
 
   const fetchData = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -252,11 +244,11 @@ const AutomationPage = () => {
                       </div>
                       <div style={{ display: 'flex' }}>
                         {schedule.project?.provider === 'aws' ? (
-                          <svg viewBox="0 0 256 154" width="24" height="24"><path fill="#FF9900" d="M128 32c-34 0-61 17-61 46 0 18 10 32 29 39-4 3-5 5-5 8 0 4 3 6 8 6 10 0 22-9 33-19 16 10 36 15 54 15 36 0 61-17 61-46 0-14-6-26-17-34-14-11-36-16-59-16l-43 1z"/><path fill="#FF9900" d="M128 0c-45 0-82 25-82 56 0 20 16 38 41 48-12 13-33 24-58 29-5 1-4 3 1 3 45 0 86-21 106-53 23 10 49 16 77 16 45 0 82-25 82-56S259 0 214 0c-26 0-48 7-66 18C132 8 111 0 86 0z"/></svg>
+                          <img src="/assets/aws-logo.svg" alt="AWS" width="24" height="24" />
                         ) : schedule.project?.provider === 'azure' ? (
-                          <svg viewBox="0 0 24 24" width="24" height="24"><path fill="#0078D4" d="M11.4 5.3l-8.5 13.4H12l2.6-4.1H7.8l5.2-8.3L11.4 5.3z M21.1 18.7l-9.7-15.4L8.8 7.4l6.4 11.3H21.1z"/></svg>
+                          <img src="/assets/azure-logo.svg" alt="Azure" width="24" height="24" />
                         ) : (
-                          <svg viewBox="0 0 24 24" width="24" height="24"><path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                          <img src="/assets/gcp-logo.svg" alt="GCP" width="24" height="24" />
                         )}
                       </div>
                     </div>
@@ -294,51 +286,22 @@ const AutomationPage = () => {
                     </div>
 
                     {/* Report email chip */}
-                    {(schedule.targetEmail) && (() => {
-                      const emails = schedule.targetEmail.split(',').map(e => e.trim()).filter(Boolean);
-                      const isExpanded = expandedSchedules[schedule.id];
-                      const visibleEmails = isExpanded ? emails : emails.slice(0, 3);
-                      const hasMore = emails.length > 3;
-
-                      return (
-                        <div style={{ 
-                          display: 'flex', alignItems: 'flex-start', gap: '8px',
-                          background: 'rgba(120, 120, 212, 0.07)',
-                          border: '1px solid rgba(120, 120, 212, 0.15)',
-                          borderRadius: '8px', padding: '10px 12px',
-                          marginBottom: 'var(--spacing-4)',
-                          paddingLeft: '20px'
-                        }}>
-                          <span style={{ fontSize: '13px', marginTop: '2px' }}>📧</span>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Report to:</span>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {visibleEmails.map((email, i) => (
-                                <span key={i} style={{ 
-                                  fontSize: '11px', fontWeight: 600, color: 'var(--color-primary)', 
-                                  background: 'var(--color-bg)', padding: '2px 6px', borderRadius: '4px', 
-                                  border: '1px solid rgba(120, 120, 212, 0.2)' 
-                                }}>
-                                  {email}
-                                </span>
-                              ))}
-                              {hasMore && (
-                                <span 
-                                  onClick={() => toggleExpand(schedule.id)}
-                                  style={{ 
-                                    fontSize: '11px', fontWeight: 600, color: 'var(--color-primary)', 
-                                    cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'center' 
-                                  }}
-                                  title={isExpanded ? "Collapse" : "View all emails"}
-                                >
-                                  {isExpanded ? 'View Less' : `+${emails.length - 3} more`}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                    {(schedule.targetEmail) && (
+                      <div style={{ 
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        background: 'rgba(120, 120, 212, 0.07)',
+                        border: '1px solid rgba(120, 120, 212, 0.15)',
+                        borderRadius: '8px', padding: '8px 12px',
+                        marginBottom: 'var(--spacing-4)',
+                        paddingLeft: '20px'
+                      }}>
+                        <span style={{ fontSize: '13px' }}>📧</span>
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Report to:</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {schedule.targetEmail}
+                        </span>
+                      </div>
+                    )}
 
                     <div style={{ display: 'flex', gap: 'var(--spacing-3)', paddingLeft: '8px' }}>
                       <button 
