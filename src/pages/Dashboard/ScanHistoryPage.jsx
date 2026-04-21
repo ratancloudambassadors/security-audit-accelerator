@@ -173,8 +173,8 @@ const ScanHistoryPage = () => {
                         <div
                           style={{ position: 'relative', display: 'inline-flex', cursor: 'help' }}
                           onClick={(e) => e.stopPropagation()}
-                          onMouseEnter={(e) => { const t = e.currentTarget.querySelector('[data-tip]'); if (t) { t.style.opacity='1'; t.style.visibility='visible'; t.style.transform='translateX(-50%) translateY(4px)'; } }}
-                          onMouseLeave={(e) => { const t = e.currentTarget.querySelector('[data-tip]'); if (t) { t.style.opacity='0'; t.style.visibility='hidden'; t.style.transform='translateX(-50%) translateY(0)'; } }}
+                          onMouseEnter={(e) => { const t = e.currentTarget.querySelector('[data-tip]'); if (t) { t.style.opacity='1'; t.style.visibility='visible'; t.style.transform='translateY(-50%) translateX(6px)'; } }}
+                          onMouseLeave={(e) => { const t = e.currentTarget.querySelector('[data-tip]'); if (t) { t.style.opacity='0'; t.style.visibility='hidden'; t.style.transform='translateY(-50%) translateX(0)'; } }}
                         >
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -189,22 +189,23 @@ const ScanHistoryPage = () => {
                             opacity: 0, visibility: 'hidden',
                             transition: 'all 0.2s ease',
                             position: 'absolute',
-                            top: '100%', left: '50%',
-                            transform: 'translateX(-50%) translateY(0)',
-                            marginTop: '8px',
+                            top: '50%', left: '100%',
+                            transform: 'translateY(-50%) translateX(0)',
+                            marginLeft: '10px',
                             backgroundColor: 'var(--color-bg)',
                             border: '1px solid var(--color-border)',
                             borderRadius: '10px',
                             padding: '12px 14px',
                             width: '240px',
                             boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                            zIndex: 50,
+                            zIndex: 200,
                             pointerEvents: 'none',
                             textAlign: 'left',
                           }}>
-                            {/* Arrow */}
-                            <div style={{ position:'absolute', bottom:'100%', left:'50%', marginLeft:'-5px', borderWidth:'0 5px 5px 5px', borderStyle:'solid', borderColor:'transparent transparent var(--color-border) transparent' }} />
-                            <div style={{ position:'absolute', bottom:'calc(100% - 1px)', left:'50%', marginLeft:'-4px', borderWidth:'0 4px 4px 4px', borderStyle:'solid', borderColor:'transparent transparent var(--color-bg) transparent' }} />
+                            {/* Left-pointing arrow (border) */}
+                            <div style={{ position:'absolute', top:'50%', right:'100%', marginTop:'-5px', borderWidth:'5px 5px 5px 0', borderStyle:'solid', borderColor:'transparent var(--color-border) transparent transparent' }} />
+                            {/* Left-pointing arrow (fill) */}
+                            <div style={{ position:'absolute', top:'50%', right:'calc(100% - 1px)', marginTop:'-4px', borderWidth:'4px 4px 4px 0', borderStyle:'solid', borderColor:'transparent var(--color-bg) transparent transparent' }} />
                             <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '11px', marginBottom: '6px' }}>🛡️ How is the Score calculated?</div>
                             <div style={{ fontSize: '11px', color: 'var(--color-text)', lineHeight: 1.6 }}>
                               <div style={{ background: 'rgba(99,102,241,0.07)', borderRadius: '6px', padding: '6px 8px', fontFamily: 'monospace', marginBottom: '7px', fontSize: '10.5px' }}>
