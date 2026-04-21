@@ -256,8 +256,8 @@ const ProjectDetailsPage = ({ projectId }) => {
   return (
     <>
       <style>{`
-        .pd-card { transition: transform 0.15s, box-shadow 0.15s; }
-        .pd-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.10); }
+        .pd-card { transition: transform 0.15s, box-shadow 0.15s; position: relative; z-index: 0; }
+        .pd-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.10); z-index: 10; }
         .pd-btn  { transition: opacity 0.15s, transform 0.15s; }
         .pd-btn:hover  { opacity: 0.88; transform: translateY(-1px); }
       `}</style>
