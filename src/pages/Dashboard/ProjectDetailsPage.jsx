@@ -30,24 +30,56 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-const StatCard = ({ label, value, icon, accent, trend, tooltip }) => (
+const StatCard = ({ label, value, icon, accent, trend, tooltip, richTooltip }) => (
   <div style={{
     background: 'var(--color-bg-secondary)',
     border: '1px solid var(--color-border)',
     borderRadius: 10,
     padding: '10px 14px',
     display: 'flex', flexDirection: 'column', gap: 3,
-    flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden',
+    flex: 1, minWidth: 0, position: 'relative', overflow: 'visible',
   }}>
     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: accent, borderRadius: '10px 10px 0 0' }} />
     <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start' }}>
-      {tooltip && (
-        <div style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, borderRadius: '50%', background: 'var(--color-border)', color: 'var(--color-text-muted)', fontSize: 10, fontWeight: 700 }} title={tooltip}>
-          ?
-        </div>
+      {(richTooltip || tooltip) && (
+        richTooltip ? (
+          <div
+            style={{ position: 'relative', display: 'inline-flex', cursor: 'help' }}
+            onMouseEnter={(e) => { const t = e.currentTarget.querySelector('[data-rtip]'); if (t) { t.style.opacity='1'; t.style.visibility='visible'; t.style.transform='translateX(-50%) translateY(4px)'; } }}
+            onMouseLeave={(e) => { const t = e.currentTarget.querySelector('[data-rtip]'); if (t) { t.style.opacity='0'; t.style.visibility='hidden'; t.style.transform='translateX(-50%) translateY(0)'; } }}
+          >
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, borderRadius: '50%', background: 'var(--color-border)', color: 'var(--color-text-muted)', fontSize: 10, fontWeight: 700 }}>?</div>
+            <div data-rtip style={{
+              opacity: 0, visibility: 'hidden',
+              transition: 'all 0.2s ease',
+              position: 'absolute',
+              top: '100%', left: '50%',
+              transform: 'translateX(-50%) translateY(0)',
+              marginTop: '8px',
+              backgroundColor: 'var(--color-bg)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              width: '250px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.13)',
+              zIndex: 100,
+              pointerEvents: 'none',
+              textAlign: 'left',
+            }}>
+              {/* Arrow border */}
+              <div style={{ position:'absolute', bottom:'100%', left:'50%', marginLeft:'-5px', borderWidth:'0 5px 5px 5px', borderStyle:'solid', borderColor:'transparent transparent var(--color-border) transparent' }} />
+              <div style={{ position:'absolute', bottom:'calc(100% - 1px)', left:'50%', marginLeft:'-4px', borderWidth:'0 4px 4px 4px', borderStyle:'solid', borderColor:'transparent transparent var(--color-bg) transparent' }} />
+              {richTooltip}
+            </div>
+          </div>
+        ) : (
+          <div style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, borderRadius: '50%', background: 'var(--color-border)', color: 'var(--color-text-muted)', fontSize: 10, fontWeight: 700 }} title={tooltip}>
+            ?
+          </div>
+        )
       )}
     </div>
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginTop: tooltip ? -4 : 4 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginTop: (richTooltip || tooltip) ? -4 : 4 }}>
       <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text)', lineHeight: 1 }}>{value}</div>
       {trend && (
         <div style={{ fontSize: 10, fontWeight: 700, color: trend.color, paddingBottom: 1 }}>
@@ -289,7 +321,27 @@ const ProjectDetailsPage = ({ projectId }) => {
             <StatCard label="Total Scans"    value={totalScans.toLocaleString()}                              icon="🔍" accent="#6366f1" tooltip="The total number of security audits performed on this project since creation." />
           </div>
           <div className="pd-card" style={{ flex: 1, minWidth: 120 }}>
-            <StatCard label="Latest Score"   value={latest ? `${currentScore}%` : '—'}      icon="🛡️" accent={scoreColor(currentScore)} trend={getScoreTrend()} tooltip="The health percentage of your cloud environment during the most recent audit. A higher score means better security. Green arrow means you're improving!" />
+            <StatCard
+              label="Latest Score"
+              value={latest ? `${currentScore}%` : '—'}
+              icon="🛡️"
+              accent={scoreColor(currentScore)}
+              trend={getScoreTrend()}
+              richTooltip={
+                <div>
+                  <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '11px', marginBottom: '6px' }}>🛡️ How is the Score calculated?</div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text)', lineHeight: 1.6 }}>
+                    <div style={{ background: 'rgba(99,102,241,0.07)', borderRadius: '6px', padding: '6px 8px', fontFamily: 'monospace', marginBottom: '7px', fontSize: '10px' }}>
+                      Score = (Healthy Resources ÷ Total Scanned) × 100
+                    </div>
+                    A resource is <strong>Healthy</strong> only if it passed <em>every</em> security check. Even one failing check marks it as vulnerable.
+                  </div>
+                  <div style={{ marginTop: '7px', fontSize: '10px', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', paddingTop: '6px' }}>
+                    e.g. 190 healthy out of 200 scanned → <strong style={{ color: 'var(--color-primary)' }}>95%</strong>
+                  </div>
+                </div>
+              }
+            />
           </div>
           <div className="pd-card" style={{ flex: 1, minWidth: 120 }}>
             <StatCard label="Latest Resources" value={currentResources.toLocaleString()}        icon="🖥️" accent="#10b981" tooltip="The total number of cloud resources assessed during the most recent scan." />

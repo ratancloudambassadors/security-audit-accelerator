@@ -161,12 +161,62 @@ const ScanHistoryPage = () => {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}>
-                      <div style={{
-                        fontSize: 'var(--font-size-xl)',
-                        fontWeight: 800,
-                        color: safeScore > 80 ? 'var(--color-success)' : safeScore > 50 ? '#eab308' : 'var(--color-danger)'
-                      }}>
-                        {safeScore}%
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{
+                          fontSize: 'var(--font-size-xl)',
+                          fontWeight: 800,
+                          color: safeScore > 80 ? 'var(--color-success)' : safeScore > 50 ? '#eab308' : 'var(--color-danger)'
+                        }}>
+                          {safeScore}%
+                        </div>
+                        {/* Score formula tooltip */}
+                        <div
+                          style={{ position: 'relative', display: 'inline-flex', cursor: 'help' }}
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseEnter={(e) => { const t = e.currentTarget.querySelector('[data-tip]'); if (t) { t.style.opacity='1'; t.style.visibility='visible'; t.style.transform='translateX(-50%) translateY(4px)'; } }}
+                          onMouseLeave={(e) => { const t = e.currentTarget.querySelector('[data-tip]'); if (t) { t.style.opacity='0'; t.style.visibility='hidden'; t.style.transform='translateX(-50%) translateY(0)'; } }}
+                        >
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            width: '15px', height: '15px', borderRadius: '50%',
+                            border: '1.5px solid var(--color-border)',
+                            backgroundColor: 'rgba(100,116,139,0.1)',
+                            color: 'var(--color-text-muted)',
+                            fontSize: '9px', fontWeight: 700, lineHeight: 1,
+                            flexShrink: 0
+                          }}>?</span>
+                          <div data-tip style={{
+                            opacity: 0, visibility: 'hidden',
+                            transition: 'all 0.2s ease',
+                            position: 'absolute',
+                            top: '100%', left: '50%',
+                            transform: 'translateX(-50%) translateY(0)',
+                            marginTop: '8px',
+                            backgroundColor: 'var(--color-bg)',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: '10px',
+                            padding: '12px 14px',
+                            width: '240px',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                            zIndex: 50,
+                            pointerEvents: 'none',
+                            textAlign: 'left',
+                          }}>
+                            {/* Arrow */}
+                            <div style={{ position:'absolute', bottom:'100%', left:'50%', marginLeft:'-5px', borderWidth:'0 5px 5px 5px', borderStyle:'solid', borderColor:'transparent transparent var(--color-border) transparent' }} />
+                            <div style={{ position:'absolute', bottom:'calc(100% - 1px)', left:'50%', marginLeft:'-4px', borderWidth:'0 4px 4px 4px', borderStyle:'solid', borderColor:'transparent transparent var(--color-bg) transparent' }} />
+                            <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '11px', marginBottom: '6px' }}>🛡️ How is the Score calculated?</div>
+                            <div style={{ fontSize: '11px', color: 'var(--color-text)', lineHeight: 1.6 }}>
+                              <div style={{ background: 'rgba(99,102,241,0.07)', borderRadius: '6px', padding: '6px 8px', fontFamily: 'monospace', marginBottom: '7px', fontSize: '10.5px' }}>
+                                Score = (Healthy Resources ÷ Total Scanned) × 100
+                              </div>
+                              A resource is <strong>Healthy</strong> only if it passed <em>every</em> security check. Even one failing check marks the whole resource as vulnerable.
+                            </div>
+                            <div style={{ marginTop: '7px', fontSize: '10px', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', paddingTop: '6px' }}>
+                              e.g. 190 healthy out of 200 scanned → <strong style={{ color: 'var(--color-primary)' }}>95%</strong>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text)' }}>
