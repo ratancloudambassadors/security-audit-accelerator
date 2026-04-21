@@ -317,7 +317,7 @@ const DashboardPage = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `AuditScope_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.download = `CA_AuditScope_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -399,7 +399,7 @@ const DashboardPage = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `AuditScope_Report_${scanData.provider.toUpperCase()}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.download = `CA_AuditScope_Report_${scanData.provider.toUpperCase()}_${new Date().toISOString().slice(0, 10)}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();

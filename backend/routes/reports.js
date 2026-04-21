@@ -113,7 +113,7 @@ function generatePDF(scanData, userName, projectId) {
 
     // ── HEADER ────────────────────────────────────────────────────────
     doc.rect(0, 0, doc.page.width, 110).fill(darkBg);
-    doc.fontSize(22).fillColor('#ffffff').text('AuditScope', 50, 28, { continued: true });
+    doc.fontSize(22).fillColor('#ffffff').text('CA AuditScope', 50, 28, { continued: true });
     doc.fontSize(22).fillColor(indigo).text(' Security Report');
     doc.fontSize(9).fillColor('#94a3b8')
        .text(`Project: ${projectId}   |   Prepared for: ${userName}   |   ${new Date().toLocaleString()}`, 50, 58);
@@ -314,7 +314,7 @@ function generatePDF(scanData, userName, projectId) {
       doc.switchToPage(i);
       doc.fontSize(7).fillColor('#94a3b8')
          .text(
-           `AuditScope — Automated Cloud Security Platform  |  Page ${i + 1} of ${range.count}  |  Confidential`,
+           `CA AuditScope — Automated Cloud Security Platform  |  Page ${i + 1} of ${range.count}  |  Confidential`,
            50, doc.page.height - 38,
            { align: 'center', width: doc.page.width - 100 }
          );
@@ -348,7 +348,7 @@ router.post('/download', async (req, res) => {
 
     const pdfBuffer = await generatePDF(scanData, user.name || user.email, projectId);
 
-    const filename = `AuditScope_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+    const filename = `CA_AuditScope_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -392,7 +392,7 @@ router.post('/send', async (req, res) => {
     if (sendPdf !== false) {
       const pdfBuffer = await generatePDF(scanData, user.name || user.email, projectId);
       emailAttachments.push({
-        filename: `AuditScope_Report_${new Date().toISOString().slice(0, 10)}.pdf`,
+        filename: `CA_AuditScope_Report_${new Date().toISOString().slice(0, 10)}.pdf`,
         content: pdfBuffer,
         contentType: 'application/pdf'
       });
@@ -420,7 +420,7 @@ router.post('/send', async (req, res) => {
     }
 
     await transporter.sendMail({
-      from: `"AuditScope Security" <${process.env.SMTP_USER}>`,
+      from: `"CA AuditScope Security" <${process.env.SMTP_USER}>`,
       to: recipientEmail,
       subject: `Confidential Security Audit Report — ${projectId}`,
       html: `
@@ -448,7 +448,7 @@ router.post('/send', async (req, res) => {
           </table>
 
           <p style="font-size: 14px; line-height: 1.6; color: #64748b;">It is highly recommended that your engineering and security teams review the attached PDF payload for precise remediation directives.</p>
-          <p style="font-size: 14px; line-height: 1.6; color: #64748b; margin-top: 30px;">Regards,<br><strong style="color: #0f172a;">AuditScope Automated Systems</strong><br><em>Do not reply to this automated message.</em></p>
+          <p style="font-size: 14px; line-height: 1.6; color: #64748b; margin-top: 30px;">Regards,<br><strong style="color: #0f172a;">CA AuditScope Automated Systems</strong><br><em>Do not reply to this automated message.</em></p>
         </div>
       `,
       attachments: emailAttachments
@@ -697,13 +697,13 @@ router.post('/project-summary', async (req, res) => {
       doc.moveTo(50, footerY - 7).lineTo(W - 50, footerY - 7)
          .strokeColor(slate200).lineWidth(0.5).stroke();
       doc.fontSize(7.5).fillColor(slate500)
-         .text('AuditScope — Automated Cloud Security Platform  |  Confidential',
+         .text('CA AuditScope — Automated Cloud Security Platform  |  Confidential',
                50, footerY, { align: 'center', width: W - 100 });
 
       doc.end();
     });
 
-    const filename = `AuditScope_${projectName.replace(/\s+/g, '_')}_Summary_${new Date().toISOString().slice(0, 10)}.pdf`;
+    const filename = `CA_AuditScope_${projectName.replace(/\s+/g, '_')}_Summary_${new Date().toISOString().slice(0, 10)}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', pdfBuf.length);

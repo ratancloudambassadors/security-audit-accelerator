@@ -45,7 +45,7 @@ async function forceRunSchedules() {
 
         console.log(`Sending email to ${schedule.targetEmail}...`);
         const info = await transporter.sendMail({
-            from: `"AuditScope Force Run" <crtproject258@gmail.com>`,
+            from: `"CA AuditScope Force Run" <crtproject258@gmail.com>`,
             to: schedule.targetEmail,
             subject: `[Forced] Audit Report`,
             text: "This is a forced test of the automated email.",

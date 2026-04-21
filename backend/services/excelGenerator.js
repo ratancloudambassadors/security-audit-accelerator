@@ -76,8 +76,8 @@ const getCheckpointName = (id) => {
  */
 const generateExcelReport = async (scanData, projectName) => {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'AuditScope';
-    workbook.lastModifiedBy = 'AuditScope';
+    workbook.creator = 'CA AuditScope';
+    workbook.lastModifiedBy = 'CA AuditScope';
     workbook.created = new Date();
     workbook.modified = new Date();
 

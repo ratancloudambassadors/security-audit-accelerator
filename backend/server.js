@@ -203,8 +203,8 @@ app.post('/api/scan/gcp', authenticateToken, upload.single('file'), async (req, 
   }
 });
 
-// AWS Comprehensive Scan Route
-const { auditAwsIam, auditAwsEc2, auditAwsS3, auditAwsRds, auditAwsEks, auditAwsLb, auditAwsKms, auditAwsServerless } = require('./services/awsScanner');
+// AWS Comprehensive Scan Route — 81 Checkpoints across 14 auditors
+const { auditAwsIam, auditAwsEc2, auditAwsVpc, auditAwsCloudTrail, auditAwsSecurityServices, auditAwsS3, auditAwsRds, auditAwsEks, auditAwsLb, auditAwsKms, auditAwsServerless, auditAwsRoute53, auditAwsRedshift, auditAwsEmr } = require('./services/awsScanner');
 
 app.post('/api/scan/aws', authenticateToken, async (req, res) => {
   console.log("--- Received COMPREHENSIVE LIVE AWS Scan Request ---");
@@ -220,16 +220,22 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
     const maskedKeyId = accessKeyId.substring(0, 4) + '...';
     console.log(`[Engine] Beginning comprehensive AWS audit for Access Key: ${maskedKeyId}`);
 
-    // Execute all auditors concurrently
+    // Execute all 14 auditors concurrently
     const auditPromises = [
       auditAwsIam(credentials),
       auditAwsEc2(credentials),
+      auditAwsVpc(credentials),
+      auditAwsCloudTrail(credentials),
+      auditAwsSecurityServices(credentials),
       auditAwsS3(credentials),
       auditAwsRds(credentials),
       auditAwsEks(credentials),
       auditAwsLb(credentials),
       auditAwsKms(credentials),
-      auditAwsServerless(credentials)
+      auditAwsServerless(credentials),
+      auditAwsRoute53(credentials),
+      auditAwsRedshift(credentials),
+      auditAwsEmr(credentials)
     ];
 
     const results = await Promise.allSettled(auditPromises);

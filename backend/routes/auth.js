@@ -148,7 +148,7 @@ router.post('/verify-otp', async (req, res) => {
     // Mark as verified
     await prisma.user.update({
       where: { id: user.id },
-      data: { isVerified: true, otp: null, otpExpiry: null }
+      data: { isVerified: true, otp: null, otpExpiry: null, loginCount: 1 }
     });
 
     const token = jwt.sign(
@@ -164,7 +164,8 @@ router.post('/verify-otp', async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        displayPicture: user.displayPicture
+        displayPicture: user.displayPicture,
+        loginCount: 1
       }
     });
 
@@ -197,6 +198,19 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ error: 'Please verify your email first. Contact support if you did not receive a code.', requiresOtp: true, email: user.email });
     }
 
+    let currentLoginCount = user.loginCount || 0;
+    // Legacy users will have 0 loginCount here, as new users get it set to 1 during OTP verification
+    // Skip legacy users directly to 2 so they don't see the walkthrough
+    if (currentLoginCount === 0) {
+      currentLoginCount = 1;
+    }
+    const updatedLoginCount = Math.min(currentLoginCount + 1, 2);
+    
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { loginCount: updatedLoginCount }
+    });
+
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       JWT_SECRET,
@@ -209,7 +223,8 @@ router.post('/login', async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        displayPicture: user.displayPicture
+        displayPicture: user.displayPicture,
+        loginCount: updatedLoginCount
       }
     });
 
@@ -230,7 +245,7 @@ router.get('/me', async (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, name: true, displayPicture: true }
+      select: { id: true, email: true, name: true, displayPicture: true, loginCount: true }
     });
 
     if (!user) {
@@ -284,7 +299,7 @@ router.put('/profile', upload.single('displayPicture'), async (req, res) => {
     const updatedUser = await prisma.user.update({
       where: { id: decoded.userId },
       data: updateData,
-      select: { id: true, email: true, name: true, displayPicture: true }
+      select: { id: true, email: true, name: true, displayPicture: true, loginCount: true }
     });
 
     res.json(updatedUser);
@@ -323,9 +338,9 @@ router.post('/forgot-password', async (req, res) => {
       console.log('------------------------------------');
     } else {
       await transporter.sendMail({
-        from: `"AuditScope Security" <${process.env.SMTP_USER}>`,
+        from: `"CA AuditScope Security" <${process.env.SMTP_USER}>`,
         to: email,
-        subject: 'AuditScope — Password Reset Code',
+        subject: 'CA AuditScope — Password Reset Code',
         html: `
           <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px;border:1px solid #e2e8f0;border-radius:12px;color:#334155;">
             <div style="margin-bottom:24px;">

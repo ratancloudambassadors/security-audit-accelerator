@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useContext } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
 
 // ─── Tour step definitions ────────────────────────────────────────────────────
 const TOUR_STEPS = [
@@ -6,7 +7,7 @@ const TOUR_STEPS = [
         target: null,
         placement: 'center',
         icon: '👋',
-        title: 'Welcome to AuditScope!',
+        title: 'Welcome to CA AuditScope!',
         description: "You're all set! Let's take a quick tour so you know exactly how to run your first security audit and use every feature of the platform.",
         tag: 'Getting Started',
     },
@@ -21,7 +22,7 @@ const TOUR_STEPS = [
     {
         target: 'tour-navbar-provider',
         placement: 'bottom',
-        icon: <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>,
+        icon: <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" /></svg>,
         title: 'Choose Your Cloud Provider',
         description: 'Start by selecting your cloud platform. Currently supports Google Cloud Platform (GCP) and Amazon Web Services (AWS). Azure is coming soon.',
         tag: 'Step 1 of 2',
@@ -97,10 +98,10 @@ const getPanels = (rect, vpW, vpH) => {
         right: rect.right + PAD,
     };
     return {
-        top:    { top: 0,      left: 0,     width: vpW,          height: Math.max(0, top) },
-        bottom: { top: bottom, left: 0,     width: vpW,          height: Math.max(0, vpH - bottom) },
-        left:   { top: top,    left: 0,     width: Math.max(0, left),   height: Math.max(0, bottom - top) },
-        right:  { top: top,    left: right, width: Math.max(0, vpW - right), height: Math.max(0, bottom - top) },
+        top: { top: 0, left: 0, width: vpW, height: Math.max(0, top) },
+        bottom: { top: bottom, left: 0, width: vpW, height: Math.max(0, vpH - bottom) },
+        left: { top: top, left: 0, width: Math.max(0, left), height: Math.max(0, bottom - top) },
+        right: { top: top, left: right, width: Math.max(0, vpW - right), height: Math.max(0, bottom - top) },
         spotlight: { top, left, width: rect.width + PAD * 2, height: rect.height + PAD * 2 },
     };
 };
@@ -138,15 +139,16 @@ const OnboardingTour = () => {
     const [panels, setPanels] = useState(null);
     const [vpSize, setVpSize] = useState({ w: window.innerWidth, h: window.innerHeight });
     const rafRef = useRef(null);
+    const { user } = useContext(AuthContext);
     const totalSteps = TOUR_STEPS.length;
 
-    // Trigger only for new users
+    // Trigger only for new users on their first login
     useEffect(() => {
-        if (!localStorage.getItem('auditscope_tour_done')) {
+        if (user && user.loginCount === 1 && !localStorage.getItem('auditscope_tour_done')) {
             const t = setTimeout(() => setActive(true), 700);
             return () => clearTimeout(t);
         }
-    }, []);
+    }, [user]);
 
     // Viewport resize
     useEffect(() => {
@@ -223,18 +225,22 @@ const OnboardingTour = () => {
                     }} />
                     {/* Bounce arrow */}
                     {cur.placement === 'right' && (
-                        <div style={{ position: 'fixed', zIndex: 9002, pointerEvents: 'none',
+                        <div style={{
+                            position: 'fixed', zIndex: 9002, pointerEvents: 'none',
                             top: panels.spotlight.top + panels.spotlight.height / 2 - 12,
                             left: panels.spotlight.left + panels.spotlight.width + 4,
                             fontSize: '20px', color: '#6366f1', animation: 'bounceX 1.1s ease-in-out infinite',
-                            filter: 'drop-shadow(0 0 8px rgba(99,102,241,0.7))' }}>→</div>
+                            filter: 'drop-shadow(0 0 8px rgba(99,102,241,0.7))'
+                        }}>→</div>
                     )}
                     {cur.placement === 'bottom' && (
-                        <div style={{ position: 'fixed', zIndex: 9002, pointerEvents: 'none',
+                        <div style={{
+                            position: 'fixed', zIndex: 9002, pointerEvents: 'none',
                             top: panels.spotlight.top + panels.spotlight.height + 4,
                             left: panels.spotlight.left + panels.spotlight.width / 2 - 12,
                             fontSize: '20px', color: '#6366f1', animation: 'bounceY 1.1s ease-in-out infinite',
-                            filter: 'drop-shadow(0 0 8px rgba(99,102,241,0.7))' }}>↓</div>
+                            filter: 'drop-shadow(0 0 8px rgba(99,102,241,0.7))'
+                        }}>↓</div>
                     )}
                 </>
             ) : (

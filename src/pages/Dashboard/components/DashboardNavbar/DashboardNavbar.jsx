@@ -102,7 +102,7 @@ const DashboardNavbar = () => {
         <div className={styles.brand}>
           <div className={styles.logoIcon}>A</div>
           <div className={styles.logoText}>
-            <span className={styles.logoMain}>Audit</span>
+            <span className={styles.logoMain}>CA Audit</span>
             <span className={styles.logoSub}>Scope</span>
           </div>
         </div>

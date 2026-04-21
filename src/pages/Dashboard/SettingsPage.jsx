@@ -206,7 +206,7 @@ const SettingsPage = () => {
                     <div className={styles.cardHeader}>
                         <h2 className={styles.cardTitle}>🗺️ Product Tour</h2>
                         <p className={styles.cardSubtitle}>
-                            Replay the interactive walkthrough that guides you through every feature of AuditScope.
+                            Replay the interactive walkthrough that guides you through every feature of CA AuditScope.
                         </p>
                     </div>
                     <div style={{ padding: '8px 0 4px 0' }}>

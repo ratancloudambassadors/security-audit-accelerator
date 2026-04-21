@@ -179,7 +179,7 @@ const ProjectDetailsPage = ({ projectId }) => {
       const url  = window.URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      a.download = `AuditScope_${project.name}_Summary_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.download = `CA_AuditScope_${project.name}_Summary_${new Date().toISOString().slice(0, 10)}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();

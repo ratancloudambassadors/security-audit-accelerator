@@ -37,7 +37,7 @@ const RegisterPage = () => {
   return (
     <AuthLayout 
       title="Create an Account" 
-      subtitle="Join AuditScope to secure your cloud infrastructure"
+      subtitle="Join CA AuditScope to secure your cloud infrastructure"
     >
       <form onSubmit={handleSubmit} className={styles.form}>
         <Input 

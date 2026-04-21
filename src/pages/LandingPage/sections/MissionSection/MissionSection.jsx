@@ -5,8 +5,8 @@ import Section from '../../../../components/Section/Section';
 
 const MissionSection = () => {
   return (
-    <Section 
-      id="mission" 
+    <Section
+      id="mission"
       darker={true}
       className={styles.missionSection}
     >
@@ -21,16 +21,16 @@ const MissionSection = () => {
             Our mission is to democratize enterprise-grade cloud security, making it accessible, understandable, and actionable for teams of all sizes without overwhelming complexity.
           </p>
           <ul className={styles.featureList}>
-            <li><CheckCircle2 size={20} className={styles.checkIcon} /> <span>AI-driven threat intelligence</span></li>
+            {/* <li><CheckCircle2 size={20} className={styles.checkIcon} /> <span>AI-driven threat intelligence</span></li> */}
             <li><CheckCircle2 size={20} className={styles.checkIcon} /> <span>Real-time vulnerability patching</span></li>
-            <li><CheckCircle2 size={20} className={styles.checkIcon} /> <span>Zero-trust architecture support</span></li>
+            {/* <li><CheckCircle2 size={20} className={styles.checkIcon} /> <span>Zero-trust architecture support</span></li> */}
           </ul>
         </div>
-        
+
         {/* Right: Glass mockup */}
         <div className={styles.missionVisual}>
           <div className={styles.glassBackdrop}></div>
-          
+
           <div className={styles.mainGlassPanel}>
             <div className={styles.panelHeader}>
               <ShieldAlert size={20} className={styles.alertIcon} />
@@ -39,14 +39,14 @@ const MissionSection = () => {
             <div className={styles.panelBody}>
               <div className={styles.codeBlock}>
                 <code>
-                  <span className={styles.codeKey}>"issue"</span>: <span className={styles.codeString}>"Public S3 Bucket"</span>,<br/>
-                  <span className={styles.codeKey}>"severity"</span>: <span className={styles.codeString}>"HIGH"</span>,<br/>
+                  <span className={styles.codeKey}>"issue"</span>: <span className={styles.codeString}>"Public S3 Bucket"</span>,<br />
+                  <span className={styles.codeKey}>"severity"</span>: <span className={styles.codeString}>"HIGH"</span>,<br />
                   <span className={styles.codeKey}>"resource"</span>: <span className={styles.codeNumber}>"arn:aws:s3:::prod-db"</span>
                 </code>
               </div>
             </div>
           </div>
-          
+
           <div className={styles.subGlassPanel}>
             <Cpu size={20} className={styles.iconBlue} />
             <div className={styles.subText}>
@@ -54,7 +54,7 @@ const MissionSection = () => {
               <span className={styles.subStatus}>Enable BlockPublicAccess via IAM</span>
             </div>
           </div>
-          
+
           <div className={styles.reportGlassPanel}>
             <CheckCircle2 size={20} className={styles.iconGreen} />
             <div className={styles.subText}>
