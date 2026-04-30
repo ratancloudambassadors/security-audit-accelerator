@@ -373,7 +373,7 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                                 />
                                             </div>
                                         </div>
-                                    ) : (
+                                    ) : provider === 'aws' ? (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                             <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', marginTop: '-10px' }}>Provide your AWS IAM User credentials to authorize the read-only security audit.</p>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -395,6 +395,50 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
                                                     onChange={(e) => setCreds(prev => ({ ...(typeof prev === 'object' ? prev : {}), secretAccessKey: e.target.value }))}
                                                     style={{ width: '100%', padding: '14px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '10px', color: 'var(--color-text)', outline: 'none' }}
                                                 />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                            <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', marginTop: '-10px' }}>Provide your Azure Service Principal credentials for read-only access.</p>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)' }}>TENANT ID</label>
+                                                    <input 
+                                                        type="text"
+                                                        value={typeof creds === 'object' ? creds.tenantId || '' : ''}
+                                                        onChange={(e) => setCreds(prev => ({ ...(typeof prev === 'object' ? prev : {}), tenantId: e.target.value }))}
+                                                        style={{ width: '100%', padding: '12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '10px', color: 'var(--color-text)', outline: 'none' }}
+                                                    />
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)' }}>CLIENT ID</label>
+                                                    <input 
+                                                        type="text"
+                                                        value={typeof creds === 'object' ? creds.clientId || '' : ''}
+                                                        onChange={(e) => setCreds(prev => ({ ...(typeof prev === 'object' ? prev : {}), clientId: e.target.value }))}
+                                                        style={{ width: '100%', padding: '12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '10px', color: 'var(--color-text)', outline: 'none' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)' }}>CLIENT SECRET</label>
+                                                    <input 
+                                                        type="password"
+                                                        value={typeof creds === 'object' ? creds.clientSecret || '' : ''}
+                                                        onChange={(e) => setCreds(prev => ({ ...(typeof prev === 'object' ? prev : {}), clientSecret: e.target.value }))}
+                                                        style={{ width: '100%', padding: '12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '10px', color: 'var(--color-text)', outline: 'none' }}
+                                                    />
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)' }}>SUBSCRIPTION ID</label>
+                                                    <input 
+                                                        type="text"
+                                                        value={typeof creds === 'object' ? creds.subscriptionId || '' : ''}
+                                                        onChange={(e) => setCreds(prev => ({ ...(typeof prev === 'object' ? prev : {}), subscriptionId: e.target.value }))}
+                                                        style={{ width: '100%', padding: '12px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: '10px', color: 'var(--color-text)', outline: 'none' }}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     )}

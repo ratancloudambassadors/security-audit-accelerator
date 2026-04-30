@@ -12,6 +12,12 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
   const [awsAccessKey, setAwsAccessKey] = useState('');
   const [awsSecretKey, setAwsSecretKey] = useState('');
 
+  // Azure State
+  const [azureTenantId, setAzureTenantId] = useState('');
+  const [azureClientId, setAzureClientId] = useState('');
+  const [azureClientSecret, setAzureClientSecret] = useState('');
+  const [azureSubscriptionId, setAzureSubscriptionId] = useState('');
+
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [error, setError] = useState(null);
@@ -56,6 +62,15 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
         setError("Please provide both Access Key ID and Secret Access Key.");
         return;
       }
+    } else if (provider === 'azure') {
+      if (activeTab === 'paste' && !jsonText.trim()) {
+        setError("Please paste valid JSON credentials.");
+        return;
+      }
+      if (activeTab === 'upload' && (!azureTenantId.trim() || !azureClientId.trim() || !azureClientSecret.trim() || !azureSubscriptionId.trim())) {
+        setError("Please provide all 4 fields: Tenant ID, Client ID, Client Secret, and Subscription ID.");
+        return;
+      }
     }
 
     localStorage.removeItem('latest_scan_result');
@@ -93,6 +108,26 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
             accessKeyId: awsAccessKey.trim(),
             secretAccessKey: awsSecretKey.trim()
           }),
+        });
+      } else if (provider === 'azure') {
+        let payload = {};
+        if (activeTab === 'paste') {
+          payload = { credentials: jsonText };
+        } else {
+          payload = {
+            tenantId: azureTenantId.trim(),
+            clientId: azureClientId.trim(),
+            clientSecret: azureClientSecret.trim(),
+            subscriptionId: azureSubscriptionId.trim()
+          };
+        }
+        response = await fetch(`${API_BASE}/api/scan/azure`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload),
         });
       } else { // GCP
         if (activeTab === 'upload') {
@@ -195,6 +230,8 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
             <p className={styles.description}>
               {provider === 'aws'
                 ? "Provide your AWS IAM User credentials to authorize the read-only security audit."
+                : provider === 'azure'
+                ? "Provide your Azure Service Principal credentials to authorize the read-only security audit."
                 : "Provide your Service Account Key to authorize the read-only security audit."
               }
             </p>
@@ -222,6 +259,57 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
                   />
                 </div>
               </div>
+            ) : provider === 'azure' ? (
+              <>
+                <div className={styles.tabs}>
+                  <button
+                    className={`${styles.tab} ${activeTab === 'upload' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('upload')}
+                  >
+                    Manual Fields
+                  </button>
+                  <button
+                    className={`${styles.tab} ${activeTab === 'paste' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('paste')}
+                  >
+                    Paste JSON
+                  </button>
+                </div>
+
+                <div className={styles.tabContent}>
+                  {activeTab === 'upload' ? (
+                    <div className={styles.awsForm} style={{ gap: '1rem' }}>
+                      <div className={styles.formGroup}>
+                        <label className={styles.awsLabel}>Tenant ID (Directory ID)</label>
+                        <input type="text" value={azureTenantId} onChange={(e) => setAzureTenantId(e.target.value)} placeholder="00000000-0000-0000-0000-000000000000" className={styles.awsInput} />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.awsLabel}>Client ID (App ID)</label>
+                        <input type="text" value={azureClientId} onChange={(e) => setAzureClientId(e.target.value)} placeholder="11111111-1111-1111-1111-111111111111" className={styles.awsInput} />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.awsLabel}>Client Secret</label>
+                        <input type="password" value={azureClientSecret} onChange={(e) => setAzureClientSecret(e.target.value)} placeholder="Your Azure Service Principal Secret" className={styles.awsInput} />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.awsLabel}>Subscription ID</label>
+                        <input type="text" value={azureSubscriptionId} onChange={(e) => setAzureSubscriptionId(e.target.value)} placeholder="22222222-2222-2222-2222-222222222222" className={styles.awsInput} />
+                      </div>
+                    </div>
+                  ) : (
+                    <textarea
+                      className={styles.jsonTextarea}
+                      placeholder='{&#10;  "tenantId": "...",&#10;  "clientId": "...",&#10;  "clientSecret": "...",&#10;  "subscriptionId": "..."&#10;}'
+                      value={jsonText}
+                      onChange={(e) => {
+                        setJsonText(e.target.value);
+                        setError(null);
+                      }}
+                      spellCheck="false"
+                    />
+                  )}
+                </div>
+              </>
             ) : (
               <>
                 <div className={styles.tabs}>

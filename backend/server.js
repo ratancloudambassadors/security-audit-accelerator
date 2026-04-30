@@ -317,6 +317,138 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
   }
 });
 
+// Azure Comprehensive Scan Route — 81 Checkpoints across 14 auditors
+const {
+  auditAzureIam, auditAzureVm, auditAzureVnet, auditAzureMonitor,
+  auditAzureSecurity, auditAzureStorage, auditAzureSql, auditAzureAks,
+  auditAzureLb, auditAzureKeyVault, auditAzureFunctions, auditAzureDns,
+  auditAzureSynapse, auditAzureHdinsight
+} = require('./services/azureScanner');
+
+app.post('/api/scan/azure', authenticateToken, async (req, res) => {
+  console.log("--- Received COMPREHENSIVE LIVE AZURE Scan Request ---");
+
+  try {
+    let credentials = null;
+    if (req.body.credentials) {
+      if (typeof req.body.credentials === 'string') {
+        credentials = JSON.parse(req.body.credentials);
+      } else {
+        credentials = req.body.credentials;
+      }
+    } else {
+      credentials = {
+        tenantId: req.body.tenantId,
+        clientId: req.body.clientId,
+        clientSecret: req.body.clientSecret,
+        subscriptionId: req.body.subscriptionId
+      };
+    }
+
+    if (!credentials.tenantId || !credentials.clientId || !credentials.clientSecret || !credentials.subscriptionId) {
+      return res.status(400).json({ error: "Missing Azure credentials (tenantId, clientId, clientSecret, subscriptionId required)." });
+    }
+
+    const { tenantId, clientId, clientSecret, subscriptionId } = credentials;
+    const maskedClientId = clientId.substring(0, 4) + '...';
+    console.log(`[Engine] Beginning comprehensive Azure audit for Client: ${maskedClientId}`);
+
+    // Execute all 14 Azure auditors concurrently
+    const auditPromises = [
+      auditAzureIam(credentials),
+      auditAzureVm(credentials),
+      auditAzureVnet(credentials),
+      auditAzureMonitor(credentials),
+      auditAzureSecurity(credentials),
+      auditAzureStorage(credentials),
+      auditAzureSql(credentials),
+      auditAzureAks(credentials),
+      auditAzureLb(credentials),
+      auditAzureKeyVault(credentials),
+      auditAzureFunctions(credentials),
+      auditAzureDns(credentials),
+      auditAzureSynapse(credentials),
+      auditAzureHdinsight(credentials)
+    ];
+
+    const results = await Promise.allSettled(auditPromises);
+
+    let allFindings = [];
+    let totalScanned = 0;
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        allFindings = allFindings.concat(result.value.findings || []);
+        totalScanned += (result.value.scannedCount || 0);
+      } else {
+        console.error(`[Engine] Azure Auditor at index ${index} failed:`, result.reason);
+      }
+    });
+
+    const criticalCount = allFindings.filter(f => f.severity === 'Critical').length;
+    const highCount = allFindings.filter(f => f.severity === 'High').length;
+    const mediumCount = allFindings.filter(f => f.severity === 'Medium').length;
+
+    const uniqueVulnerableResources = new Set(allFindings.map(f => f.resource)).size;
+
+    let computedScore = 100;
+    if (totalScanned > 0) {
+      computedScore = Math.round(((totalScanned - uniqueVulnerableResources) / totalScanned) * 100);
+      computedScore = Math.max(0, computedScore);
+    }
+
+    // --- DATABASE PERSISTENCE ---
+    const projectName = `Azure Project (${maskedClientId})`;
+
+    let project = await prisma.project.findFirst({
+      where: { name: projectName, userId: req.user.userId, provider: 'azure' }
+    });
+
+    if (!project) {
+      project = await prisma.project.create({
+        data: { name: projectName, provider: 'azure', userId: req.user.userId, credentials: JSON.stringify(credentials) }
+      });
+    } else {
+      await prisma.project.update({
+        where: { id: project.id },
+        data: { credentials: JSON.stringify(credentials) }
+      });
+    }
+
+    const scanRecord = await prisma.scanHistory.create({
+      data: {
+        score: computedScore,
+        scannedResources: totalScanned,
+        criticalCount,
+        highCount,
+        mediumCount,
+        findings: JSON.stringify(allFindings),
+        projectId: project.id
+      }
+    });
+
+    const liveResults = {
+      success: true,
+      projectId: projectName,
+      dbScanId: scanRecord.id,
+      dbProjectId: scanRecord.projectId,
+      provider: 'Azure',
+      summary: {
+        score: computedScore,
+        scannedResources: totalScanned,
+        vulnerableCount: uniqueVulnerableResources,
+      },
+      vulnerabilities: allFindings
+    };
+
+    res.json(liveResults);
+
+  } catch (error) {
+    console.error("[Engine] Azure Scanner crashed:", error);
+    res.status(500).json({ error: error.message || "Internal server error during Azure scan." });
+  }
+});
+
 const { startScheduler } = require('./services/scheduler');
 
 async function startServer() {
