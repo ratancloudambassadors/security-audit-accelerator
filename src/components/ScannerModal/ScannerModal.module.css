@@ -50,6 +50,9 @@
   justify-content: center;
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 .closeBtn:hover {
@@ -57,11 +60,103 @@
   color: var(--color-text);
 }
 
-.description {
+.descriptionWrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
   padding: var(--spacing-4) var(--spacing-6) 0;
+}
+
+.description {
+  padding: 0;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   line-height: 1.5;
+  margin: 0;
+}
+
+.helpIconWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  margin-top: 2px;
+}
+
+.helpIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: bold;
+  transition: all var(--transition-fast);
+}
+
+.helpIconWrapper:hover .helpIcon {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.helpTooltip {
+  position: absolute;
+  top: 100%;
+  right: -10px;
+  transform: translateY(10px);
+  width: 320px;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-3) var(--spacing-4);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease-in-out;
+  z-index: 10;
+  font-size: 12px;
+  color: var(--color-text);
+  margin-top: 8px;
+  text-align: left;
+}
+
+.helpTooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 14px;
+  transform: rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background-color: var(--color-bg-secondary);
+  border-left: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
+}
+
+.helpIconWrapper:hover .helpTooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.helpTooltip ol {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.helpTooltip li {
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.helpTooltip li:last-child {
+  margin-bottom: 0;
 }
 
 .tabs {
@@ -77,6 +172,11 @@
   border-bottom: 2px solid transparent;
   font-weight: 500;
   transition: all var(--transition-fast);
+  background: transparent;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  cursor: pointer;
 }
 
 .tab:hover {

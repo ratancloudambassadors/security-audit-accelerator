@@ -242,14 +242,47 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
               <button className={styles.closeBtn} onClick={onClose}>×</button>
             </div>
 
-            <p className={styles.description}>
-              {provider === 'aws'
-                ? "Provide your AWS IAM User credentials to authorize the read-only security audit."
-                : provider === 'azure'
-                ? "Provide your Azure Service Principal credentials to authorize the read-only security audit."
-                : "Provide your Service Account Key to authorize the read-only security audit."
-              }
-            </p>
+            <div className={styles.descriptionWrapper}>
+              <p className={styles.description}>
+                {provider === 'aws'
+                  ? "Provide your AWS IAM User credentials to authorize the read-only security audit."
+                  : provider === 'azure'
+                  ? "Provide your Azure Service Principal credentials to authorize the read-only security audit."
+                  : "Provide your Service Account Key to authorize the read-only security audit."
+                }
+              </p>
+              <div className={styles.helpIconWrapper}>
+                <span className={styles.helpIcon}>?</span>
+                <div className={styles.helpTooltip}>
+                  {provider === 'aws' && (
+                    <ol>
+                      <li>Go to AWS Console &gt; IAM.</li>
+                      <li>Select Users &gt; Add users or existing.</li>
+                      <li>Go to Security credentials tab.</li>
+                      <li>Click Create access key.</li>
+                      <li>Copy Access Key ID and Secret Access Key.</li>
+                    </ol>
+                  )}
+                  {provider === 'azure' && (
+                    <ol>
+                      <li>Go to Azure Portal &gt; App registrations.</li>
+                      <li>Create an app and copy <b>Client ID</b> & <b>Tenant ID</b>.</li>
+                      <li>Go to Certificates & secrets &gt; create <b>Client Secret</b>.</li>
+                      <li>Go to Subscriptions and copy <b>Subscription ID</b>.</li>
+                      <li>Assign 'Reader' role to the app in the Subscription.</li>
+                    </ol>
+                  )}
+                  {provider === 'gcp' && (
+                    <ol>
+                      <li>Go to GCP Console &gt; IAM & Admin &gt; Service Accounts.</li>
+                      <li>Select or Create a Service Account.</li>
+                      <li>Go to Keys &gt; Add Key &gt; Create new key.</li>
+                      <li>Select JSON and download the file.</li>
+                    </ol>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {provider === 'aws' ? (
               <div className={styles.awsForm}>

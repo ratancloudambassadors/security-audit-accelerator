@@ -20,6 +20,12 @@ const { auditLoadBalancers } = require('./gcp/auditors/lbAuditor');
 const { auditServerless } = require('./gcp/auditors/serverlessAuditor');
 const { auditNetworkingDepth } = require('./gcp/auditors/networkingDepthAuditor');
 const { auditAwsIam, auditAwsEc2, auditAwsS3, auditAwsRds, auditAwsEks, auditAwsLb, auditAwsServerless } = require('./awsScanner');
+const {
+    auditAzureIam, auditAzureVm, auditAzureVnet, auditAzureMonitor,
+    auditAzureSecurity, auditAzureStorage, auditAzureSql, auditAzureAks,
+    auditAzureLb, auditAzureKeyVault, auditAzureFunctions, auditAzureDns,
+    auditAzureSynapse, auditAzureHdinsight
+} = require('./azureScanner');
 const { generatePDF } = require('../routes/reports');
 const { generateExcelReport } = require('./excelGenerator');
 const nodemailer = require('nodemailer');
@@ -143,6 +149,11 @@ const ensureProjectLinked = async (schedule, credentialsSource) => {
             try {
                 const parsed = typeof credentialsSource === 'string' ? JSON.parse(credentialsSource) : credentialsSource;
                 if (parsed.accessKeyId) projectName = `AWS Project (${parsed.accessKeyId.substring(0, 6)}...)`;
+            } catch (e) {}
+        } else if (provider === 'azure' && credentialsSource) {
+            try {
+                const parsed = typeof credentialsSource === 'string' ? JSON.parse(credentialsSource) : credentialsSource;
+                if (parsed.clientId) projectName = `Azure Project (${parsed.clientId.substring(0, 6)}...)`;
             } catch (e) {}
         }
 
@@ -356,6 +367,72 @@ const runAwsScan = async ({ credentials, projectId }) => {
     }
 };
 
+const runAzureScan = async ({ credentials, projectId }) => {
+    try {
+        const parsedCreds = typeof credentials === 'string' ? JSON.parse(credentials) : credentials;
+        const auditPromises = [
+            auditAzureIam(parsedCreds),
+            auditAzureVm(parsedCreds),
+            auditAzureVnet(parsedCreds),
+            auditAzureMonitor(parsedCreds),
+            auditAzureSecurity(parsedCreds),
+            auditAzureStorage(parsedCreds),
+            auditAzureSql(parsedCreds),
+            auditAzureAks(parsedCreds),
+            auditAzureLb(parsedCreds),
+            auditAzureKeyVault(parsedCreds),
+            auditAzureFunctions(parsedCreds),
+            auditAzureDns(parsedCreds),
+            auditAzureSynapse(parsedCreds),
+            auditAzureHdinsight(parsedCreds)
+        ];
+
+        const results = await Promise.allSettled(auditPromises);
+        let allFindings = [];
+        let totalScanned = 0;
+
+        results.forEach((result) => {
+            if (result.status === 'fulfilled') {
+                allFindings = allFindings.concat(result.value.findings || []);
+                totalScanned += (result.value.scannedCount || 0);
+            }
+        });
+
+        const criticalCount = allFindings.filter(f => f.severity === 'Critical').length;
+        const highCount = allFindings.filter(f => f.severity === 'High').length;
+        const mediumCount = allFindings.filter(f => f.severity === 'Medium').length;
+        const uniqueVulnerableResources = new Set(allFindings.map(f => f.resource)).size;
+
+        let computedScore = 100;
+        if (totalScanned > 0) {
+            computedScore = Math.round(((totalScanned - uniqueVulnerableResources) / totalScanned) * 100);
+            computedScore = Math.max(0, computedScore);
+        }
+
+        if (projectId) {
+            const savedScan = await prisma.scanHistory.create({
+                data: {
+                    score: computedScore,
+                    scannedResources: totalScanned,
+                    criticalCount,
+                    highCount,
+                    mediumCount,
+                    findings: JSON.stringify(allFindings),
+                    projectId: projectId
+                }
+            });
+            console.log(`[Scheduler] ✅ Azure scan saved for project ${projectId}. Score: ${computedScore}%`);
+            return savedScan;
+        }
+
+        return { score: computedScore, scannedResources: totalScanned, criticalCount, highCount, mediumCount, findings: JSON.stringify(allFindings) };
+    } catch (err) {
+        console.error(`[Scheduler] Azure scan failed for project ${projectId}:`, err.message);
+        return null;
+    }
+};
+
+
 /**
  * Compute the next scheduled run time based on frequency settings.
  * All times are stored internally as UTC in the DB.
@@ -463,6 +540,8 @@ const startScheduler = () => {
                         scanResult = await runGcpScan({ credentials: credentialsSource, projectId: resolvedProjectId });
                     } else if (provider === 'aws') {
                         scanResult = await runAwsScan({ credentials: credentialsSource, projectId: resolvedProjectId });
+                    } else if (provider === 'azure') {
+                        scanResult = await runAzureScan({ credentials: credentialsSource, projectId: resolvedProjectId });
                     }
 
                     if (scanResult) {
