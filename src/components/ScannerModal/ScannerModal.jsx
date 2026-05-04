@@ -153,8 +153,23 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
 
       if (!response.ok) {
         clearInterval(progressInterval);
-        const errData = await response.json();
-        throw new Error(errData.error || `Server responded with status: ${response.status}`);
+        let errorMsg = `Server responded with status: ${response.status}`;
+        try {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errData = await response.json();
+            errorMsg = errData.error || errorMsg;
+          } else {
+            const textData = await response.text();
+            console.error("Non-JSON error response:", textData);
+            if (response.status === 404) {
+              errorMsg = `API route not found (404). Make sure the latest backend code is deployed.`;
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing response:", e);
+        }
+        throw new Error(errorMsg);
       }
 
       setScanProgress(100);
