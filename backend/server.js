@@ -69,7 +69,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 // GCP Comprehensive Scan Route
-app.post('/api/scan/gcp', authenticateToken, upload.single('file'), async (req, res) => {
+app.post('/api/scan/gcp', authenticateToken, async (req, res) => {
   console.log("--- Received COMPREHENSIVE LIVE GCP Scan Request ---");
 
   let credentials = null;
@@ -88,27 +88,41 @@ app.post('/api/scan/gcp', authenticateToken, upload.single('file'), async (req, 
 
     console.log(`[Engine] Beginning comprehensive audit for Project: ${gcpProjectId}`);
 
-    // Execute all auditors concurrently
-    const auditPromises = [
+    // Execute auditors in chunks to prevent Cloud Run OOM errors (503 Service Unavailable)
+    const chunk1 = [
       auditStorageBuckets(clients.storageClient, gcpProjectId),
       auditVMs(clients.computeClient, clients.projectClient, gcpProjectId),
       auditIAM(clients.googleAuthClient, gcpProjectId),
-      auditCloudSQL(clients.googleAuthClient, gcpProjectId),
+      auditCloudSQL(clients.googleAuthClient, gcpProjectId)
+    ];
+    
+    const chunk2 = [
       auditNetworking(clients.networksClient, clients.firewallsClient, clients.subnetworksClient, clients.backendServicesClient, gcpProjectId),
       auditBigQuery(clients.bigQueryClient, gcpProjectId),
       auditKMS(clients.googleAuthClient, gcpProjectId),
-      auditApiKeys(clients.googleAuthClient, gcpProjectId),
+      auditApiKeys(clients.googleAuthClient, gcpProjectId)
+    ];
+    
+    const chunk3 = [
       auditEssentialContacts(clients.googleAuthClient, gcpProjectId),
       auditDns(clients.googleAuthClient, gcpProjectId),
       auditLogging(clients.googleAuthClient, gcpProjectId),
-      auditDataproc(clients.googleAuthClient, gcpProjectId),
+      auditDataproc(clients.googleAuthClient, gcpProjectId)
+    ];
+    
+    const chunk4 = [
       auditGKE(clients.googleAuthClient, gcpProjectId),
       auditServerless(clients.googleAuthClient, gcpProjectId),
       auditLoadBalancers(clients.googleAuthClient, gcpProjectId),
       auditNetworkingDepth(clients.googleAuthClient, gcpProjectId)
     ];
 
-    const results = await Promise.allSettled(auditPromises);
+    const results = [
+      ...await Promise.allSettled(chunk1),
+      ...await Promise.allSettled(chunk2),
+      ...await Promise.allSettled(chunk3),
+      ...await Promise.allSettled(chunk4)
+    ];
 
     // Consolidate findings from successfully resolved auditor promises
     let allFindings = [];
@@ -210,25 +224,39 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
     const maskedKeyId = accessKeyId.substring(0, 4) + '...';
     console.log(`[Engine] Beginning comprehensive AWS audit for Access Key: ${maskedKeyId}`);
 
-    // Execute all 14 auditors concurrently
-    const auditPromises = [
+    // Execute auditors in chunks to prevent Cloud Run OOM
+    const chunk1 = [
       auditAwsIam(credentials),
       auditAwsEc2(credentials),
       auditAwsVpc(credentials),
-      auditAwsCloudTrail(credentials),
+      auditAwsCloudTrail(credentials)
+    ];
+    
+    const chunk2 = [
       auditAwsSecurityServices(credentials),
       auditAwsS3(credentials),
       auditAwsRds(credentials),
-      auditAwsEks(credentials),
+      auditAwsEks(credentials)
+    ];
+    
+    const chunk3 = [
       auditAwsLb(credentials),
       auditAwsKms(credentials),
       auditAwsServerless(credentials),
-      auditAwsRoute53(credentials),
+      auditAwsRoute53(credentials)
+    ];
+    
+    const chunk4 = [
       auditAwsRedshift(credentials),
       auditAwsEmr(credentials)
     ];
 
-    const results = await Promise.allSettled(auditPromises);
+    const results = [
+      ...await Promise.allSettled(chunk1),
+      ...await Promise.allSettled(chunk2),
+      ...await Promise.allSettled(chunk3),
+      ...await Promise.allSettled(chunk4)
+    ];
 
     let allFindings = [];
     let totalScanned = 0;
@@ -343,25 +371,39 @@ app.post('/api/scan/azure', authenticateToken, async (req, res) => {
     const maskedClientId = clientId.substring(0, 4) + '...';
     console.log(`[Engine] Beginning comprehensive Azure audit for Client: ${maskedClientId}`);
 
-    // Execute all 14 Azure auditors concurrently
-    const auditPromises = [
+    // Execute auditors in chunks to prevent Cloud Run OOM
+    const chunk1 = [
       auditAzureIam(credentials),
       auditAzureVm(credentials),
       auditAzureVnet(credentials),
-      auditAzureMonitor(credentials),
+      auditAzureMonitor(credentials)
+    ];
+    
+    const chunk2 = [
       auditAzureSecurity(credentials),
       auditAzureStorage(credentials),
       auditAzureSql(credentials),
-      auditAzureAks(credentials),
+      auditAzureAks(credentials)
+    ];
+    
+    const chunk3 = [
       auditAzureLb(credentials),
       auditAzureKeyVault(credentials),
       auditAzureFunctions(credentials),
-      auditAzureDns(credentials),
+      auditAzureDns(credentials)
+    ];
+    
+    const chunk4 = [
       auditAzureSynapse(credentials),
       auditAzureHdinsight(credentials)
     ];
 
-    const results = await Promise.allSettled(auditPromises);
+    const results = [
+      ...await Promise.allSettled(chunk1),
+      ...await Promise.allSettled(chunk2),
+      ...await Promise.allSettled(chunk3),
+      ...await Promise.allSettled(chunk4)
+    ];
 
     let allFindings = [];
     let totalScanned = 0;

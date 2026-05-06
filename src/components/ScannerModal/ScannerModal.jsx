@@ -131,13 +131,21 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
         });
       } else { // GCP
         if (activeTab === 'upload') {
-          const formData = new FormData();
-          formData.append('file', file);
+          // Parse the file in the frontend to avoid multer and FormData issues on Cloud Run
+          const fileContent = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.readAsText(file);
+          });
 
           response = await fetch(`${API_BASE}/api/scan/gcp`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: formData,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ credentials: fileContent }),
           });
         } else {
           response = await fetch(`${API_BASE}/api/scan/gcp`, {
