@@ -88,40 +88,40 @@ app.post('/api/scan/gcp', authenticateToken, async (req, res) => {
 
     console.log(`[Engine] Beginning comprehensive audit for Project: ${gcpProjectId}`);
 
-    // Execute auditors in chunks to prevent Cloud Run OOM errors (503 Service Unavailable)
-    const chunk1 = [
+    // Execute auditors in chunks sequentially to prevent Cloud Run OOM errors
+    const chunk1Results = await Promise.allSettled([
       auditStorageBuckets(clients.storageClient, gcpProjectId),
       auditVMs(clients.computeClient, clients.projectClient, gcpProjectId),
       auditIAM(clients.googleAuthClient, gcpProjectId),
       auditCloudSQL(clients.googleAuthClient, gcpProjectId)
-    ];
+    ]);
     
-    const chunk2 = [
+    const chunk2Results = await Promise.allSettled([
       auditNetworking(clients.networksClient, clients.firewallsClient, clients.subnetworksClient, clients.backendServicesClient, gcpProjectId),
       auditBigQuery(clients.bigQueryClient, gcpProjectId),
       auditKMS(clients.googleAuthClient, gcpProjectId),
       auditApiKeys(clients.googleAuthClient, gcpProjectId)
-    ];
+    ]);
     
-    const chunk3 = [
+    const chunk3Results = await Promise.allSettled([
       auditEssentialContacts(clients.googleAuthClient, gcpProjectId),
       auditDns(clients.googleAuthClient, gcpProjectId),
       auditLogging(clients.googleAuthClient, gcpProjectId),
       auditDataproc(clients.googleAuthClient, gcpProjectId)
-    ];
+    ]);
     
-    const chunk4 = [
+    const chunk4Results = await Promise.allSettled([
       auditGKE(clients.googleAuthClient, gcpProjectId),
       auditServerless(clients.googleAuthClient, gcpProjectId),
       auditLoadBalancers(clients.googleAuthClient, gcpProjectId),
       auditNetworkingDepth(clients.googleAuthClient, gcpProjectId)
-    ];
+    ]);
 
     const results = [
-      ...await Promise.allSettled(chunk1),
-      ...await Promise.allSettled(chunk2),
-      ...await Promise.allSettled(chunk3),
-      ...await Promise.allSettled(chunk4)
+      ...chunk1Results,
+      ...chunk2Results,
+      ...chunk3Results,
+      ...chunk4Results
     ];
 
     // Consolidate findings from successfully resolved auditor promises
@@ -225,38 +225,38 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
     const maskedKeyId = accessKeyId.substring(0, 4) + '...';
     console.log(`[Engine] Beginning comprehensive AWS audit for Access Key: ${maskedKeyId}`);
 
-    // Execute auditors in chunks to prevent Cloud Run OOM
-    const chunk1 = [
+    // Execute auditors in sequential chunks to prevent Cloud Run OOM
+    const chunk1Results = await Promise.allSettled([
       auditAwsIam(credentials),
       auditAwsEc2(credentials),
       auditAwsVpc(credentials),
       auditAwsCloudTrail(credentials)
-    ];
+    ]);
     
-    const chunk2 = [
+    const chunk2Results = await Promise.allSettled([
       auditAwsSecurityServices(credentials),
       auditAwsS3(credentials),
       auditAwsRds(credentials),
       auditAwsEks(credentials)
-    ];
+    ]);
     
-    const chunk3 = [
+    const chunk3Results = await Promise.allSettled([
       auditAwsLb(credentials),
       auditAwsKms(credentials),
       auditAwsServerless(credentials),
       auditAwsRoute53(credentials)
-    ];
+    ]);
     
-    const chunk4 = [
+    const chunk4Results = await Promise.allSettled([
       auditAwsRedshift(credentials),
       auditAwsEmr(credentials)
-    ];
+    ]);
 
     const results = [
-      ...await Promise.allSettled(chunk1),
-      ...await Promise.allSettled(chunk2),
-      ...await Promise.allSettled(chunk3),
-      ...await Promise.allSettled(chunk4)
+      ...chunk1Results,
+      ...chunk2Results,
+      ...chunk3Results,
+      ...chunk4Results
     ];
 
     let allFindings = [];
@@ -382,38 +382,38 @@ app.post('/api/scan/azure', authenticateToken, async (req, res) => {
     const maskedClientId = clientId.substring(0, 4) + '...';
     console.log(`[Engine] Beginning comprehensive Azure audit for Client: ${maskedClientId}`);
 
-    // Execute auditors in chunks to prevent Cloud Run OOM
-    const chunk1 = [
+    // Execute auditors in sequential chunks to prevent Cloud Run OOM
+    const chunk1Results = await Promise.allSettled([
       auditAzureIam(credentials),
       auditAzureVm(credentials),
       auditAzureVnet(credentials),
       auditAzureMonitor(credentials)
-    ];
+    ]);
     
-    const chunk2 = [
+    const chunk2Results = await Promise.allSettled([
       auditAzureSecurity(credentials),
       auditAzureStorage(credentials),
       auditAzureSql(credentials),
       auditAzureAks(credentials)
-    ];
+    ]);
     
-    const chunk3 = [
+    const chunk3Results = await Promise.allSettled([
       auditAzureLb(credentials),
       auditAzureKeyVault(credentials),
       auditAzureFunctions(credentials),
       auditAzureDns(credentials)
-    ];
+    ]);
     
-    const chunk4 = [
+    const chunk4Results = await Promise.allSettled([
       auditAzureSynapse(credentials),
       auditAzureHdinsight(credentials)
-    ];
+    ]);
 
     const results = [
-      ...await Promise.allSettled(chunk1),
-      ...await Promise.allSettled(chunk2),
-      ...await Promise.allSettled(chunk3),
-      ...await Promise.allSettled(chunk4)
+      ...chunk1Results,
+      ...chunk2Results,
+      ...chunk3Results,
+      ...chunk4Results
     ];
 
     let allFindings = [];

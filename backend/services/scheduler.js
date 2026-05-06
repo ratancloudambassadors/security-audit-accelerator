@@ -198,26 +198,40 @@ const runGcpScan = async ({ credentials, projectId }) => {
         const clients = initializeGcpClients(parsedCreds);
         const gcpProjectId = clients.projectId;
 
-        const auditPromises = [
+        const chunk1Results = await Promise.allSettled([
             auditStorageBuckets(clients.storageClient, gcpProjectId),
             auditVMs(clients.computeClient, clients.projectClient, gcpProjectId),
             auditIAM(clients.googleAuthClient, gcpProjectId),
-            auditCloudSQL(clients.googleAuthClient, gcpProjectId),
+            auditCloudSQL(clients.googleAuthClient, gcpProjectId)
+        ]);
+        
+        const chunk2Results = await Promise.allSettled([
             auditNetworking(clients.networksClient, clients.firewallsClient, clients.subnetworksClient, clients.backendServicesClient, gcpProjectId),
             auditBigQuery(clients.bigQueryClient, gcpProjectId),
             auditKMS(clients.googleAuthClient, gcpProjectId),
-            auditApiKeys(clients.googleAuthClient, gcpProjectId),
+            auditApiKeys(clients.googleAuthClient, gcpProjectId)
+        ]);
+        
+        const chunk3Results = await Promise.allSettled([
             auditEssentialContacts(clients.googleAuthClient, gcpProjectId),
             auditDns(clients.googleAuthClient, gcpProjectId),
             auditLogging(clients.googleAuthClient, gcpProjectId),
-            auditDataproc(clients.googleAuthClient, gcpProjectId),
+            auditDataproc(clients.googleAuthClient, gcpProjectId)
+        ]);
+        
+        const chunk4Results = await Promise.allSettled([
             auditGKE(clients.googleAuthClient, gcpProjectId),
             auditLoadBalancers(clients.googleAuthClient, gcpProjectId),
             auditServerless(clients.googleAuthClient, gcpProjectId),
             auditNetworkingDepth(clients.googleAuthClient, gcpProjectId)
-        ];
+        ]);
 
-        const results = await Promise.allSettled(auditPromises);
+        const results = [
+            ...chunk1Results,
+            ...chunk2Results,
+            ...chunk3Results,
+            ...chunk4Results
+        ];
         let allFindings = [];
         let totalScanned = 0;
         let skippedChecks = [];
@@ -323,17 +337,23 @@ const runGcpScan = async ({ credentials, projectId }) => {
 const runAwsScan = async ({ credentials, projectId }) => {
     try {
         const parsedCreds = typeof credentials === 'string' ? JSON.parse(credentials) : credentials;
-        const auditPromises = [
+        const chunk1Results = await Promise.allSettled([
             auditAwsIam(parsedCreds),
             auditAwsEc2(parsedCreds),
             auditAwsS3(parsedCreds),
-            auditAwsRds(parsedCreds),
+            auditAwsRds(parsedCreds)
+        ]);
+        
+        const chunk2Results = await Promise.allSettled([
             auditAwsEks(parsedCreds),
             auditAwsLb(parsedCreds),
             auditAwsServerless(parsedCreds)
-        ];
+        ]);
 
-        const results = await Promise.allSettled(auditPromises);
+        const results = [
+            ...chunk1Results,
+            ...chunk2Results
+        ];
         let allFindings = [];
         let totalScanned = 0;
 
@@ -382,24 +402,38 @@ const runAwsScan = async ({ credentials, projectId }) => {
 const runAzureScan = async ({ credentials, projectId }) => {
     try {
         const parsedCreds = typeof credentials === 'string' ? JSON.parse(credentials) : credentials;
-        const auditPromises = [
+        const chunk1Results = await Promise.allSettled([
             auditAzureIam(parsedCreds),
             auditAzureVm(parsedCreds),
             auditAzureVnet(parsedCreds),
-            auditAzureMonitor(parsedCreds),
+            auditAzureMonitor(parsedCreds)
+        ]);
+        
+        const chunk2Results = await Promise.allSettled([
             auditAzureSecurity(parsedCreds),
             auditAzureStorage(parsedCreds),
             auditAzureSql(parsedCreds),
-            auditAzureAks(parsedCreds),
+            auditAzureAks(parsedCreds)
+        ]);
+        
+        const chunk3Results = await Promise.allSettled([
             auditAzureLb(parsedCreds),
             auditAzureKeyVault(parsedCreds),
             auditAzureFunctions(parsedCreds),
-            auditAzureDns(parsedCreds),
+            auditAzureDns(parsedCreds)
+        ]);
+        
+        const chunk4Results = await Promise.allSettled([
             auditAzureSynapse(parsedCreds),
             auditAzureHdinsight(parsedCreds)
-        ];
+        ]);
 
-        const results = await Promise.allSettled(auditPromises);
+        const results = [
+            ...chunk1Results,
+            ...chunk2Results,
+            ...chunk3Results,
+            ...chunk4Results
+        ];
         let allFindings = [];
         let totalScanned = 0;
 
