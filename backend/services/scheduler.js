@@ -148,12 +148,24 @@ const ensureProjectLinked = async (schedule, credentialsSource) => {
         } else if (provider === 'aws' && credentialsSource) {
             try {
                 const parsed = typeof credentialsSource === 'string' ? JSON.parse(credentialsSource) : credentialsSource;
-                if (parsed.accessKeyId) projectName = `AWS Project (${parsed.accessKeyId.substring(0, 6)}...)`;
+                if (parsed.accessKeyId) {
+                    const maskedKeyId = parsed.accessKeyId.substring(0, 4) + '...';
+                    let awsAccountId = maskedKeyId;
+                    try {
+                        const { STSClient, GetCallerIdentityCommand } = require('@aws-sdk/client-sts');
+                        const stsClient = new STSClient({ credentials: parsed, region: parsed.region || 'us-east-1' });
+                        const callerIdentity = await stsClient.send(new GetCallerIdentityCommand({}));
+                        awsAccountId = callerIdentity.Account || maskedKeyId;
+                    } catch (stsError) {
+                        console.warn("[Scheduler] Failed to get AWS Account ID via STS, falling back.", stsError.message);
+                    }
+                    projectName = `AWS Account (${awsAccountId})`;
+                }
             } catch (e) {}
         } else if (provider === 'azure' && credentialsSource) {
             try {
                 const parsed = typeof credentialsSource === 'string' ? JSON.parse(credentialsSource) : credentialsSource;
-                if (parsed.clientId) projectName = `Azure Project (${parsed.clientId.substring(0, 6)}...)`;
+                if (parsed.subscriptionId) projectName = `Azure Subscription (${parsed.subscriptionId})`;
             } catch (e) {}
         }
 
