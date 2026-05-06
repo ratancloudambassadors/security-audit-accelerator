@@ -209,6 +209,7 @@ app.post('/api/scan/gcp', authenticateToken, async (req, res) => {
 
 // AWS Comprehensive Scan Route — 81 Checkpoints across 14 auditors
 const { auditAwsIam, auditAwsEc2, auditAwsVpc, auditAwsCloudTrail, auditAwsSecurityServices, auditAwsS3, auditAwsRds, auditAwsEks, auditAwsLb, auditAwsKms, auditAwsServerless, auditAwsRoute53, auditAwsRedshift, auditAwsEmr } = require('./services/awsScanner');
+const { STSClient, GetCallerIdentityCommand } = require('@aws-sdk/client-sts');
 
 app.post('/api/scan/aws', authenticateToken, async (req, res) => {
   console.log("--- Received COMPREHENSIVE LIVE AWS Scan Request ---");
@@ -282,8 +283,18 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
       computedScore = Math.max(0, computedScore);
     }
 
+    // Fetch AWS Account ID for accurate project grouping
+    let awsAccountId = maskedKeyId;
+    try {
+      const stsClient = new STSClient({ credentials, region: credentials.region });
+      const callerIdentity = await stsClient.send(new GetCallerIdentityCommand({}));
+      awsAccountId = callerIdentity.Account || maskedKeyId;
+    } catch (stsError) {
+      console.warn("[Engine] Failed to get AWS Account ID via STS, falling back to masked key.", stsError.message);
+    }
+
     // --- DATABASE PERSISTENCE ---
-    const projectName = `AWS Project (${maskedKeyId})`;
+    const projectName = `AWS Account (${awsAccountId})`;
 
     let project = await prisma.project.findFirst({
       where: { name: projectName, userId: req.user.userId, provider: 'aws' }
@@ -430,7 +441,7 @@ app.post('/api/scan/azure', authenticateToken, async (req, res) => {
     }
 
     // --- DATABASE PERSISTENCE ---
-    const projectName = `Azure Project (${maskedClientId})`;
+    const projectName = `Azure Subscription (${subscriptionId})`;
 
     let project = await prisma.project.findFirst({
       where: { name: projectName, userId: req.user.userId, provider: 'azure' }
