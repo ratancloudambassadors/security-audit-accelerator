@@ -40,6 +40,7 @@ const DashboardNavbar = () => {
   const [scanBackgroundStatus, setScanBackgroundStatus] = useState('idle'); // idle, scanning, completed
   const [profileOpen, setProfileOpen] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('auditscope_theme') || 'light');
+  const [hasData, setHasData] = useState(!!localStorage.getItem('latest_scan_result') || !!localStorage.getItem('last_viewed_scan'));
   const profileRef = useRef(null);
 
   useEffect(() => {
@@ -57,6 +58,7 @@ const DashboardNavbar = () => {
       if (results && results.provider) {
         setSelectedProvider(results.provider);
       }
+      setHasData(true);
     };
     window.addEventListener('scanCompleted', handleScanComplete);
     return () => window.removeEventListener('scanCompleted', handleScanComplete);
@@ -123,26 +125,15 @@ const DashboardNavbar = () => {
               </button>
             )}
 
-            <div data-tour="tour-navbar-provider">
-              <Select
-                options={providerOptions}
-                value={selectedProvider}
-                onChange={(e) => setSelectedProvider(e.target.value)}
-                placeholder="Choose Provider..."
-                className={styles.selectProvider}
-              />
-            </div>
-
             <div data-tour="tour-navbar-scan">
               <Button
-                variant={selectedProvider ? "primary" : "secondary"}
+                variant="primary"
                 size="small"
                 className={styles.scanBtn}
-                disabled={!selectedProvider}
-                onClick={handleScanClick}
-                title={!selectedProvider ? "Please select a provider first" : "Start Audit Scan"}
+                onClick={() => setIsModalOpen(true)}
+                title={hasData ? "Start a new security audit" : "Start your first security audit"}
               >
-                Scan
+                {hasData ? 'New Scan' : 'Scan'}
               </Button>
             </div>
 

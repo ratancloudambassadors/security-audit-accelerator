@@ -1,9 +1,26 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styles from './ScannerModal.module.css';
 import Button from '../Button/Button';
 
-const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusChange }) => {
+const ScannerModal = ({ isOpen, onClose, provider: initialProvider, onScanComplete, onScanStatusChange }) => {
+  const [provider, setProvider] = useState(initialProvider || null);
   const [activeTab, setActiveTab] = useState('upload'); // 'upload' or 'paste'
+
+  useEffect(() => {
+    if (isOpen) {
+      setProvider(initialProvider || null);
+      setFile(null);
+      setJsonText('');
+      setAwsAccessKey('');
+      setAwsSecretKey('');
+      setAzureTenantId('');
+      setAzureClientId('');
+      setAzureClientSecret('');
+      setAzureSubscriptionId('');
+      setError(null);
+      setActiveTab('upload');
+    }
+  }, [isOpen, initialProvider]);
   const [completedResults, setCompletedResults] = useState(null);
   const [file, setFile] = useState(null);
   const [jsonText, setJsonText] = useState('');
@@ -219,7 +236,7 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
 
   return (
     <div className={styles.modalOverlay}>
-      <div className={styles.modalContent}>
+      <div className={`${styles.modalContent} ${!provider && !completedResults && !isScanning ? styles.modalContentLarge : ''}`}>
 
         {completedResults ? (
           <div className={styles.completionState}>
@@ -243,10 +260,34 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
             <h2 className={styles.scanTitle}>Auditing {provider.toUpperCase()} Infrastructure</h2>
             <p className={styles.scanSubtitle}>Analyzing IAM configurations, firewalls, and storage blobs...</p>
           </div>
+        ) : !provider ? (
+          <>
+            <div className={styles.header}>
+              <h2 className={styles.title}>Choose your provider</h2>
+              <button className={styles.closeBtn} onClick={onClose}>×</button>
+            </div>
+            <div className={styles.providerGrid}>
+              <div className={styles.providerCard} onClick={() => setProvider('aws')}>
+                <img src="/assets/aws-logo.svg" alt="AWS" className={styles.providerIcon} />
+                <span className={styles.providerName}>AWS</span>
+              </div>
+              <div className={styles.providerCard} onClick={() => setProvider('azure')}>
+                <img src="/assets/azure-logo.svg" alt="Azure" className={styles.providerIcon} />
+                <span className={styles.providerName}>Azure</span>
+              </div>
+              <div className={styles.providerCard} onClick={() => setProvider('gcp')}>
+                <img src="/assets/gcp-logo.svg" alt="GCP" className={styles.providerIcon} />
+                <span className={styles.providerName}>GCP</span>
+              </div>
+            </div>
+          </>
         ) : (
           <>
             <div className={styles.header}>
-              <h2 className={styles.title}>Scan {provider.toUpperCase()} Environment</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <button className={styles.backBtn} onClick={() => setProvider(null)}>← Back</button>
+                <h2 className={styles.title}>Scan {provider.toUpperCase()} Environment</h2>
+              </div>
               <button className={styles.closeBtn} onClick={onClose}>×</button>
             </div>
 
@@ -398,15 +439,7 @@ const ScannerModal = ({ isOpen, onClose, provider, onScanComplete, onScanStatusC
                         ref={fileInputRef}
                         onChange={handleFileChange}
                       />
-                      <div className={styles.uploadIcon}>
-                        {provider === 'aws' ? (
-                          <svg viewBox="0 0 256 154" width="40" height="40"><path fill="var(--color-primary)" d="M128 32c-34 0-61 17-61 46 0 18 10 32 29 39-4 3-5 5-5 8 0 4 3 6 8 6 10 0 22-9 33-19 16 10 36 15 54 15 36 0 61-17 61-46 0-14-6-26-17-34-14-11-36-16-59-16l-43 1z"/></svg>
-                        ) : provider === 'azure' ? (
-                          <svg viewBox="0 0 24 24" width="40" height="40"><path fill="var(--color-primary)" d="M11.4 5.3l-8.5 13.4H12l2.6-4.1H7.8l5.2-8.3L11.4 5.3z M21.1 18.7l-9.7-15.4L8.8 7.4l6.4 11.3H21.1z"/></svg>
-                        ) : (
-                          <svg viewBox="0 0 24 24" width="40" height="40"><path fill="var(--color-primary)" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" opacity="0.4"/><path fill="var(--color-primary)" d="M12 24a11.94 11.94 0 0 1-8.48-3.52l3.41-3.41c1.35.85 2.96 1.35 4.7 1.35 4.3 0 7.84-3.54 7.84-7.84S15.93 2.74 11.63 2.74a7.84 7.84 0 0 0-7.84 7.84c0 1.63.5 3.12 1.35 4.37h.37l-4.7 4.7C.32 17.5 0 14.85 0 12 0 5.37 5.37 0 12 0s12 5.37 12 12-5.37 12-12 12z"/></svg>
-                        )}
-                      </div>
+
                       {file ? (
                         <div className={styles.fileName}>{file.name}</div>
                       ) : (

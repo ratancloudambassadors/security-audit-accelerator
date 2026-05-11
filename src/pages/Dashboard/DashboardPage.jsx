@@ -86,22 +86,18 @@ const DashboardPage = () => {
   const servicesPerPage = 2;
 
   useEffect(() => {
-    // Check if we came from ScanHistory with a specific scan object
-    const historicalScan = localStorage.getItem('last_viewed_scan');
+    // Priority 1: came from ScanHistory page with a specific scan to view
+    const historicalScan = sessionStorage.getItem('history_scan_view');
     const latestScan = localStorage.getItem('latest_scan_result');
     
     if (historicalScan) {
-      console.log('Dashboard loading historical scan data');
+      console.log('Dashboard loading historical scan from ScanHistory click');
       const scan = JSON.parse(historicalScan);
       setScanData(scan);
-      
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('scanCompleted', { detail: scan }));
-      }, 50);
-      
-      localStorage.removeItem('last_viewed_scan');
+      sessionStorage.removeItem('history_scan_view'); // clean up immediately
+      // Do NOT load latest_scan_result — this scan takes full priority
     } else if (latestScan) {
-      console.log('Dashboard loading latest background scan data');
+      console.log('Dashboard loading latest scan result');
       const scan = JSON.parse(latestScan);
       setScanData(scan);
       
@@ -141,8 +137,15 @@ const DashboardPage = () => {
   // New: Compute Scan Coverage for Dashboard Overview
   const dashboardCoverage = useMemo(() => {
     if (!scanData) return { percent: 100, completed: 0, total: 0, skipped: [] };
-    const total = scanData.totalChecks || 77; // Default to the new 77-checkpoint standard
-    const skippedArr = scanData.skippedChecks ? JSON.parse(scanData.skippedChecks) : [];
+    const total = scanData.totalChecks || 77;
+    let skippedArr = [];
+    if (scanData.skippedChecks) {
+      try {
+        skippedArr = typeof scanData.skippedChecks === 'string'
+          ? JSON.parse(scanData.skippedChecks)
+          : (Array.isArray(scanData.skippedChecks) ? scanData.skippedChecks : []);
+      } catch (e) { skippedArr = []; }
+    }
     const completed = total - skippedArr.length;
     return {
       percent: Math.round((completed / total) * 100),

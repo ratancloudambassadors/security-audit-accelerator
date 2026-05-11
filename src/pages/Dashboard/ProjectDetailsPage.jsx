@@ -14,16 +14,37 @@ const scoreColor = (s) => {
   return '#ef4444';
 };
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+const barColorByScore = (score) => {
+  if (score > 80) return { fill: '#10b981', stop1: '#34d399', stop2: '#059669', glow: 'rgba(16,185,129,0.35)' };
+  if (score > 50) return { fill: '#f59e0b', stop1: '#fcd34d', stop2: '#d97706', glow: 'rgba(245,158,11,0.35)' };
+  return { fill: '#ef4444', stop1: '#f87171', stop2: '#dc2626', glow: 'rgba(239,68,68,0.35)' };
+};
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const { fill, glow } = barColorByScore(data.value);
     return (
-      <div style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', padding: '8px 12px', borderRadius: '8px', boxShadow: 'var(--shadow-md)' }}>
-        <p style={{ margin: '0 0 4px 0', fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Scan Date: {label}</p>
-        <p style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--color-primary)' }}>
-          Score: {payload[0].value}%
+      <div style={{
+        background: 'var(--color-bg)',
+        border: `1.5px solid ${fill}66`,
+        padding: '14px 18px',
+        borderRadius: '12px',
+        boxShadow: `0 8px 24px rgba(0,0,0,0.10), 0 0 0 1px ${fill}22, 0 0 16px ${glow}`,
+        backdropFilter: 'blur(12px)',
+        minWidth: 190,
+      }}>
+        <p style={{ margin: '0 0 10px 0', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>📅 {label}</p>
+        <p style={{ margin: 0, fontSize: '28px', fontWeight: 900, color: fill, lineHeight: 1, letterSpacing: '-1px' }}>
+          {data.value}<span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)' }}>%</span>
         </p>
+        <p style={{ margin: '5px 0 12px 0', fontSize: '10px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Avg. score of all scans this day</p>
+        <div style={{ paddingTop: '10px', borderTop: `1px solid ${fill}33` }}>
+          <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>🔁 <strong style={{ color: 'var(--color-text)', fontSize: '13px' }}>{data.dayScanCount}</strong> scan{data.dayScanCount !== 1 ? 's' : ''} on this day</p>
+        </div>
+        <p style={{ margin: '10px 0 0 0', fontSize: '9px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Click to view scan history →</p>
       </div>
     );
   }
@@ -98,6 +119,10 @@ const ProjectDetailsPage = ({ projectId }) => {
   const [scans,    setScans]    = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [dlStatus, setDlStatus] = useState('idle'); // idle | downloading | done | error
+  
+  // Chart Date Range Filters
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     const go = async () => {
@@ -183,7 +208,7 @@ const ProjectDetailsPage = ({ projectId }) => {
         totalCritical:  currentCritical,
         totalHigh:      currentHigh,
         totalMedium:    currentMedium,
-        scoreHistory:   lineData, // The trend line data
+        scoreHistory:   chartData, // The trend bar data
         recentScans:    scans.slice(0, 10).map(s => ({ // Send top 10 for the PDF list
           score: s.score,
           date: new Date(s.createdAt).toLocaleDateString(),
@@ -241,12 +266,39 @@ const ProjectDetailsPage = ({ projectId }) => {
 
   const prov = PROVIDER_META[project.provider] || PROVIDER_META.gcp;
 
-  // Line chart requires oldest to newest (left to right chronological)
-  const lineData = [...scans].reverse().map(s => {
+  // Filter scans by Date Range
+  const filteredScans = scans.filter(s => {
+    if (!startDate && !endDate) return true;
+    const sDate = new Date(s.createdAt).toISOString().split('T')[0];
+    if (startDate && sDate < startDate) return false;
+    if (endDate && sDate > endDate) return false;
+    return true;
+  });
+
+  // Group by Date for Bar Chart
+  const groupedByDate = {};
+  [...filteredScans].reverse().forEach(s => {
     const d = new Date(s.createdAt);
     const shortDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return { label: shortDate, value: s.score || 0 };
+    const fullDate = d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    if (!groupedByDate[shortDate]) {
+      groupedByDate[shortDate] = { scans: [], fullDate };
+    }
+    groupedByDate[shortDate].scans.push(s);
   });
+
+  const chartData = Object.keys(groupedByDate).map(shortDate => {
+    const dayScans = groupedByDate[shortDate].scans;
+    // Average score across all scans of that day
+    const avgScore = Math.round(dayScans.reduce((sum, s) => sum + (s.score || 0), 0) / dayScans.length);
+    
+    return {
+      label: shortDate,
+      fullDate: groupedByDate[shortDate].fullDate,
+      value: avgScore,
+      dayScanCount: dayScans.length
+    };
+  }).sort((a, b) => a.fullDate.localeCompare(b.fullDate)).slice(-50);
 
   const dlLabel = dlStatus === 'downloading' ? '⏳ Generating PDF...'
                 : dlStatus === 'done'        ? '✅ Downloaded!'
@@ -365,57 +417,117 @@ const ProjectDetailsPage = ({ projectId }) => {
           <div style={{
             background: 'var(--color-bg-secondary)',
             border: '1px solid var(--color-border)',
-            borderRadius: 10, padding: '12px 16px',
-            display: 'flex', flexDirection: 'column', gap: 8
+            borderRadius: 16,
+            padding: '20px 24px',
+            display: 'flex', flexDirection: 'column', gap: 0,
+            boxShadow: '0 2px 16px rgba(99,102,241,0.06), 0 1px 4px rgba(0,0,0,0.04)',
+            position: 'relative', overflow: 'hidden',
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            {/* Subtle ambient glow */}
+            <div style={{ position:'absolute', top:'-60px', left:'50%', transform:'translateX(-50%)', width:'500px', height:'160px', background:'radial-gradient(ellipse at center, rgba(99,102,241,0.05) 0%, transparent 70%)', pointerEvents:'none' }} />
+
+            {/* Header row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Historical Security Score Trend
-                  <span style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, borderRadius: '50%', background: 'var(--color-border)', color: 'var(--color-text-muted)', fontSize: 10 }} title="Shows your Security Score percentage (0-100%) tracking chronologically across scans. An upward slope indicates improved security posture where vulnerabilities are being fixed faster than new ones appear.">?</span>
-                </span>
-                <span style={{ fontSize: 10, color: 'var(--color-text-muted)', marginLeft: 8 }}>
-                  (across {totalScans} scan{totalScans !== 1 ? 's' : ''})
-                </span>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text)' }}>Security Score Trend</span>
+                  <span style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 15, height: 15, borderRadius: '50%', background: 'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.3)', color: 'var(--color-text-muted)', fontSize: 9, fontWeight: 700 }} title="Shows your Security Score (0-100%) across scans. An upward trend means improving security posture.">?</span>
+                </div>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, display:'block' }}>across {totalScans} scan{totalScans !== 1 ? 's' : ''} · click any bar to explore</span>
               </div>
-              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: 'var(--color-primary)', fontWeight: 700 }}>
-                  <span style={{ display: 'inline-block', width: 12, height: 2, background: 'var(--color-primary)', marginRight: 4, verticalAlign: 'middle' }} />
-                  Security Score
-                </span>
+              
+              {/* Legend + Date Filters */}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                {/* Legend pills */}
+                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                  {[{c:'#10b981', label:'>80% Safe'},{c:'#f59e0b', label:'50–80% Warn'},{c:'#ef4444', label:'<50% Risk'}].map(l => (
+                    <span key={l.label} style={{ display:'inline-flex', alignItems:'center', gap:4, background:`${l.c}18`, border:`1px solid ${l.c}44`, borderRadius:20, padding:'2px 8px', fontSize:9, color:l.c, fontWeight:700 }}>
+                      <span style={{width:6,height:6,borderRadius:'50%',background:l.c,display:'inline-block'}}/>{l.label}
+                    </span>
+                  ))}
+                </div>
+                {/* Date pickers */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background:'var(--color-bg)', border:'1px solid var(--color-border)', borderRadius:8, padding:'4px 10px' }}>
+                  <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>From</span>
+                  <input 
+                    type="date" 
+                    value={startDate} 
+                    max={endDate || undefined}
+                    onChange={e => setStartDate(e.target.value)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', fontSize: '11px', outline:'none' }}
+                  />
+                  <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>→</span>
+                  <input 
+                    type="date" 
+                    value={endDate} 
+                    min={startDate || undefined}
+                    onChange={e => setEndDate(e.target.value)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', fontSize: '11px', outline:'none' }}
+                  />
+                  {(startDate || endDate) && (
+                    <button onClick={() => { setStartDate(''); setEndDate(''); }} style={{ background: 'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color: '#f87171', cursor: 'pointer', fontSize: '9px', borderRadius:4, padding:'2px 6px', fontWeight:700 }}>✕</button>
+                  )}
+                </div>
               </div>
             </div>
-            <div style={{ width: '100%', height: 260 }}>
+
+            {/* Chart */}
+            <div style={{ width: '100%', height: 280 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={lineData} margin={{ top: 10, right: 10, left: -5, bottom: 15 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -5, bottom: 15 }} barCategoryGap="35%">
+                  <defs>
+                    {chartData.map((entry, i) => {
+                      const { stop1, stop2 } = barColorByScore(entry.value);
+                      return (
+                        <linearGradient key={`grad-${i}`} id={`barGrad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={stop1} stopOpacity={1} />
+                          <stop offset="100%" stopColor={stop2} stopOpacity={0.85} />
+                        </linearGradient>
+                      );
+                    })}
+                    <filter id="barGlow">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                  </defs>
+                  <CartesianGrid strokeDasharray="2 4" vertical={false} stroke="var(--color-border)" />
                   <XAxis 
                     dataKey="label" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }} 
+                    tick={{ fontSize: 10, fill: 'var(--color-text-muted)', fontWeight: 600 }} 
                     dy={10} 
-                    label={{ value: 'Scan Timeline', position: 'insideBottom', offset: -10, fill: 'var(--color-text-muted)', fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}
+                    label={{ value: 'Scan Timeline', position: 'insideBottom', offset: -10, fill: 'var(--color-text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}
                   />
                   <YAxis 
                     domain={[0, 100]} 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }} 
-                    label={{ value: 'Score (%)', angle: -90, position: 'insideLeft', offset: 12, fill: 'var(--color-text-muted)', fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}
+                    tick={{ fontSize: 10, fill: 'var(--color-text-muted)', fontWeight: 600 }} 
+                    label={{ value: 'Score (%)', angle: -90, position: 'insideLeft', offset: 12, fill: 'var(--color-text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}
                   />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--color-border)', strokeWidth: 1, strokeDasharray: '3 3' }} />
-                  <Line 
-                    type="monotone" 
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 4 }} />
+                  <Bar 
                     dataKey="value" 
-                    stroke="var(--color-primary)" 
-                    strokeWidth={3}
-                    dot={{ fill: 'var(--color-bg)', strokeWidth: 2, r: 4, stroke: 'var(--color-primary)' }}
-                    activeDot={{ r: 6, strokeWidth: 0, fill: 'var(--color-primary)' }}
-                    animationDuration={1500}
+                    radius={[6, 6, 0, 0]}
+                    animationDuration={1000}
                     isAnimationActive={true}
-                  />
-                </LineChart>
+                    onClick={(data) => {
+                      if (data && data.payload) {
+                         const targetDate = data.payload.fullDate;
+                         window.location.href = `/dashboard/history?project=${project._id || project.id}&date=${targetDate}`;
+                      }
+                    }}
+                    style={{ cursor: 'pointer', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}
+                  >
+                    {chartData.map((entry, i) => (
+                      <Cell
+                        key={`cell-${i}`}
+                        fill={`url(#barGrad-${i})`}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>

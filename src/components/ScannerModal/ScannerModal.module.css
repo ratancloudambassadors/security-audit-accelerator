@@ -4,8 +4,9 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -14,14 +15,26 @@
 }
 
 .modalContent {
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 28px;
   width: 100%;
   max-width: 500px;
-  box-shadow: var(--shadow-2xl);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.4) inset;
   overflow: hidden;
   position: relative;
+}
+
+.modalContentLarge {
+  max-width: 850px;
+}
+
+[data-theme='dark'] .modalContent {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
 }
 
 .header {
@@ -261,7 +274,7 @@
   gap: var(--spacing-4);
   padding: var(--spacing-6);
   border-top: 1px solid var(--color-border);
-  background-color: var(--color-bg-secondary);
+  background: transparent;
 }
 
 /* Scanning Animation State */
@@ -404,3 +417,106 @@
   margin-bottom: var(--spacing-4);
   box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
 }
+
+/* Provider Selection UI - Massive Glassmorphism */
+.providerGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  padding: 40px;
+}
+
+@media (max-width: 768px) {
+  .providerGrid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 24px;
+  }
+}
+
+.providerCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px 24px;
+  min-height: 260px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] .providerCard {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.providerCard:hover {
+  transform: translateY(-12px) scale(1.02);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: var(--color-primary);
+  box-shadow: 0 20px 40px rgba(0, 120, 212, 0.15), 0 0 0 2px rgba(0, 120, 212, 0.1) inset;
+}
+
+[data-theme='dark'] .providerCard:hover {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: var(--color-primary);
+  box-shadow: 0 20px 40px rgba(0, 120, 212, 0.3), 0 0 0 2px rgba(0, 120, 212, 0.2) inset;
+}
+
+.providerIcon {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.1));
+}
+
+.providerCard:hover .providerIcon {
+  transform: scale(1.15) rotate(4deg);
+  filter: drop-shadow(0 12px 24px rgba(0,0,0,0.15));
+}
+
+.providerName {
+  font-weight: 800;
+  color: var(--color-text);
+  font-size: 26px;
+  letter-spacing: 0.5px;
+}
+
+.backBtn {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius-md);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+[data-theme='dark'] .backBtn {
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.backBtn:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-text);
+  transform: translateX(-2px);
+}
+
+

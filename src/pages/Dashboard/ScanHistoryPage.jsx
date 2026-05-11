@@ -10,7 +10,12 @@ const ScanHistoryPage = () => {
   const [loading, setLoading] = useState(true);
 
   // Filtering & Pagination State
+  const queryParams = new URLSearchParams(window.location.search);
+  const initialDate = queryParams.get('date') || '';
+
   const [selectedProvider, setSelectedProvider] = useState('All');
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [sortOrder, setSortOrder] = useState('date_desc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
@@ -23,16 +28,30 @@ const ScanHistoryPage = () => {
         const queryParams = new URLSearchParams(window.location.search);
         const projectIdParam = queryParams.get('project') || 'all';
         
-        const res = await fetch(`${API_BASE}/api/projects/${projectIdParam}/scans`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setScans(data);
+        let finalScans = [];
+        if (projectIdParam !== 'all') {
+          // Fetch the project to get its name
+          const projRes = await fetch(`${API_BASE}/api/projects/${projectIdParam}`, { headers: { 'Authorization': `Bearer ${token}` } });
+          if (projRes.ok) {
+            const projData = await projRes.json();
+            // Fetch ALL scans and filter by name to handle legacy duplicates
+            const allScansRes = await fetch(`${API_BASE}/api/projects/all/scans`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (allScansRes.ok) {
+              const allScans = await allScansRes.json();
+              finalScans = Array.isArray(allScans) ? allScans.filter(s => s.project && s.project.name === projData.name) : [];
+            }
+          }
         } else {
-          console.error('API did not return an array:', data);
-          setScans([]);
+          const res = await fetch(`${API_BASE}/api/projects/all/scans`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            finalScans = Array.isArray(data) ? data : [];
+          }
         }
+        
+        setScans(finalScans);
       } catch (err) {
         console.error('Failed to fetch scans:', err);
         setScans([]);
@@ -45,13 +64,33 @@ const ScanHistoryPage = () => {
 
   // Compute filtered and paginated scans
   const processedData = React.useMemo(() => {
-    let filtered = Array.isArray(scans) ? scans : [];
+    let filtered = Array.isArray(scans) ? [...scans] : [];
 
     // Apply Provider Filter
     if (selectedProvider !== 'All') {
       filtered = filtered.filter(scan =>
         scan?.project?.provider?.toLowerCase() === selectedProvider.toLowerCase()
       );
+    }
+
+    // Apply Date Filter
+    if (selectedDate) {
+      filtered = filtered.filter(scan => {
+        const d = new Date(scan.createdAt);
+        const scanDateStr = d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+        return scanDateStr === selectedDate;
+      });
+    }
+
+    // Apply Sorting
+    if (sortOrder === 'score_desc') {
+      filtered.sort((a, b) => (b.score || 0) - (a.score || 0));
+    } else if (sortOrder === 'score_asc') {
+      filtered.sort((a, b) => (a.score || 0) - (b.score || 0));
+    } else if (sortOrder === 'date_desc') {
+      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (sortOrder === 'date_asc') {
+      filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     }
 
     // Calculate Pagination
@@ -64,7 +103,7 @@ const ScanHistoryPage = () => {
       items: paginatedItems,
       totalPages: totalPages
     };
-  }, [scans, selectedProvider, currentPage]);
+  }, [scans, selectedProvider, selectedDate, sortOrder, currentPage]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= processedData.totalPages) {
@@ -75,20 +114,32 @@ const ScanHistoryPage = () => {
 
 
   const openScanDetails = (scan) => {
-    // Adapt scan history data to the format the dashboard expects
+    // Ensure findings is a proper array
+    const findings = Array.isArray(scan.findings) ? scan.findings : [];
+    
+    // Map the full scan history record to the exact shape DashboardPage expects
     const adaptedData = {
       score: scan.score,
-      vulnerabilities: scan.findings || [],
+      vulnerabilities: findings,
       scanned: scan.scannedResources,
       provider: scan.project?.provider || 'gcp',
       dbProjectId: scan.projectId,
-      isHistory: true // flag to indicate this is historical data
+      criticalCount: scan.criticalCount || findings.filter(f => f.severity === 'Critical').length,
+      highCount: scan.highCount || findings.filter(f => f.severity === 'High').length,
+      mediumCount: scan.mediumCount || findings.filter(f => f.severity === 'Medium').length,
+      scannedResources: scan.scannedResources || 0,
+      totalChecks: scan.totalChecks || 0,
+      skippedChecks: null, // not available in history, safely skip
+      isHistory: true,
     };
     
-    // Store in localStorage to pass to DashboardPage
-    localStorage.setItem('last_viewed_scan', JSON.stringify(adaptedData));
+    // Store in sessionStorage (cleared on tab close, avoids stale data conflicts)
+    sessionStorage.setItem('history_scan_view', JSON.stringify(adaptedData));
+    // Also wipe the persistent latest scan so DashboardPage won't fall back to it
+    localStorage.removeItem('latest_scan_result');
+    localStorage.removeItem('last_viewed_scan');
     
-    // Redirect to Dashboard
+    // Full page reload so DashboardPage mounts fresh and reads from sessionStorage
     window.location.href = '/dashboard';
   };
 
@@ -102,29 +153,48 @@ const ScanHistoryPage = () => {
               Browse previous scan results across your cloud providers.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 'var(--spacing-3)', alignItems: 'center' }}>
-            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>Filter Provider:</span>
-            <select
-              value={selectedProvider}
-              onChange={(e) => {
-                setSelectedProvider(e.target.value);
-                setCurrentPage(1); // reset pagination when filter changes
-              }}
-              style={{
-                backgroundColor: 'var(--color-background-dark)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '4px',
-                padding: '6px 12px',
-                color: 'var(--color-text)',
-                fontSize: 'var(--font-size-sm)',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="All" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>All Providers</option>
-              <option value="gcp" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>Google Cloud (GCP)</option>
-              <option value="aws" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>AWS</option>
-              <option value="azure" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>Azure</option>
-            </select>
+          <div style={{ display: 'flex', gap: 'var(--spacing-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>Date:</span>
+              <input 
+                type="date" 
+                value={selectedDate} 
+                onChange={e => { setSelectedDate(e.target.value); setCurrentPage(1); }}
+                style={{ backgroundColor: 'var(--color-background-dark)', border: '1px solid var(--color-border)', borderRadius: '4px', padding: '6px 12px', color: 'var(--color-text)', fontSize: 'var(--font-size-sm)' }}
+              />
+              {selectedDate && (
+                <button onClick={() => { setSelectedDate(''); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline' }}>Clear</button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>Sort by:</span>
+              <select
+                value={sortOrder}
+                onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+                style={{ backgroundColor: 'var(--color-background-dark)', border: '1px solid var(--color-border)', borderRadius: '4px', padding: '6px 12px', color: 'var(--color-text)', fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}
+              >
+                <option value="date_desc" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>Newest First</option>
+                <option value="date_asc" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>Oldest First</option>
+                <option value="score_desc" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>Highest Score</option>
+                <option value="score_asc" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>Lowest Score</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>Provider:</span>
+              <select
+                value={selectedProvider}
+                onChange={(e) => { setSelectedProvider(e.target.value); setCurrentPage(1); }}
+                style={{ backgroundColor: 'var(--color-background-dark)', border: '1px solid var(--color-border)', borderRadius: '4px', padding: '6px 12px', color: 'var(--color-text)', fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}
+              >
+                <option value="All" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>All Providers</option>
+                <option value="gcp" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>Google Cloud</option>
+                <option value="aws" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>AWS</option>
+                <option value="azure" style={{ backgroundColor: '#1a1a1a', color: '#fff' }}>Azure</option>
+              </select>
+            </div>
           </div>
         </div>
 

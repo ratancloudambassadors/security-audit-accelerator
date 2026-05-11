@@ -23,17 +23,36 @@ const ProjectsPage = () => {
           return;
         }
 
-        // Deduplicate locally by name to fix any old data issues
+        // Deduplicate locally by core ID to fix any old data issues with naming changes
         const uniqueProjectsMap = new Map();
+        
+        const getCoreId = (name, provider) => {
+          const match = name.match(/\((.*?)\)/);
+          if (match) return match[1];
+          return name;
+        };
+
         data.forEach(p => {
-          if (!uniqueProjectsMap.has(p.name)) {
-            uniqueProjectsMap.set(p.name, p);
+          const coreId = getCoreId(p.name, p.provider);
+          const key = `${p.provider}-${coreId}`;
+          
+          if (!uniqueProjectsMap.has(key)) {
+            // Standardize older names for initial set
+            let standardizedName = p.name;
+            if (p.provider === 'aws' && standardizedName.startsWith('AWS Project')) standardizedName = standardizedName.replace('AWS Project', 'AWS Account');
+            if (p.provider === 'azure' && standardizedName.startsWith('Azure Project')) standardizedName = standardizedName.replace('Azure Project', 'Azure Subscription');
+            
+            uniqueProjectsMap.set(key, { ...p, name: standardizedName });
           } else {
             // Merge scan count for duplicates
-            const curr = uniqueProjectsMap.get(p.name);
+            const curr = uniqueProjectsMap.get(key);
             curr._count = curr._count || { scans: 0 };
             const additional = p._count?.scans || 0;
             curr._count.scans += additional;
+            
+            // Prefer newer naming conventions if we encounter them
+            if (curr.name.startsWith('AWS Project') && p.name.startsWith('AWS Account')) curr.name = p.name;
+            if (curr.name.startsWith('Azure Project') && p.name.startsWith('Azure Subscription')) curr.name = p.name;
           }
         });
         
@@ -47,12 +66,59 @@ const ProjectsPage = () => {
     fetchProjects();
   }, []);
 
+  const awsProjects = projects.filter(p => p.provider === 'aws');
+  const azureProjects = projects.filter(p => p.provider === 'azure');
+  const gcpProjects = projects.filter(p => p.provider === 'gcp');
+
+  const ProjectCard = ({ proj }) => (
+    <a key={proj.id} href={`/dashboard/projects/${proj.id}`} style={{ textDecoration: 'none' }}>
+      <Card style={{ cursor: 'pointer', transition: 'transform 0.15s', padding: 'var(--spacing-4)' }} className="project-card-hover">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-3)' }}>
+          <span style={{ display: 'flex' }}>
+            {proj.provider === 'gcp' ? (
+              <img src="/assets/gcp-logo.svg" alt="GCP" width="24" height="24" />
+            ) : proj.provider === 'aws' ? (
+              <img src="/assets/aws-logo.svg" alt="AWS" width="24" height="24" />
+            ) : (
+              <img src="/assets/azure-logo.svg" alt="Azure" width="24" height="24" />
+            )}
+          </span>
+          <span style={{ fontSize: 'var(--font-size-xs)', padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+            {proj.provider}
+          </span>
+        </div>
+        <h3 style={{ fontSize: 'var(--font-size-base)', marginBottom: 'var(--spacing-1)', color: 'var(--color-text)' }}>{proj.name}</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+            {proj._count?.scans || 0} scan(s)
+          </span>
+          <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+            {new Date(proj.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+      </Card>
+    </a>
+  );
+
   return (
     <>
+      <style>{`
+        .project-card-hover:hover {
+          transform: translateY(-4px);
+          box-shadow: var(--shadow-lg);
+          border-color: var(--color-primary);
+        }
+        @media (max-width: 1024px) {
+          .provider-grid { grid-template-columns: 1fr 1fr !important; }
+        }
+        @media (max-width: 768px) {
+          .provider-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       <div style={{ paddingBottom: 'var(--spacing-4)' }}>
         <h1 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-1)' }}>Projects</h1>
         <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-6)' }}>
-          Cloud projects you have previously scanned.
+          Cloud projects you have previously scanned, organized by provider.
         </p>
 
         {loading ? (
@@ -64,36 +130,51 @@ const ProjectsPage = () => {
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>Run a scan to automatically create a project.</p>
           </Card>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--spacing-4)' }}>
-            {projects.map((proj) => (
-              <a key={proj.id} href={`/dashboard/projects/${proj.id}`} style={{ textDecoration: 'none' }}>
-                <Card style={{ cursor: 'pointer', transition: 'transform 0.15s', padding: 'var(--spacing-4)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-3)' }}>
-                    <span style={{ display: 'flex' }}>
-                      {proj.provider === 'gcp' ? (
-                        <img src="/assets/gcp-logo.svg" alt="GCP" width="24" height="24" />
-                      ) : proj.provider === 'aws' ? (
-                        <img src="/assets/aws-logo.svg" alt="AWS" width="24" height="24" />
-                      ) : (
-                        <img src="/assets/azure-logo.svg" alt="Azure" width="24" height="24" />
-                      )}
-                    </span>
-                    <span style={{ fontSize: 'var(--font-size-xs)', padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                      {proj.provider}
-                    </span>
-                  </div>
-                  <h3 style={{ fontSize: 'var(--font-size-base)', marginBottom: 'var(--spacing-1)', color: 'var(--color-text)' }}>{proj.name}</h3>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
-                      {proj._count?.scans || 0} scan(s)
-                    </span>
-                    <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
-                      {new Date(proj.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </Card>
-              </a>
-            ))}
+          <div className="provider-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--spacing-8)' }}>
+            {/* AWS Column */}
+            <div>
+              <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--spacing-2)' }}>
+                <img src="/assets/aws-logo.svg" alt="AWS" width="24" height="24" />
+                AWS
+              </h2>
+              {awsProjects.length === 0 ? (
+                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic' }}>No AWS projects scanned yet.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                  {awsProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
+                </div>
+              )}
+            </div>
+
+            {/* Azure Column */}
+            <div>
+              <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--spacing-2)' }}>
+                <img src="/assets/azure-logo.svg" alt="Azure" width="24" height="24" />
+                Azure
+              </h2>
+              {azureProjects.length === 0 ? (
+                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic' }}>No Azure projects scanned yet.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                  {azureProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
+                </div>
+              )}
+            </div>
+
+            {/* GCP Column */}
+            <div>
+              <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--spacing-2)' }}>
+                <img src="/assets/gcp-logo.svg" alt="GCP" width="24" height="24" />
+                Google Cloud
+              </h2>
+              {gcpProjects.length === 0 ? (
+                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic' }}>No GCP projects scanned yet.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                  {gcpProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
