@@ -863,7 +863,7 @@ const DashboardPage = () => {
                 >
                   <option value="all">All Services</option>
                   {statusFilter === 'Secured' ? (
-                    <option value="Secured Infrastructure">Secured Infrastructure</option>
+                    securedStats.passedServicesArr.map(s => <option key={s.name} value={s.name}>{s.name}</option>)
                   ) : (
                     allServices.map(s => <option key={s} value={s}>{s}</option>)
                   )}
