@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 import Card from '../../components/Card/Card';
-
+import ScanResultsView from '../../components/ScanResultsView/ScanResultsView';
 
 const ScanHistoryPage = () => {
   const API_BASE = window.location.hostname.includes('run.app') ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' : 'http://localhost:5000';
@@ -126,19 +126,22 @@ const ScanHistoryPage = () => {
     const vulnResSet = new Set(findings.map(f => f.resource));
     const securedCount = Math.max(0, (scan.scannedResources || 0) - vulnResSet.size);
 
+    // Map to the shape ScanResultsView expects
     setSelectedScan({
-      score: scan.score || 0,
+      provider: (scan.project?.provider || 'gcp').toLowerCase(),
+      score: typeof scan.score === 'number' ? scan.score : 0,
       vulnerabilities: findings,
       passedResources: parsedPassedResources,
       scanned: scan.scannedResources || 0,
+      isHistory: true,
+      projectName: scan.project?.name || 'Cloud Project',
+      // Additional metadata for reference
       securedCount,
       vulnResCount: vulnResSet.size,
       criticalCount: scan.criticalCount || findings.filter(f => f.severity === 'Critical').length,
       highCount: scan.highCount || findings.filter(f => f.severity === 'High').length,
       mediumCount: scan.mediumCount || findings.filter(f => f.severity === 'Medium').length,
       lowCount: findings.filter(f => f.severity === 'Low').length,
-      projectName: scan.project?.name || 'Cloud Project',
-      provider: (scan.project?.provider || 'gcp').toUpperCase(),
       date: scan.createdAt ? new Date(scan.createdAt) : new Date(),
     });
   };
@@ -146,7 +149,7 @@ const ScanHistoryPage = () => {
   return (
     <div style={{ paddingBottom: 'var(--spacing-4)' }}>
 
-      {/* ── INLINE DETAIL VIEW ── */}
+      {/* ── INLINE DETAIL VIEW (full parity with active scan) ── */}
       {selectedScan ? (
         <div>
           {/* Back button */}
@@ -157,105 +160,8 @@ const ScanHistoryPage = () => {
             ← Back to Scan History
           </button>
 
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: 'var(--font-size-xl)', margin: 0 }}>{selectedScan.projectName}</h1>
-            <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '99px', background: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)', border: '1px solid rgba(99,102,241,0.2)' }}>{selectedScan.provider}</span>
-            <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '99px', background: 'rgba(100,116,139,0.1)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>📅 Historical</span>
-            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
-              {selectedScan.date.toLocaleDateString()} {selectedScan.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-
-          {/* Score + 4 metric cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-            {/* Score */}
-            <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px' }}>Security Score</div>
-              <div style={{ fontSize: '42px', fontWeight: 800, color: selectedScan.score > 80 ? '#22c55e' : selectedScan.score > 50 ? '#eab308' : '#ef4444', letterSpacing: '-0.02em' }}>
-                {selectedScan.score}<span style={{ fontSize: '22px' }}>%</span>
-              </div>
-            </div>
-            {/* Total Vulnerabilities */}
-            <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '20px', borderTop: '3px solid #ef4444' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px' }}>Total Vulnerabilities</div>
-              <div style={{ fontSize: '36px', fontWeight: 800, color: '#ef4444' }}>{selectedScan.vulnerabilities.length}</div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '8px' }}>Critical: <strong style={{ color: '#ef4444' }}>{selectedScan.criticalCount}</strong></div>
-            </div>
-            {/* Total Resources Audited */}
-            <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '20px', borderTop: '3px solid var(--color-primary)' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px' }}>Total Resources Audited</div>
-              <div style={{ fontSize: '36px', fontWeight: 800, color: 'var(--color-text)' }}>{selectedScan.scanned}<span style={{ fontSize: '18px', color: 'var(--color-text-muted)', fontWeight: 400 }}> / {selectedScan.scanned}</span></div>
-            </div>
-            {/* Vulnerable Resources */}
-            <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '20px', borderTop: '3px solid #f97316' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px' }}>Vulnerable Resources</div>
-              <div style={{ fontSize: '36px', fontWeight: 800, color: 'var(--color-text)' }}>{selectedScan.vulnResCount}<span style={{ fontSize: '18px', color: 'var(--color-text-muted)', fontWeight: 400 }}> / {selectedScan.scanned}</span></div>
-              <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '8px' }}>{selectedScan.scanned > 0 ? ((selectedScan.vulnResCount / selectedScan.scanned) * 100).toFixed(0) : 0}% of total</div>
-            </div>
-            {/* Secured Resources */}
-            <div style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.08) 0%, rgba(16,185,129,0.03) 100%)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '16px', padding: '20px', borderTop: '3px solid #22c55e' }}>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#16a34a', marginBottom: '8px' }}>Secured Resources</div>
-              <div style={{ fontSize: '36px', fontWeight: 800, color: '#22c55e' }}>{selectedScan.securedCount}<span style={{ fontSize: '18px', color: 'var(--color-text-muted)', fontWeight: 400 }}> / {selectedScan.scanned}</span></div>
-              <div style={{ fontSize: '11px', color: '#22c55e', marginTop: '8px' }}>{selectedScan.scanned > 0 ? ((selectedScan.securedCount / selectedScan.scanned) * 100).toFixed(0) : 0}% secured</div>
-            </div>
-          </div>
-
-          {/* Severity strip */}
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
-            {[{ label: 'Critical', count: selectedScan.criticalCount, color: '#dc2626', bg: 'rgba(220,38,38,0.08)' }, { label: 'High', count: selectedScan.highCount, color: '#ea580c', bg: 'rgba(234,88,12,0.08)' }, { label: 'Medium', count: selectedScan.mediumCount, color: '#ca8a04', bg: 'rgba(202,138,4,0.08)' }, { label: 'Low', count: selectedScan.lowCount, color: '#2563eb', bg: 'rgba(37,99,235,0.08)' }].map(s => (
-              <div key={s.label} style={{ padding: '8px 16px', borderRadius: '8px', background: s.bg, border: `1px solid ${s.color}40`, color: s.color, fontWeight: 700, fontSize: '13px' }}>
-                {s.label}: {s.count}
-              </div>
-            ))}
-          </div>
-
-          {/* Vulnerability list grouped by service */}
-          {selectedScan.vulnerabilities.length > 0 ? (() => {
-            const groups = {};
-            selectedScan.vulnerabilities.forEach(v => {
-              const svc = v.resource?.split('(')[0]?.trim() || 'General';
-              if (!groups[svc]) groups[svc] = [];
-              groups[svc].push(v);
-            });
-            return (
-              <div style={{ marginBottom: '32px' }}>
-                <h2 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px', color: 'var(--color-text)' }}>⚠️ Vulnerability Findings ({selectedScan.vulnerabilities.length})</h2>
-                {Object.keys(groups).sort().map(svc => (
-                  <div key={svc} style={{ marginBottom: '16px', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '12px', overflow: 'hidden' }}>
-                    <div style={{ padding: '10px 16px', background: 'var(--color-border)', fontWeight: 700, fontSize: '12px', color: 'var(--color-text)', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{svc}</span><span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>{groups[svc].length} finding{groups[svc].length !== 1 ? 's' : ''}</span>
-                    </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                      <thead><tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                        {['#', 'Severity', 'Resource', 'Issue', 'Remediation'].map(h => (
-                          <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '11px' }}>{h}</th>
-                        ))}
-                      </tr></thead>
-                      <tbody>
-                        {groups[svc].map((v, i) => {
-                          const sc = v.severity === 'Critical' ? '#dc2626' : v.severity === 'High' ? '#ea580c' : v.severity === 'Medium' ? '#ca8a04' : '#2563eb';
-                          return (
-                            <tr key={i} style={{ borderBottom: '1px solid var(--color-border)', background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)' }}>
-                              <td style={{ padding: '8px 12px', color: 'var(--color-text-muted)', width: '36px' }}>{i + 1}</td>
-                              <td style={{ padding: '8px 12px', color: sc, fontWeight: 600 }}>{v.severity}</td>
-                              <td style={{ padding: '8px 12px', color: 'var(--color-text)', maxWidth: '200px', wordBreak: 'break-word' }}>{v.resource}</td>
-                              <td style={{ padding: '8px 12px', color: 'var(--color-text-muted)', maxWidth: '240px' }}>{v.issue}</td>
-                              <td style={{ padding: '8px 12px', color: 'var(--color-text-muted)', maxWidth: '240px' }}>{v.remediation}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
-            );
-          })() : (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#22c55e', fontWeight: 600, background: 'rgba(34,197,94,0.06)', borderRadius: '12px', border: '1px solid rgba(34,197,94,0.2)', marginBottom: '24px' }}>
-              ✅ No vulnerabilities found in this scan.
-            </div>
-          )}
+          {/* Reuse the full ScanResultsView — identical UI to active scan */}
+          <ScanResultsView scanDataProp={selectedScan} isHistoryView />
         </div>
 
       ) : (

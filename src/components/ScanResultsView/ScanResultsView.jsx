@@ -64,7 +64,7 @@ const getCheckpointName = (id) => {
   return mapping[checkType] || `Check: ${checkType.charAt(0).toUpperCase() + checkType.slice(1).toLowerCase()}`;
 };
 
-const DashboardPage = () => {
+const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
   const API_BASE = window.location.hostname.includes('run.app') ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' : 'http://localhost:5000';
 
   const [scanData, setScanData] = useState(null);
@@ -86,7 +86,22 @@ const DashboardPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const servicesPerPage = 2;
 
+  // Sync scanDataProp → local state (for Scan History reuse)
   useEffect(() => {
+    if (scanDataProp) {
+      setScanData(scanDataProp);
+      setSearchTerm('');
+      setSeverityFilter('All');
+      setServiceFilter('all');
+      setStatusFilter('All');
+      setCurrentPage(1);
+    }
+  }, [scanDataProp]);
+
+  useEffect(() => {
+    // Skip localStorage loading when data is injected via prop
+    if (scanDataProp) return;
+
     // Priority 1: came from ScanHistory page with a specific scan to view
     const historicalScan = sessionStorage.getItem('history_scan_view');
 
@@ -113,9 +128,12 @@ const DashboardPage = () => {
         setScanData(scan);
       }
     }
-  }, []);
+  }, [scanDataProp]);
 
   useEffect(() => {
+    // Skip event listeners when data is injected via prop (history view)
+    if (scanDataProp) return;
+
     const handleScanComplete = (e) => {
       console.log('Dashboard received new scan data:', e.detail);
       setScanData(e.detail);
@@ -130,11 +148,6 @@ const DashboardPage = () => {
       setCurrentPage(1);
     };
 
-    const handleServiceFilterChanged = (e) => {
-      setServiceFilter(e.detail);
-      setCurrentPage(1);
-    };
-
     const handleScanStarted = () => {
       setScanData(null);
     };
@@ -145,7 +158,7 @@ const DashboardPage = () => {
       window.removeEventListener('scanCompleted', handleScanComplete);
       window.removeEventListener('scanStarted', handleScanStarted);
     };
-  }, []);
+  }, [scanDataProp]);
   // New: Compute Scan Coverage for Dashboard Overview
   const dashboardCoverage = useMemo(() => {
     if (!scanData) return { percent: 100, completed: 0, total: 0, skipped: [] };
@@ -492,70 +505,68 @@ const DashboardPage = () => {
               {scanData ? (
                 <>
                   {scanData.provider.toUpperCase()} Infrastructure Overview
-                  {/* ── Scan Score inline ── */}
-                  {(() => {
-                    const score = scanData.score !== undefined && scanData.score !== null ? scanData.score : securedStats.pct;
-                    return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginLeft: '6px', fontSize: '13px', fontWeight: 400 }}>
-                        <span style={{ color: 'var(--color-text-muted)', fontWeight: 500, fontSize: '12px', letterSpacing: '0.02em' }}>Scan Score:</span>
+                  {/* ── Score % inline next to title ── */}
+                  {(scanData.score !== undefined && scanData.score !== null) && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginLeft: '6px', fontSize: '13px', fontWeight: 400 }}>
+                      <span style={{ color: 'var(--color-text-muted)', fontWeight: 500, fontSize: '12px', letterSpacing: '0.02em' }}>Scan Score:</span>
+                      <span style={{
+                        fontWeight: 800,
+                        fontSize: '15px',
+                        color: scanData.score > 80 ? '#22c55e' : scanData.score > 50 ? '#eab308' : '#ef4444',
+                        padding: '1px 9px',
+                        borderRadius: '7px',
+                        background: scanData.score > 80 ? 'rgba(34,197,94,0.11)' : scanData.score > 50 ? 'rgba(234,179,8,0.11)' : 'rgba(239,68,68,0.11)',
+                        border: `1px solid ${scanData.score > 80 ? 'rgba(34,197,94,0.28)' : scanData.score > 50 ? 'rgba(234,179,8,0.28)' : 'rgba(239,68,68,0.28)'}`,
+                        letterSpacing: '-0.01em',
+                      }}>
+                        {scanData.score}%
+                      </span>
+                      {/* ? tooltip explaining score */}
+                      <div
+                        style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'help' }}
+                        onMouseEnter={(e) => { const t = e.currentTarget.querySelector('[data-score-tip]'); if (t) { t.style.opacity = '1'; t.style.visibility = 'visible'; } }}
+                        onMouseLeave={(e) => { const t = e.currentTarget.querySelector('[data-score-tip]'); if (t) { t.style.opacity = '0'; t.style.visibility = 'hidden'; } }}
+                      >
                         <span style={{
-                          fontWeight: 800,
-                          fontSize: '15px',
-                          color: score > 80 ? '#22c55e' : score > 50 ? '#eab308' : '#ef4444',
-                          padding: '1px 9px',
-                          borderRadius: '7px',
-                          background: score > 80 ? 'rgba(34,197,94,0.11)' : score > 50 ? 'rgba(234,179,8,0.11)' : 'rgba(239,68,68,0.11)',
-                          border: `1px solid ${score > 80 ? 'rgba(34,197,94,0.28)' : score > 50 ? 'rgba(234,179,8,0.28)' : 'rgba(239,68,68,0.28)'}`,
-                          letterSpacing: '-0.01em',
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          width: '16px', height: '16px', borderRadius: '50%',
+                          border: '1px solid var(--color-border)',
+                          backgroundColor: 'rgba(100,116,139,0.1)',
+                          color: 'var(--color-text-muted)',
+                          fontSize: '9px', fontWeight: 700, flexShrink: 0,
+                        }}>?</span>
+                        <div data-score-tip style={{
+                          opacity: 0, visibility: 'hidden',
+                          transition: 'all 0.2s ease',
+                          position: 'absolute',
+                          top: '100%', left: '50%',
+                          transform: 'translateX(-50%)',
+                          marginTop: '10px',
+                          backgroundColor: 'var(--color-bg)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: '10px',
+                          padding: '12px 14px',
+                          width: '250px',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                          zIndex: 1000,
+                          pointerEvents: 'none',
+                          textAlign: 'left',
+                          fontSize: '12px',
                         }}>
-                          {score}%
-                        </span>
-                        <div
-                          style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'help' }}
-                          onMouseEnter={(e) => { const t = e.currentTarget.querySelector('[data-score-tip]'); if (t) { t.style.opacity = '1'; t.style.visibility = 'visible'; } }}
-                          onMouseLeave={(e) => { const t = e.currentTarget.querySelector('[data-score-tip]'); if (t) { t.style.opacity = '0'; t.style.visibility = 'hidden'; } }}
-                        >
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            width: '16px', height: '16px', borderRadius: '50%',
-                            border: '1px solid var(--color-border)',
-                            backgroundColor: 'rgba(100,116,139,0.1)',
-                            color: 'var(--color-text-muted)',
-                            fontSize: '9px', fontWeight: 700, flexShrink: 0,
-                          }}>?</span>
-                          <div data-score-tip style={{
-                            opacity: 0, visibility: 'hidden',
-                            transition: 'all 0.2s ease',
-                            position: 'absolute',
-                            top: '100%', left: '50%',
-                            transform: 'translateX(-50%)',
-                            marginTop: '10px',
-                            backgroundColor: 'var(--color-bg)',
-                            border: '1px solid var(--color-border)',
-                            borderRadius: '10px',
-                            padding: '12px 14px',
-                            width: '250px',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                            zIndex: 1000,
-                            pointerEvents: 'none',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                          }}>
-                            <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '11px', marginBottom: '6px' }}>🛡️ How is the Score calculated?</div>
-                            <div style={{ fontSize: '11px', color: 'var(--color-text)', lineHeight: 1.6 }}>
-                              <div style={{ background: 'rgba(99,102,241,0.07)', borderRadius: '6px', padding: '6px 8px', fontFamily: 'monospace', marginBottom: '7px', fontSize: '10.5px' }}>
-                                Score = (Secured Resources ÷ Total Scanned) × 100
-                              </div>
-                              A resource is <strong>Secured</strong> only if it has <em>zero</em> vulnerability findings. Even one finding marks it as vulnerable.
+                          <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '11px', marginBottom: '6px' }}>🛡️ How is the Score calculated?</div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-text)', lineHeight: 1.6 }}>
+                            <div style={{ background: 'rgba(99,102,241,0.07)', borderRadius: '6px', padding: '6px 8px', fontFamily: 'monospace', marginBottom: '7px', fontSize: '10.5px' }}>
+                              Score = (Secured Resources ÷ Total Scanned) × 100
                             </div>
-                            <div style={{ marginTop: '7px', fontSize: '10px', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', paddingTop: '6px' }}>
-                              e.g. 190 secured out of 200 scanned → <strong style={{ color: 'var(--color-primary)' }}>95%</strong>
-                            </div>
+                            A resource is <strong>Secured</strong> only if it has <em>zero</em> vulnerability findings. Even one finding marks it as vulnerable.
+                          </div>
+                          <div style={{ marginTop: '7px', fontSize: '10px', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', paddingTop: '6px' }}>
+                            e.g. 190 secured out of 200 scanned → <strong style={{ color: 'var(--color-primary)' }}>95%</strong>
                           </div>
                         </div>
-                      </span>
-                    );
-                  })()}
+                      </div>
+                    </span>
+                  )}
                 </>
               ) : 'Overview'}
               {scanData?.isHistory && (
