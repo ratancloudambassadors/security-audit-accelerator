@@ -1115,7 +1115,7 @@ const DashboardPage = () => {
                   return (
                     <>
                       {/* Secured Pagination Controls */}
-                      {totalSecuredPages > 1 && (
+                      {totalSecuredPages > 0 && (
                         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
                           <button
                             onClick={() => handlePageChange(currentPage - 1)}
@@ -1129,8 +1129,8 @@ const DashboardPage = () => {
                           </span>
                           <button
                             onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalSecuredPages}
-                            style={{ padding: '2px 8px', background: 'var(--color-background-light)', border: '1px solid var(--color-border)', borderRadius: '4px', color: currentPage === totalSecuredPages ? 'var(--color-text-muted)' : 'var(--color-text)', cursor: currentPage === totalSecuredPages ? 'not-allowed' : 'pointer' }}
+                            disabled={currentPage === totalSecuredPages || totalSecuredPages === 1}
+                            style={{ padding: '2px 8px', background: 'var(--color-background-light)', border: '1px solid var(--color-border)', borderRadius: '4px', color: (currentPage === totalSecuredPages || totalSecuredPages === 1) ? 'var(--color-text-muted)' : 'var(--color-text)', cursor: (currentPage === totalSecuredPages || totalSecuredPages === 1) ? 'not-allowed' : 'pointer' }}
                           >
                             Next
                           </button>
@@ -1162,14 +1162,23 @@ const DashboardPage = () => {
                             </span>
                           </div>
                           
-                          <div style={{ padding: '0' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                          <div style={{ padding: '0', overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--font-size-xs)' }}>
+                              <thead>
+                                <tr style={{ backgroundColor: 'transparent', borderBottom: '1px solid var(--color-border)' }}>
+                                  <th style={{ padding: 'var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '60px', textAlign: 'center' }}>#</th>
+                                  <th style={{ padding: 'var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)' }}>Resource Name</th>
+                                </tr>
+                              </thead>
                               <tbody>
                                 {svc.items.map((item, iIdx) => (
-                                  <tr key={iIdx} style={{ borderBottom: iIdx === svc.items.length - 1 ? 'none' : '1px solid var(--color-border)' }}>
-                                    <td style={{ padding: '14px 20px', fontSize: '13px', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                      <span style={{ color: '#22c55e', fontSize: '16px' }}>✓</span>
-                                      <span style={{ fontWeight: 500 }}>{item.name || 'Unknown Resource'}</span>
+                                  <tr key={iIdx} style={{ borderBottom: iIdx === svc.items.length - 1 ? 'none' : '1px solid var(--color-border)', backgroundColor: iIdx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)' }}>
+                                    <td style={{ padding: 'var(--spacing-3)', color: 'var(--color-text-muted)', textAlign: 'center', fontWeight: 500 }}>
+                                      {iIdx + 1}
+                                    </td>
+                                    <td style={{ padding: 'var(--spacing-3)', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500 }}>
+                                      <span style={{ color: '#22c55e', fontSize: '14px' }}>✓</span>
+                                      {item.name || 'Unknown Resource'}
                                     </td>
                                   </tr>
                                 ))}
