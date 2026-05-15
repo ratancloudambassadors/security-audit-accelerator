@@ -6,7 +6,7 @@ import Button from '../../components/Button/Button';
 const SettingsPage = () => {
     const API_BASE = window.location.hostname.includes('run.app') ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app' : 'http://localhost:5000';
 
-    const { user, login } = useContext(AuthContext);
+    const { user, updateUser } = useContext(AuthContext);
 
     const [name, setName] = useState('');
     const [displayPicture, setDisplayPicture] = useState(null);
@@ -19,8 +19,20 @@ const SettingsPage = () => {
 
     const fileInputRef = useRef(null);
 
-    const handleReplayTour = () => {
-        localStorage.removeItem('auditscope_tour_done');
+    const handleReplayTour = async () => {
+        try {
+            const token = localStorage.getItem('auditscope_token');
+            if (token) {
+                await fetch(`${API_BASE}/api/auth/reset-walkthrough`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+            }
+        } catch (e) {
+            console.error('Failed to reset walkthrough:', e);
+        }
+        // Update in-memory user so tour fires when we navigate to Dashboard
+        updateUser({ isWalkthroughDone: false });
         setTourReset(true);
         setTimeout(() => {
             window.history.pushState(null, '', '/dashboard');

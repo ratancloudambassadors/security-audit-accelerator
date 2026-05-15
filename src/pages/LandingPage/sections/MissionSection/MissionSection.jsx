@@ -6,7 +6,7 @@ import Section from '../../../../components/Section/Section';
 const MissionSection = () => {
   return (
     <Section
-      id="mission"
+      id="about-us"
       darker={true}
       className={styles.missionSection}
     >

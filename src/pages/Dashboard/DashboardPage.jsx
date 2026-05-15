@@ -438,7 +438,7 @@ const DashboardPage = () => {
               )}
             </h1>
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', margin: 0 }}>
-              {scanData ? (scanData.isHistory ? 'Historical security audit results.' : 'Latest security audit results.') : 'Select a Cloud Provider and click "Scan" to begin.'}
+              {scanData ? (scanData.isHistory ? 'Historical security audit results.' : 'Latest security audit results.') : 'No active scan — hit the Scan button to get started.'}
             </p>
           </div>
           {scanData && (
@@ -868,9 +868,12 @@ const DashboardPage = () => {
                 <span style={{ fontSize: '24px', color: 'var(--color-border)' }}>|</span>
                 <img src="/assets/azure-logo.svg" alt="Azure" width="45" height="45" />
               </div>
-              <h3 style={{ color: 'var(--color-text)' }}>No active scans</h3>
+              <h3 style={{ color: 'var(--color-text)' }}>No active scan right now</h3>
               <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', maxWidth: '400px', fontSize: 'var(--font-size-sm)' }}>
-                Select a cloud provider from the Choose Provider dropdown in the navigation bar and hit the Scan button to run a comprehensive multi-service audit.
+                Hit the <strong style={{ color: 'var(--color-primary)' }}>Scan</strong> button in the top navigation bar, choose your cloud provider (AWS, GCP, or Azure), enter your credentials, and we'll run a full multi-service security audit for you.
+              </p>
+              <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', maxWidth: '360px', fontSize: '12px', opacity: 0.7 }}>
+                Results will appear here instantly once the scan completes.
               </p>
             </Card>
           </Section>

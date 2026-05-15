@@ -165,7 +165,8 @@ router.post('/verify-otp', async (req, res) => {
         email: user.email,
         name: user.name,
         displayPicture: user.displayPicture,
-        loginCount: 1
+        loginCount: 1,
+        isWalkthroughDone: false
       }
     });
 
@@ -224,7 +225,8 @@ router.post('/login', async (req, res) => {
         email: user.email,
         name: user.name,
         displayPicture: user.displayPicture,
-        loginCount: updatedLoginCount
+        loginCount: updatedLoginCount,
+        isWalkthroughDone: user.isWalkthroughDone ?? true
       }
     });
 
@@ -245,7 +247,7 @@ router.get('/me', async (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, name: true, displayPicture: true, loginCount: true }
+      select: { id: true, email: true, name: true, displayPicture: true, loginCount: true, isWalkthroughDone: true }
     });
 
     if (!user) {
@@ -299,7 +301,7 @@ router.put('/profile', upload.single('displayPicture'), async (req, res) => {
     const updatedUser = await prisma.user.update({
       where: { id: decoded.userId },
       data: updateData,
-      select: { id: true, email: true, name: true, displayPicture: true, loginCount: true }
+      select: { id: true, email: true, name: true, displayPicture: true, loginCount: true, isWalkthroughDone: true }
     });
 
     res.json(updatedUser);
@@ -310,6 +312,46 @@ router.put('/profile', upload.single('displayPicture'), async (req, res) => {
     } else {
       res.status(500).json({ error: 'Server error during profile update' });
     }
+  }
+});
+
+// ─── Complete Walkthrough — mark isWalkthroughDone = true ───────────────────
+router.put('/complete-walkthrough', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token provided' });
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { isWalkthroughDone: true }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Complete Walkthrough Error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ─── Reset Walkthrough — mark isWalkthroughDone = false (replay from Settings) ─
+router.put('/reset-walkthrough', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token provided' });
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { isWalkthroughDone: false }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Reset Walkthrough Error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

@@ -10,6 +10,7 @@ const clearSession = () => {
   localStorage.removeItem('auditscope_login_time');
   localStorage.removeItem('last_viewed_scan');
   localStorage.removeItem('latest_scan_result');
+  localStorage.removeItem('auditscope_tour_done');
 };
 
 export const AuthProvider = ({ children }) => {
@@ -164,11 +165,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // ── updateUser (used by OnboardingTour after marking walkthrough done) ────
+  const updateUser = (patch) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...patch };
+      localStorage.setItem('auditscope_user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   // ── logout (manual) ───────────────────────────────────────────────
   const logout = () => performLogout(false);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, verifyOtp, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, verifyOtp, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

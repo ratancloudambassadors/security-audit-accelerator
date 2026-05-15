@@ -3,9 +3,10 @@
   display: flex;
   background-color: var(--color-bg);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden; /* prevent horizontal scroll from glows */
   padding: var(--spacing-4);
-  align-items: center;
+  padding-top: calc(5rem + 48px); /* clear the floating header */
+  align-items: flex-start;
   justify-content: center;
 }
 
@@ -46,6 +47,7 @@
 .logoRow {
   display: flex;
   justify-content: center;
+  margin-bottom: var(--spacing-4);
 }
 
 .logo {
@@ -59,6 +61,12 @@
 
 .logoIcon {
   font-size: 2rem;
+}
+
+.logoImg {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
 }
 
 .card {

@@ -92,8 +92,12 @@ function App() {
     const handleClick = (e) => {
       const a = e.target.closest('a');
       if (a && a.href && a.origin === window.location.origin && a.target !== '_blank' && !a.hasAttribute('download')) {
-        const isDashboard = a.pathname.startsWith('/dashboard');
-        // Prevent default and use HTML5 history API for internal links
+        // Allow hash-only anchor links (e.g. #features, #pricing) to work natively
+        // so the browser performs the in-page smooth scroll without SPA interference
+        if (a.hash && a.pathname === window.location.pathname) {
+          return; // let the browser handle it naturally
+        }
+        // Prevent default and use HTML5 history API for internal page navigation
         e.preventDefault();
         window.history.pushState(null, '', a.pathname);
         setCurrentPath(a.pathname);

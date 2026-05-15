@@ -139,12 +139,32 @@ const OnboardingTour = () => {
     const [panels, setPanels] = useState(null);
     const [vpSize, setVpSize] = useState({ w: window.innerWidth, h: window.innerHeight });
     const rafRef = useRef(null);
-    const { user } = useContext(AuthContext);
+    const { user, updateUser } = useContext(AuthContext);
     const totalSteps = TOUR_STEPS.length;
 
-    // Trigger only for new users on their first login
+    // API base helper
+    const API_BASE = window.location.hostname.includes('run.app')
+        ? 'https://security-audit-accelerator-backend-196053730058.asia-south1.run.app'
+        : 'http://localhost:5000';
+
+    // Mark walkthrough done in DB + update in-memory user
+    const markDoneInDB = async () => {
+        try {
+            const token = localStorage.getItem('auditscope_token');
+            if (!token) return;
+            await fetch(`${API_BASE}/api/auth/complete-walkthrough`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            updateUser({ isWalkthroughDone: true });
+        } catch (e) {
+            console.error('Failed to mark walkthrough done:', e);
+        }
+    };
+
+    // Show tour for any user whose isWalkthroughDone === false
     useEffect(() => {
-        if (user && user.loginCount === 1 && !localStorage.getItem('auditscope_tour_done')) {
+        if (user && user.isWalkthroughDone === false) {
             const t = setTimeout(() => setActive(true), 700);
             return () => clearTimeout(t);
         }
@@ -186,7 +206,7 @@ const OnboardingTour = () => {
         return () => window.removeEventListener('keydown', fn);
     }, [active, step]);
 
-    const dismiss = () => { localStorage.setItem('auditscope_tour_done', 'true'); setActive(false); };
+    const dismiss = () => { markDoneInDB(); setActive(false); };
     const advance = () => step < totalSteps - 1 ? setStep(s => s + 1) : dismiss();
     const back = () => step > 0 && setStep(s => s - 1);
 
