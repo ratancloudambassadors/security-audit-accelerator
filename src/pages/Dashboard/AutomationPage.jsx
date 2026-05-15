@@ -141,36 +141,42 @@ const AutomationPage = () => {
               Manage your scheduled security audits and automated reporting.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            {/* Manual refresh button */}
-            <button
-              onClick={() => fetchData(true)}
-              disabled={refreshing}
-              title="Refresh schedule status"
-              style={{
-                padding: '10px 14px',
-                borderRadius: '8px',
-                background: 'var(--color-bg-secondary)',
-                border: '1px solid var(--color-border)',
-                color: 'var(--color-text-muted)',
-                cursor: 'pointer',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s',
-                opacity: refreshing ? 0.6 : 1
-              }}
-            >
-              <span style={{ 
-                display: 'inline-block',
-                animation: refreshing ? 'spin 1s linear infinite' : 'none'
-              }}>↻</span>
-              {lastUpdated ? `Updated ${new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Refresh'}
-            </button>
-            <Button variant="primary" onClick={handleCreateNew}>
-              + New Automation
-            </Button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              {/* Manual refresh button */}
+              <button
+                onClick={() => fetchData(true)}
+                disabled={refreshing}
+                title="Refresh schedule status"
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  background: 'var(--color-bg-secondary)',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s',
+                  opacity: refreshing ? 0.6 : 1
+                }}
+              >
+                <span style={{ 
+                  display: 'inline-block',
+                  animation: refreshing ? 'spin 1s linear infinite' : 'none'
+                }}>↻</span>
+                {lastUpdated ? `Updated ${new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Refresh'}
+              </button>
+              <Button variant="primary" onClick={handleCreateNew}>
+                + New Automation
+              </Button>
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px', maxWidth: '350px', textAlign: 'right' }}>
+              <span style={{ color: '#eab308', fontWeight: 700 }}>Note!</span> 
+              <span>Report may take time to arrive on registered email address after successfully automated scanning.</span>
+            </div>
           </div>
         </div>
 
