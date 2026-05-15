@@ -609,16 +609,21 @@ const DashboardPage = () => {
               </div>
 
               <div style={{ 
-                background: 'var(--color-bg-secondary)', 
+                background: statusFilter === 'AllResources'
+                  ? 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(99,102,241,0.05) 100%)'
+                  : 'var(--color-bg-secondary)', 
                 padding: 'var(--spacing-6)',
                 borderRadius: '16px',
-                border: '1px solid var(--color-border)',
+                border: statusFilter === 'AllResources' ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
                 boxShadow: 'var(--shadow-md)',
                 position: 'relative',
-                overflow: 'hidden'
-              }}>
+                overflow: 'visible',
+                cursor: 'pointer',
+                transition: 'border-color 0.2s, background 0.2s',
+              }}
+              onClick={() => { setStatusFilter(s => s === 'AllResources' ? 'All' : 'AllResources'); setCurrentPage(1); }}>
                 <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  Resources Audited
+                  Total Resources Audited
                   <div style={{ position: 'relative', display: 'inline-block', cursor: 'help' }} 
                        onMouseEnter={(e) => {
                          const tooltip = e.currentTarget.querySelector('div[data-tooltip="resources"]');
@@ -664,7 +669,7 @@ const DashboardPage = () => {
                       width: 'max-content',
                       maxWidth: '280px',
                       border: '1px solid var(--color-border)',
-                      zIndex: 10,
+                      zIndex: 1000,
                       pointerEvents: 'none'
                     }}>
                       <div style={{ fontWeight: 700, marginBottom: '6px', color: 'var(--color-primary)', fontSize: '13px' }}>What are Resources?</div>
@@ -726,17 +731,24 @@ const DashboardPage = () => {
               </div>
 
               {/* ── Vulnerable Resources Card ── */}
-              <div style={{ 
-                background: 'var(--color-bg-secondary)', 
+              <div
+                onClick={() => { setStatusFilter(s => s === 'VulnResources' ? 'All' : 'VulnResources'); setCurrentPage(1); }}
+                style={{ 
+                background: statusFilter === 'VulnResources'
+                  ? 'linear-gradient(135deg, rgba(249,115,22,0.10) 0%, rgba(249,115,22,0.04) 100%)'
+                  : 'var(--color-bg-secondary)', 
                 padding: 'var(--spacing-6)',
                 borderRadius: '16px',
-                border: '1px solid var(--color-border)',
+                border: statusFilter === 'VulnResources' ? '1.5px solid #f97316' : '1px solid var(--color-border)',
                 boxShadow: 'var(--shadow-md)',
                 position: 'relative',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                cursor: 'pointer',
+                transition: 'border-color 0.2s, background 0.2s',
               }}>
                 <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Vulnerable Resources
+                  {statusFilter === 'VulnResources' && <span style={{ fontSize: '9px', padding: '2px 6px', background: 'rgba(239,68,68,0.2)', color: '#ef4444', borderRadius: '4px', fontWeight: 700 }}>ACTIVE</span>}
                   <div style={{ position: 'relative', display: 'inline-block', cursor: 'help' }} 
                        onMouseEnter={(e) => {
                          const tooltip = e.currentTarget.querySelector('div[data-tooltip="vuln-resources"]');
@@ -833,7 +845,7 @@ const DashboardPage = () => {
               <div style={{ flex: 1.5, position: 'relative' }}>
                 <input
                   type="text"
-                  placeholder={statusFilter === 'Secured' ? "Search secured resources..." : "Search vulnerabilities..."}
+                  placeholder={statusFilter === 'Secured' ? 'Search secured resources...' : statusFilter === 'AllResources' ? 'Search all resources...' : statusFilter === 'VulnResources' ? 'Search vulnerable resources...' : 'Search vulnerabilities...'}
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   style={{
@@ -949,8 +961,97 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            {/* Data Table — Vulnerable view */}
-            {statusFilter === 'All' ? (
+            {/* Data Table — panel switch */}
+            {statusFilter === 'VulnResources' ? (
+            /* ── Unique Vulnerable Resources view ── */
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
+                <h2 style={{ fontSize: 'var(--font-size-base)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: '#f97316' }}>⚠️</span> Vulnerable Resources
+                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>({securedStats.vulnCount} / {securedStats.total})</span>
+                </h2>
+              </div>
+              <div style={{ background: 'linear-gradient(135deg,rgba(249,115,22,0.08) 0%,rgba(249,115,22,0.03) 100%)', border:'1px solid rgba(249,115,22,0.2)', borderRadius:'12px', padding:'14px 18px', marginBottom:'20px', fontSize:'13px', color:'var(--color-text-muted)' }}>
+                These {securedStats.vulnCount} resources each have at least one vulnerability finding. Click <strong style={{color:'var(--color-text)'}}>Total Vulnerabilities</strong> to see all {(scanData?.vulnerabilities||[]).length} individual findings.
+              </div>
+              <div style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)', borderRadius:'12px', overflow:'hidden' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'13px' }}>
+                  <thead><tr style={{ borderBottom:'1px solid var(--color-border)', background:'rgba(0,0,0,0.03)' }}>
+                    {['#','Resource','Service','Vulnerabilities','Highest Severity'].map(h=>(
+                      <th key={h} style={{ padding:'10px 14px', textAlign:'left', color:'var(--color-text-muted)', fontWeight:600, fontSize:'11px', textTransform:'uppercase', letterSpacing:'0.06em' }}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {Array.from(new Set((scanData?.vulnerabilities||[]).map(v=>v.resource))).filter(r=>!searchTerm||r?.toLowerCase().includes(searchTerm.toLowerCase())).map((resource,idx)=>{
+                      const resFindings=(scanData?.vulnerabilities||[]).filter(v=>v.resource===resource);
+                      const sevOrder={Critical:0,High:1,Medium:2,Low:3};
+                      const top=resFindings.sort((a,b)=>(sevOrder[a.severity]??4)-(sevOrder[b.severity]??4))[0];
+                      const sevColor=top?.severity==='Critical'?'#dc2626':top?.severity==='High'?'#ea580c':top?.severity==='Medium'?'#ca8a04':'#2563eb';
+                      const svc=resource?.split('(')[0]?.trim()||'—';
+                      return(
+                        <tr key={idx} style={{ borderBottom:'1px solid var(--color-border)', background:idx%2===0?'transparent':'rgba(0,0,0,0.015)' }}>
+                          <td style={{ padding:'10px 14px', color:'var(--color-text-muted)', width:'40px' }}>{idx+1}</td>
+                          <td style={{ padding:'10px 14px', color:'var(--color-text)', fontWeight:500, wordBreak:'break-all', maxWidth:'260px' }}>{resource}</td>
+                          <td style={{ padding:'10px 14px', color:'var(--color-text-muted)' }}>{svc}</td>
+                          <td style={{ padding:'10px 14px', color:'#ef4444', fontWeight:700 }}>{resFindings.length}</td>
+                          <td style={{ padding:'10px 14px' }}><span style={{ padding:'2px 8px', borderRadius:'4px', background:`${sevColor}18`, color:sevColor, fontWeight:700, fontSize:'11px' }}>{top?.severity||'—'}</span></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            ) : statusFilter === 'AllResources' ? (
+            /* ── All Resources view (Vulnerable + Secured) ── */
+            <div>
+              <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'20px' }}>
+                <h2 style={{ fontSize:'var(--font-size-base)', margin:0 }}>All Resources Audited</h2>
+                <span style={{ color:'var(--color-text-muted)', fontWeight:400, fontSize:'var(--font-size-base)' }}>({securedStats.total} / {securedStats.total})</span>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'8px' }}>
+                <div style={{ padding:'12px 16px', borderRadius:'10px', background:'rgba(249,115,22,0.07)', border:'1px solid rgba(249,115,22,0.2)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span style={{ color:'#f97316', fontWeight:700, fontSize:'13px' }}>⚠️ Vulnerable Resources</span>
+                  <span style={{ fontWeight:800, fontSize:'20px', color:'#f97316' }}>{securedStats.vulnCount}</span>
+                </div>
+                <div style={{ padding:'12px 16px', borderRadius:'10px', background:'rgba(34,197,94,0.07)', border:'1px solid rgba(34,197,94,0.2)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span style={{ color:'#22c55e', fontWeight:700, fontSize:'13px' }}>✅ Secured Resources</span>
+                  <span style={{ fontWeight:800, fontSize:'20px', color:'#22c55e' }}>{securedStats.count}</span>
+                </div>
+              </div>
+              <p style={{ fontSize:'12px', color:'var(--color-text-muted)', marginBottom:'16px' }}>
+                Click <strong style={{color:'var(--color-text)'}}>⚠️ Vulnerable Resources</strong> or <strong style={{color:'var(--color-text)'}}>✅ Secured Resources</strong> card for a detailed breakdown.
+              </p>
+              <div style={{ background:'var(--color-bg-secondary)', border:'1px solid var(--color-border)', borderRadius:'12px', overflow:'hidden' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'13px' }}>
+                  <thead><tr style={{ borderBottom:'1px solid var(--color-border)', background:'rgba(0,0,0,0.03)' }}>
+                    {['#','Resource','Status','Findings'].map(h=>(
+                      <th key={h} style={{ padding:'10px 14px', textAlign:'left', color:'var(--color-text-muted)', fontWeight:600, fontSize:'11px', textTransform:'uppercase', letterSpacing:'0.06em' }}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {(()=>{
+                      const vulnSet=new Set((scanData?.vulnerabilities||[]).map(v=>v.resource));
+                      const allRes=[
+                        ...Array.from(vulnSet).map(r=>({name:r,status:'Vulnerable',count:(scanData?.vulnerabilities||[]).filter(v=>v.resource===r).length})),
+                        ...(securedStats.passedServicesArr||[]).flatMap(s=>s.items.map(i=>({name:i.name||i.resource||i,status:'Secured',count:0})))
+                      ].filter(r=>!searchTerm||r.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+                      return allRes.map((r,idx)=>(
+                        <tr key={idx} style={{ borderBottom:'1px solid var(--color-border)', background:idx%2===0?'transparent':'rgba(0,0,0,0.015)' }}>
+                          <td style={{ padding:'10px 14px', color:'var(--color-text-muted)', width:'40px' }}>{idx+1}</td>
+                          <td style={{ padding:'10px 14px', color:'var(--color-text)', fontWeight:500, wordBreak:'break-all', maxWidth:'320px' }}>{r.name}</td>
+                          <td style={{ padding:'10px 14px' }}>
+                            <span style={{ padding:'2px 8px', borderRadius:'4px', background:r.status==='Vulnerable'?'rgba(249,115,22,0.12)':'rgba(34,197,94,0.12)', color:r.status==='Vulnerable'?'#f97316':'#22c55e', fontWeight:700, fontSize:'11px' }}>{r.status}</span>
+                          </td>
+                          <td style={{ padding:'10px 14px', color:r.count>0?'#ef4444':'#22c55e', fontWeight:600 }}>{r.count>0?r.count:'—'}</td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            ) : statusFilter === 'All' ? (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)' }}>
                 <h2 style={{ fontSize: 'var(--font-size-base)', margin: 0 }}>Vulnerability Findings <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>({processedData.totalItems})</span></h2>
