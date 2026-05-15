@@ -15,25 +15,25 @@ const TOUR_STEPS = [
         target: 'tour-sidebar-dashboard',
         placement: 'right',
         icon: '📊',
-        title: 'Dashboard',
+        title: 'Active Scan',
         description: 'This is your command centre. After every scan, all your results appear here — security score, vulnerability breakdown, and a searchable findings table.',
         tag: 'Navigation',
-    },
-    {
-        target: 'tour-navbar-provider',
-        placement: 'bottom',
-        icon: <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" /></svg>,
-        title: 'Choose Your Cloud Provider',
-        description: 'Start by selecting your cloud platform. Currently supports Google Cloud Platform (GCP) and Amazon Web Services (AWS). Azure is coming soon.',
-        tag: 'Step 1 of 2',
     },
     {
         target: 'tour-navbar-scan',
         placement: 'bottom',
         icon: '🔍',
-        title: 'Run the Security Audit',
-        description: "Click Scan to upload your credentials and kick off a full audit. AuditScope checks IAM roles, storage buckets, networking rules, compute VMs, and more — all in parallel.",
-        tag: 'Step 2 of 2',
+        title: 'Start a Security Audit',
+        description: "Click the Scan button at the top-right to open the audit modal. From there you'll choose your cloud provider — AWS, GCP, or Azure — and enter your credentials to kick off the scan.",
+        tag: 'Run Audit',
+    },
+    {
+        target: 'tour-navbar-scan',
+        placement: 'bottom',
+        icon: '🔑',
+        title: 'Choose Provider & Enter Credentials',
+        description: 'Inside the Scan modal, select your cloud platform and paste in your credentials (Access Key for AWS, Service Account JSON for GCP, or Service Principal for Azure). Hit Run Scan — we check 80+ security points in parallel.',
+        tag: 'Run Audit',
     },
     {
         target: 'tour-sidebar-projects',
@@ -107,27 +107,37 @@ const getPanels = (rect, vpW, vpH) => {
 };
 
 // ─── Card position ─────────────────────────────────────────────────────────────
+// NOTE: rect here is panels.spotlight = {top, left, width, height}
+// It does NOT have .right or .bottom properties — compute them manually.
 const getCardPos = (rect, placement, vpW, vpH) => {
     const CARD_H = 310;
+    const GAP = 12; // gap between spotlight edge and card
     if (placement === 'center' || !rect) {
         return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' };
     }
+    // Compute derived edges (spotlight doesn't expose .right / .bottom)
+    const sRight  = rect.left + rect.width;
+    const sBottom = rect.top  + rect.height;
+
     if (placement === 'right') {
-        const left = rect.right + PAD + 18;
+        const left = sRight + GAP;
         let top = rect.top + rect.height / 2 - CARD_H / 2;
         top = Math.max(16, Math.min(top, vpH - CARD_H - 16));
-        if (left + CARD_W > vpW - 12) {
-            // Not enough room on right → place below
+        // Not enough room on right → fall back to below
+        if (left + CARD_W > vpW - 16) {
             const cardLeft = Math.max(16, Math.min(rect.left, vpW - CARD_W - 16));
-            return { position: 'fixed', top: rect.bottom + PAD + 16, left: cardLeft };
+            return { position: 'fixed', top: Math.min(sBottom + GAP, vpH - CARD_H - 16), left: cardLeft };
         }
         return { position: 'fixed', top, left };
     }
     if (placement === 'bottom') {
         let left = rect.left + rect.width / 2 - CARD_W / 2;
         left = Math.max(16, Math.min(left, vpW - CARD_W - 16));
-        const top = rect.bottom + PAD + 18;
-        return { position: 'fixed', top, left };
+        // Not enough room below → place above
+        if (sBottom + GAP + CARD_H > vpH - 16) {
+            return { position: 'fixed', top: Math.max(16, rect.top - GAP - CARD_H), left };
+        }
+        return { position: 'fixed', top: sBottom + GAP, left };
     }
     return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' };
 };
