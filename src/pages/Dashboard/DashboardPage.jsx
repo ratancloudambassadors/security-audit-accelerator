@@ -89,22 +89,29 @@ const DashboardPage = () => {
   useEffect(() => {
     // Priority 1: came from ScanHistory page with a specific scan to view
     const historicalScan = sessionStorage.getItem('history_scan_view');
-    const latestScan = localStorage.getItem('latest_scan_result');
     
     if (historicalScan) {
       console.log('Dashboard loading historical scan from ScanHistory click');
       const scan = JSON.parse(historicalScan);
       setScanData(scan);
-      sessionStorage.removeItem('history_scan_view'); // clean up immediately
-      // Do NOT load latest_scan_result — this scan takes full priority
-    } else if (latestScan) {
-      console.log('Dashboard loading latest scan result');
-      const scan = JSON.parse(latestScan);
-      setScanData(scan);
+      // Save it so if they navigate away and back, it persists
+      localStorage.setItem('last_viewed_scan', historicalScan);
+      sessionStorage.removeItem('history_scan_view'); // clean up the handoff
+    } else {
+      // Priority 2: Load the last viewed scan (persists across navigation)
+      const lastViewed = localStorage.getItem('last_viewed_scan');
+      // Priority 3: Fallback to the latest scan result
+      const latestScan = localStorage.getItem('latest_scan_result');
       
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('scanCompleted', { detail: scan }));
-      }, 50);
+      if (lastViewed) {
+        console.log('Dashboard loading last viewed scan');
+        const scan = JSON.parse(lastViewed);
+        setScanData(scan);
+      } else if (latestScan) {
+        console.log('Dashboard loading latest scan result');
+        const scan = JSON.parse(latestScan);
+        setScanData(scan);
+      }
     }
   }, []);
 
@@ -112,6 +119,9 @@ const DashboardPage = () => {
     const handleScanComplete = (e) => {
       console.log('Dashboard received new scan data:', e.detail);
       setScanData(e.detail);
+      // Save it as the active view so navigation doesn't kill it
+      localStorage.setItem('last_viewed_scan', JSON.stringify(e.detail));
+      
       // Reset filters on new scan
       setSearchTerm('');
       setSeverityFilter('All');
