@@ -7,7 +7,8 @@ const ScannerModal = ({ isOpen, onClose, provider: initialProvider, onScanComple
   const [activeTab, setActiveTab] = useState('upload'); // 'upload' or 'paste'
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isScanning) {
+      // Only reset state on a fresh open, not when re-opening mid-scan
       setProvider(initialProvider || null);
       setFile(null);
       setJsonText('');
@@ -20,7 +21,7 @@ const ScannerModal = ({ isOpen, onClose, provider: initialProvider, onScanComple
       setError(null);
       setActiveTab('upload');
     }
-  }, [isOpen, initialProvider]);
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   const [completedResults, setCompletedResults] = useState(null);
   const [file, setFile] = useState(null);
   const [jsonText, setJsonText] = useState('');
@@ -257,7 +258,7 @@ const ScannerModal = ({ isOpen, onClose, provider: initialProvider, onScanComple
             <button className={styles.minimizeBtn} onClick={onClose} title="Minimize to background">−</button>
             <div className={styles.scannerRing}></div>
             <h2 className={styles.scanPercentage}>{scanProgress}%</h2>
-            <h2 className={styles.scanTitle}>Auditing {provider.toUpperCase()} Infrastructure</h2>
+            <h2 className={styles.scanTitle}>Auditing {(provider || 'Cloud').toUpperCase()} Infrastructure</h2>
             <p className={styles.scanSubtitle}>Analyzing IAM configurations, firewalls, and storage blobs...</p>
           </div>
         ) : !provider ? (
@@ -286,7 +287,7 @@ const ScannerModal = ({ isOpen, onClose, provider: initialProvider, onScanComple
             <div className={styles.header}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <button className={styles.backBtn} onClick={() => setProvider(null)}>← Back</button>
-                <h2 className={styles.title}>Scan {provider.toUpperCase()} Environment</h2>
+                <h2 className={styles.title}>Scan {(provider || 'Cloud').toUpperCase()} Environment</h2>
               </div>
               <button className={styles.closeBtn} onClick={onClose}>×</button>
             </div>
