@@ -204,23 +204,76 @@ function generatePDF(scanData, userName, projectId) {
       doc.moveTo(50, currentY).lineTo(doc.page.width - 50, currentY).strokeColor(slate200).lineWidth(1).stroke();
       currentY += 16;
     } else {
-      // ── SUMMARY BOX (fallback – Dashboard report style) ─────────────────
-      const score     = scanData.score || 0;
-      const vulnCount = scanData.vulnerabilities?.length || 0;
-      const scanned   = scanData.scanned || 0;
+      // ── SUMMARY CARDS (Dashboard report style — 4 cards matching the UI) ──
+      const score       = scanData.score || 0;
+      const vulns       = Array.isArray(scanData.vulnerabilities) ? scanData.vulnerabilities : [];
+      const vulnCount   = vulns.length;
+      const scanned     = scanData.scanned || 0;
+      const passed      = Array.isArray(scanData.passedResources) ? scanData.passedResources : [];
+      const securedCnt  = passed.length;
+      const vulnResSet  = new Set(vulns.map(v => v.resource));
+      const vulnResCnt  = vulnResSet.size;
+      const critCount   = vulns.filter(v => v.severity === 'Critical').length;
+      const highCount   = vulns.filter(v => v.severity === 'High').length;
+      const medCount    = vulns.filter(v => v.severity === 'Medium').length;
+      const lowCount    = vulns.filter(v => v.severity === 'Low').length;
+      const secPct      = scanned > 0 ? Math.round((securedCnt / scanned) * 100) : 0;
 
-      doc.roundedRect(50, currentY, doc.page.width - 100, 80, 8).fill(slate800);
-      doc.fontSize(26).fillColor(score > 80 ? '#22c55e' : score > 50 ? '#eab308' : '#ef4444')
-         .text(`${score}%`, 80, currentY + 15);
-      doc.fontSize(8).fillColor('#94a3b8').text('SECURITY SCORE', 80, currentY + 50);
+      // Section label
+      doc.fontSize(9).fillColor(slate600).text('AUDIT OVERVIEW', 50, currentY, { characterSpacing: 1.2 });
+      doc.moveTo(50, currentY + 13).lineTo(doc.page.width - 50, currentY + 13).strokeColor(slate200).lineWidth(0.7).stroke();
+      currentY += 20;
 
-      doc.fontSize(26).fillColor('#ffffff').text(`${vulnCount}`, 230, currentY + 15);
-      doc.fontSize(8).fillColor('#94a3b8').text('VULNERABILITIES', 230, currentY + 50);
+      // 4 metric cards
+      const cardW4 = (doc.page.width - 100 - 18) / 4;
+      const cards4 = [
+        { label: 'TOTAL VULNERABILITIES', value: String(vulnCount),   color: '#ef4444', bg: '#fef2f2' },
+        { label: 'RESOURCES AUDITED',      value: String(scanned),    color: '#1e293b', bg: slate50   },
+        { label: 'VULNERABLE RESOURCES',   value: String(vulnResCnt), color: '#f97316', bg: '#fff7ed' },
+        { label: 'SECURED RESOURCES',      value: `${securedCnt}/${scanned}`, color: '#22c55e', bg: '#f0fdf4' },
+      ];
+      cards4.forEach((c, i) => {
+        const bx = 50 + i * (cardW4 + 6);
+        doc.roundedRect(bx, currentY, cardW4, 60, 6).fill(c.bg);
+        doc.roundedRect(bx, currentY, cardW4, 3, 2).fill(c.color);
+        doc.fontSize(i === 3 ? 13 : 18).fillColor(c.color)
+           .text(c.value, bx + 4, currentY + 14, { width: cardW4 - 8, align: 'center' });
+        doc.fontSize(6).fillColor(slate600)
+           .text(c.label, bx + 4, currentY + 44, { width: cardW4 - 8, align: 'center', characterSpacing: 0.4 });
+      });
+      currentY += 70;
 
-      doc.fontSize(26).fillColor('#ffffff').text(`${scanned}`, 420, currentY + 15);
-      doc.fontSize(8).fillColor('#94a3b8').text('RESOURCES SCANNED', 420, currentY + 50);
+      // Severity breakdown strip
+      doc.roundedRect(50, currentY, doc.page.width - 100, 32, 6).fill(slate100);
+      doc.fontSize(7).fillColor(slate600).text('SEVERITY BREAKDOWN:', 62, currentY + 8);
+      const sevItems4 = [
+        { label: 'Critical', value: critCount, color: '#dc2626' },
+        { label: 'High',     value: highCount, color: '#ea580c' },
+        { label: 'Medium',   value: medCount,  color: '#ca8a04' },
+        { label: 'Low',      value: lowCount,  color: '#2563eb' },
+      ];
+      let sx4 = 170;
+      sevItems4.forEach(sv => {
+        const lbl = `${sv.label}: ${sv.value}`;
+        doc.fontSize(9).fillColor(sv.color).text(lbl, sx4, currentY + 12);
+        sx4 += doc.widthOfString(lbl) + 28;
+      });
+      currentY += 44;
 
-      currentY += 96;
+      // Audit quality row
+      const totalChecks = scanData.totalChecks || 77;
+      const skipped = (() => { try { return typeof scanData.skippedChecks === 'string' ? JSON.parse(scanData.skippedChecks).length : (Array.isArray(scanData.skippedChecks) ? scanData.skippedChecks.length : 0); } catch(e){ return 0; } })();
+      const completed = totalChecks - skipped;
+      const qualityPct = Math.round((completed / totalChecks) * 100);
+      doc.fontSize(8).fillColor(slate600)
+         .text(`Audit Quality: `, 50, currentY, { continued: true })
+         .fillColor(qualityPct > 80 ? '#2563eb' : '#eab308')
+         .text(`${qualityPct}%  `, { continued: true })
+         .fillColor(slate600)
+         .text(`(${completed}/${totalChecks} Validations)   Security Score: `, { continued: true })
+         .fillColor(score > 80 ? '#22c55e' : score > 50 ? '#eab308' : '#ef4444')
+         .text(`${score}%`);
+      currentY += 20;
     }
 
     // ── FINDINGS TABLES BY SERVICE ────────────────────────────────────────
@@ -267,14 +320,16 @@ function generatePDF(scanData, userName, projectId) {
 
           // Column headers
           doc.fontSize(7).fillColor(slate600);
-          doc.text('SEVERITY', 50,  currentY);
-          doc.text('RESOURCE', 110, currentY);
+          doc.text('#',        50,  currentY, { width: 22 });
+          doc.text('SEVERITY', 74,  currentY);
+          doc.text('RESOURCE', 130, currentY);
           doc.text('ISSUE DESCRIPTION & REMEDIATION', 280, currentY);
           currentY += 12;
 
+          let rowIdx = 1;
           for (const vuln of checkpointGroups[cpName]) {
             const issueText = `Issue: ${vuln.issue || '-'}\nRemediation: ${vuln.remediation || '-'}`;
-            const issueH = doc.heightOfString(issueText, { width: 270, fontSize: 7.5 });
+            const issueH = doc.heightOfString(issueText, { width: 265, fontSize: 7.5 });
             
             // Check if room for at least one info block
             if (currentY + issueH + 10 > doc.page.height - 60) {
@@ -282,8 +337,9 @@ function generatePDF(scanData, userName, projectId) {
               currentY = 50;
               // Re-draw headers on new page
               doc.fontSize(7).fillColor(slate600);
-              doc.text('SEVERITY', 50,  currentY);
-              doc.text('RESOURCE', 110, currentY);
+              doc.text('#',        50,  currentY, { width: 22 });
+              doc.text('SEVERITY', 74,  currentY);
+              doc.text('RESOURCE', 130, currentY);
               doc.text('ISSUE DESCRIPTION & REMEDIATION', 280, currentY);
               currentY += 12;
             }
@@ -292,12 +348,14 @@ function generatePDF(scanData, userName, projectId) {
                            : vuln.severity === 'High'     ? '#ea580c'
                            : vuln.severity === 'Medium'   ? '#ca8a04' : '#2563eb';
 
-            doc.fontSize(7.5).fillColor(sevColor).text(vuln.severity || '-', 50,  currentY, { width: 55 });
-            doc.fontSize(7.5).fillColor(slate800).text(vuln.resource || '-', 110, currentY, { width: 160 });
-            doc.fontSize(7.5).fillColor(slate600).text(issueText, 280, currentY, { width: 270, lineGap: 1 });
+            doc.fontSize(7).fillColor(slate600).text(String(rowIdx), 50, currentY, { width: 20, align: 'right' });
+            doc.fontSize(7.5).fillColor(sevColor).text(vuln.severity || '-', 74,  currentY, { width: 52 });
+            doc.fontSize(7.5).fillColor(slate800).text(vuln.resource || '-', 130, currentY, { width: 145 });
+            doc.fontSize(7.5).fillColor(slate600).text(issueText, 280, currentY, { width: 265, lineGap: 1 });
 
             currentY += Math.max(issueH, 15) + 12;
             doc.moveTo(50, currentY - 6).lineTo(doc.page.width - 50, currentY - 6).strokeColor(slate100).lineWidth(0.3).stroke();
+            rowIdx++;
           }
           currentY += 10;
         }
@@ -306,6 +364,67 @@ function generatePDF(scanData, userName, projectId) {
     } else {
       if (currentY > doc.page.height - 60) { doc.addPage(); currentY = 50; }
       doc.fontSize(13).fillColor('#16a34a').text('No vulnerabilities found. Your infrastructure looks secure! ✓', 50, currentY);
+      currentY += 24;
+    }
+
+    // ── SECURED RESOURCES SECTION ─────────────────────────────────────────
+    const passedResources = Array.isArray(scanData.passedResources) ? scanData.passedResources : [];
+    if (passedResources.length > 0) {
+      if (currentY > doc.page.height - 100) { doc.addPage(); currentY = 50; }
+
+      doc.fontSize(12).fillColor('#16a34a').text(`Secured Resources (${passedResources.length})`, 50, currentY);
+      doc.moveTo(50, currentY + 16).lineTo(doc.page.width - 50, currentY + 16).strokeColor('#bbf7d0').lineWidth(1).stroke();
+      currentY += 26;
+
+      // Summary banner
+      if (currentY > doc.page.height - 60) { doc.addPage(); currentY = 50; }
+      doc.roundedRect(50, currentY, doc.page.width - 100, 36, 8).fill('#f0fdf4');
+      doc.fontSize(10).fillColor('#16a34a')
+         .text(`\u2713  ${passedResources.length} out of ${scanData.scanned || 0} resources had no vulnerability findings`,
+               66, currentY + 11, { width: doc.page.width - 132 });
+      currentY += 48;
+
+      // Group by service
+      const secByService = {};
+      passedResources.forEach(item => {
+        const svc = item.service || 'Unknown Service';
+        if (!secByService[svc]) secByService[svc] = [];
+        secByService[svc].push(item);
+      });
+
+      for (const svcName of Object.keys(secByService).sort()) {
+        const items = secByService[svcName];
+        if (currentY > doc.page.height - 80) { doc.addPage(); currentY = 50; }
+
+        // Service header
+        doc.roundedRect(50, currentY, doc.page.width - 100, 24, 4).fill('#dcfce7');
+        doc.fontSize(9).fillColor('#15803d')
+           .text(`${svcName.toUpperCase()}`, 62, currentY + 7, { continued: true });
+        doc.fontSize(8).fillColor('#16a34a')
+           .text(`   \u2014 ${items.length} Secured Resource${items.length !== 1 ? 's' : ''}`, { continued: false });
+        currentY += 30;
+
+        // Column headers
+        doc.fontSize(7).fillColor(slate600);
+        doc.text('#',             50, currentY, { width: 22, align: 'right' });
+        doc.text('RESOURCE NAME', 76, currentY);
+        currentY += 12;
+
+        items.forEach((item, idx) => {
+          if (currentY > doc.page.height - 50) { doc.addPage(); currentY = 50; }
+
+          const rowBg = idx % 2 === 0 ? '#ffffff' : '#f0fdf4';
+          doc.rect(50, currentY - 2, doc.page.width - 100, 16).fill(rowBg);
+          doc.fontSize(7).fillColor(slate600).text(String(idx + 1), 50, currentY, { width: 22, align: 'right' });
+          doc.fontSize(7.5).fillColor('#15803d').text('\u2713', 78, currentY, { width: 14 });
+          doc.fontSize(7.5).fillColor(slate800).text(item.name || 'Unknown Resource', 94, currentY, { width: doc.page.width - 144 });
+
+          currentY += 18;
+          doc.moveTo(50, currentY - 2).lineTo(doc.page.width - 50, currentY - 2).strokeColor('#dcfce7').lineWidth(0.3).stroke();
+        });
+
+        currentY += 12;
+      }
     }
 
     // ── FOOTER (all pages) ─────────────────────────────────────────────
