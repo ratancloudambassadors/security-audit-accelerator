@@ -1108,47 +1108,78 @@ const DashboardPage = () => {
                     );
                   }
 
-                  return filteredServices.map((svc, sIdx) => (
-                    <Card key={sIdx} style={{ padding: 0, overflow: 'hidden', border: '1px solid rgba(34,197,94,0.3)' }}>
-                      <div style={{ 
-                        background: 'linear-gradient(90deg, rgba(34,197,94,0.12) 0%, rgba(16,185,129,0.05) 100%)', 
-                        padding: '16px 20px', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'space-between',
-                        borderBottom: '1px solid rgba(34,197,94,0.2)'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontSize: '20px' }}>🛡️</span>
-                          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#16a34a' }}>
-                            {svc.name}
-                          </h3>
+                  const totalSecuredPages = Math.ceil(filteredServices.length / servicesPerPage);
+                  const startIndex = (currentPage - 1) * servicesPerPage;
+                  const paginatedFilteredServices = filteredServices.slice(startIndex, startIndex + servicesPerPage);
+
+                  return (
+                    <>
+                      {/* Secured Pagination Controls */}
+                      {totalSecuredPages > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
+                          <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            style={{ padding: '2px 8px', background: 'var(--color-background-light)', border: '1px solid var(--color-border)', borderRadius: '4px', color: currentPage === 1 ? 'var(--color-text-muted)' : 'var(--color-text)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                          >
+                            Prev
+                          </button>
+                          <span style={{ margin: '0 8px', color: 'var(--color-text-muted)' }}>
+                            Page {currentPage} of {totalSecuredPages}
+                          </span>
+                          <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalSecuredPages}
+                            style={{ padding: '2px 8px', background: 'var(--color-background-light)', border: '1px solid var(--color-border)', borderRadius: '4px', color: currentPage === totalSecuredPages ? 'var(--color-text-muted)' : 'var(--color-text)', cursor: currentPage === totalSecuredPages ? 'not-allowed' : 'pointer' }}
+                          >
+                            Next
+                          </button>
                         </div>
-                        <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '20px', fontWeight: 600,
-                          background: 'rgba(34,197,94,0.15)',
-                          color: '#15803d',
-                          border: '1px solid rgba(34,197,94,0.3)'
-                        }}>
-                          {svc.items.length} Secured Resource{svc.items.length !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      
-                      <div style={{ padding: '0' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                          <tbody>
-                            {svc.items.map((item, iIdx) => (
-                              <tr key={iIdx} style={{ borderBottom: iIdx === svc.items.length - 1 ? 'none' : '1px solid var(--color-border)' }}>
-                                <td style={{ padding: '14px 20px', fontSize: '13px', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <span style={{ color: '#22c55e', fontSize: '16px' }}>✓</span>
-                                  <span style={{ fontWeight: 500 }}>{item.name || 'Unknown Resource'}</span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </Card>
-                  ));
+                      )}
+
+                      {paginatedFilteredServices.map((svc, sIdx) => (
+                        <Card key={sIdx} style={{ padding: 0, overflow: 'hidden', border: '1px solid rgba(34,197,94,0.3)' }}>
+                          <div style={{ 
+                            background: 'linear-gradient(90deg, rgba(34,197,94,0.12) 0%, rgba(16,185,129,0.05) 100%)', 
+                            padding: '16px 20px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between',
+                            borderBottom: '1px solid rgba(34,197,94,0.2)'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{ fontSize: '20px' }}>🛡️</span>
+                              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#16a34a' }}>
+                                {svc.name}
+                              </h3>
+                            </div>
+                            <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '20px', fontWeight: 600,
+                              background: 'rgba(34,197,94,0.15)',
+                              color: '#15803d',
+                              border: '1px solid rgba(34,197,94,0.3)'
+                            }}>
+                              {svc.items.length} Secured Resource{svc.items.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          
+                          <div style={{ padding: '0' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                              <tbody>
+                                {svc.items.map((item, iIdx) => (
+                                  <tr key={iIdx} style={{ borderBottom: iIdx === svc.items.length - 1 ? 'none' : '1px solid var(--color-border)' }}>
+                                    <td style={{ padding: '14px 20px', fontSize: '13px', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      <span style={{ color: '#22c55e', fontSize: '16px' }}>✓</span>
+                                      <span style={{ fontWeight: 500 }}>{item.name || 'Unknown Resource'}</span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </Card>
+                      ))}
+                    </>
+                  );
                 })()}
               </div>
             </div>
