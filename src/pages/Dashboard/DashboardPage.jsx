@@ -94,8 +94,8 @@ const DashboardPage = () => {
       console.log('Dashboard loading historical scan from ScanHistory click');
       const scan = JSON.parse(historicalScan);
       setScanData(scan);
-      // Save it so if they navigate away and back, it persists
-      localStorage.setItem('last_viewed_scan', historicalScan);
+      // NOTE: Do NOT save to last_viewed_scan — this is a history view, not an active scan.
+      // Saving it would cause the navbar & other pages to treat it as the current active scan.
       sessionStorage.removeItem('history_scan_view'); // clean up the handoff
     } else {
       // Priority 2: Load the last viewed scan (persists across navigation)
@@ -266,16 +266,20 @@ const DashboardPage = () => {
     return Array.from(services).sort();
   }, [scanData]);
 
-  // Secured resources: resources that are explicitly listed in passedResources
+  // Secured resources
   const securedStats = useMemo(() => {
-    if (!scanData) return { count: 0, total: 0, pct: 100, passedItems: [] };
+    if (!scanData) return { count: 0, confirmedCount: 0, total: 0, pct: 100, passedItems: [] };
     const total = scanData.scanned || 0;
     const vulnResources = new Set((scanData.vulnerabilities || []).map(v => v.resource));
     const vulnCount = vulnResources.size;
 
+    // Mathematically correct secured count: Total − Vulnerable = secured
+    // This ensures: vulnCount + securedCount = total (no missing resources)
+    const securedCount = Math.max(0, total - vulnCount);
+
     const passedItems = Array.isArray(scanData.passedResources) ? scanData.passedResources : [];
-    // Use ACTUAL passedResources count — this is what we show in the table
-    const securedCount = passedItems.length;
+    // Confirmed count = what the backend explicitly logged as passed (shown in table)
+    const confirmedCount = passedItems.length;
 
     // Group passed items by service
     const passedByService = {};
@@ -291,7 +295,8 @@ const DashboardPage = () => {
     }));
 
     return {
-      count: securedCount,
+      count: securedCount,         // Card number (mathematically correct)
+      confirmedCount,              // Table row count (backend-confirmed)
       total,
       pct: total > 0 ? Math.round((securedCount / total) * 100) : 100,
       vulnCount,
@@ -695,7 +700,14 @@ const DashboardPage = () => {
                   </div>
                 </h3>
                 <div style={{ fontSize: '36px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-                  {scanData?.scanned !== undefined ? scanData.scanned : new Set(processedData.filteredAllItems.map(v => v.resource)).size}
+                  {(() => {
+                    const scanned = scanData?.scanned !== undefined
+                      ? scanData.scanned
+                      : new Set(processedData.filteredAllItems.map(v => v.resource)).size;
+                    return (
+                      <>{scanned}<span style={{ fontSize: '18px', color: 'var(--color-text-muted)', fontWeight: 400 }}> / {scanned}</span></>
+                    );
+                  })()}
                 </div>
                 <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
                   Audit Quality: <span style={{ color: dashboardCoverage.percent > 80 ? 'var(--color-primary)' : '#eab308', fontWeight: 600 }}>{dashboardCoverage.percent}%</span>
@@ -753,7 +765,7 @@ const DashboardPage = () => {
                   </div>
                 </h3>
                 <div style={{ fontSize: '36px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-                  {securedStats.vulnCount}
+                  {securedStats.vulnCount}<span style={{ fontSize: '18px', color: 'var(--color-text-muted)', fontWeight: 400 }}> / {securedStats.total}</span>
                 </div>
                 <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ color: '#ef4444', fontWeight: 600 }}>{((securedStats.vulnCount / (securedStats.total || 1)) * 100).toFixed(0)}%</span> of total audited resources
@@ -1065,12 +1077,18 @@ const DashboardPage = () => {
               {/* Summary banner */}
               <div style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(16,185,129,0.05) 100%)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '14px', padding: '20px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '24px' }}>
                 <div style={{ fontSize: '48px', lineHeight: 1 }}>🛡️</div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '22px', fontWeight: 800, color: '#22c55e', letterSpacing: '-0.02em' }}>
                     {securedStats.count} <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-muted)' }}>out of {securedStats.total} resources had no vulnerability findings</span>
                   </div>
                   <div style={{ marginTop: '6px', fontSize: '13px', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-                    These resources passed all security checkpoints in this audit. {securedStats.vulnCount} resource{securedStats.vulnCount !== 1 ? 's' : ''} had at least one finding and appear in the <strong>⚠️ Vulnerable</strong> view.
+                    {securedStats.vulnCount} resource{securedStats.vulnCount !== 1 ? 's' : ''} had at least one finding and appear in the <strong>⚠️ Vulnerable</strong> view.
+                    {securedStats.confirmedCount < securedStats.count && (
+                      <span style={{ display: 'block', marginTop: '6px', padding: '6px 10px', background: 'rgba(234,179,8,0.08)', borderRadius: '8px', border: '1px solid rgba(234,179,8,0.2)', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                        ℹ️ <strong style={{ color: 'var(--color-text)' }}>{securedStats.confirmedCount}</strong> explicitly confirmed safe resources are listed below.
+                        The remaining <strong style={{ color: 'var(--color-text)' }}>{securedStats.count - securedStats.confirmedCount}</strong> had no vulnerabilities found but were not individually logged by the scanner.
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

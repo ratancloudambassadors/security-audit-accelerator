@@ -40,7 +40,7 @@ const DashboardNavbar = () => {
   const [scanBackgroundStatus, setScanBackgroundStatus] = useState('idle'); // idle, scanning, completed
   const [profileOpen, setProfileOpen] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('auditscope_theme') || 'light');
-  const [hasData, setHasData] = useState(!!localStorage.getItem('latest_scan_result') || !!localStorage.getItem('last_viewed_scan'));
+  const [hasData, setHasData] = useState(!!localStorage.getItem('latest_scan_result'));
   const profileRef = useRef(null);
 
   useEffect(() => {

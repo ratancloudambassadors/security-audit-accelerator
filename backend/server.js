@@ -141,7 +141,7 @@ app.post('/api/scan/gcp', authenticateToken, async (req, res) => {
       }
     });
 
-    // Calculate dynamic security score based on percentage of healthy resources
+    // Calculate security score: percentage of secured (zero-finding) resources
     const criticalCount = allFindings.filter(f => f.severity === 'Critical').length;
     const highCount = allFindings.filter(f => f.severity === 'High').length;
     const mediumCount = allFindings.filter(f => f.severity === 'Medium').length;
@@ -150,10 +150,10 @@ app.post('/api/scan/gcp', authenticateToken, async (req, res) => {
     const vulnerableResourceNames = new Set(allFindings.map(f => f.resource));
     const uniqueVulnerableResources = vulnerableResourceNames.size;
 
-    // Extract exactly which resources were 100% secured
+    // Secured resources = resources scanned that have zero vulnerability findings
     const securedResourcesList = allScannedResources.filter(r => !vulnerableResourceNames.has(r.name));
 
-    // Score represents the percentage of completely healthy resources
+    // Score = (Secured Resources / Total Scanned) × 100
     let computedScore = 100;
     if (totalScanned > 0) {
       computedScore = Math.round(((totalScanned - uniqueVulnerableResources) / totalScanned) * 100);
