@@ -215,6 +215,7 @@ const ScannerModal = ({ isOpen, onClose, provider: initialProvider, onScanComple
           issue: f.issue,
           remediation: f.remediation
         })),
+        passedResources: rawResults.passedResources || [],
         scanned: rawResults.summary.scannedResources,
         provider: provider
       };

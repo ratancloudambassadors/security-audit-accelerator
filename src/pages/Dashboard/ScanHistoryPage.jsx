@@ -117,10 +117,20 @@ const ScanHistoryPage = () => {
     // Ensure findings is a proper array
     const findings = Array.isArray(scan.findings) ? scan.findings : [];
     
+    let parsedPassedResources = [];
+    if (typeof scan.passedResources === 'string') {
+      try {
+        parsedPassedResources = JSON.parse(scan.passedResources);
+      } catch(e) { console.error('Failed to parse passedResources:', e); }
+    } else if (Array.isArray(scan.passedResources)) {
+      parsedPassedResources = scan.passedResources;
+    }
+
     // Map the full scan history record to the exact shape DashboardPage expects
     const adaptedData = {
       score: scan.score,
       vulnerabilities: findings,
+      passedResources: parsedPassedResources,
       scanned: scan.scannedResources,
       provider: scan.project?.provider || 'gcp',
       dbProjectId: scan.projectId,
