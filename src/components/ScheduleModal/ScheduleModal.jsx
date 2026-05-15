@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../Card/Card';
 import Button from '../Button/Button';
+import toast from 'react-hot-toast';
 
 const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectName: initialProjectName }) => {
     const [step, setStep] = useState(1);
@@ -186,6 +187,15 @@ const ScheduleModal = ({ isOpen, onClose, projectId: initialProjectId, projectNa
 
             if (res.ok) {
                 setSuccess(true);
+                toast('Note! Report may take time to arrive on registered email address after successfully automated scanning.', {
+                    icon: 'ℹ️',
+                    duration: 5000,
+                    style: {
+                        borderRadius: '10px',
+                        background: '#333',
+                        color: '#fff',
+                    },
+                });
                 setTimeout(() => {
                     setSuccess(false);
                     onClose();
