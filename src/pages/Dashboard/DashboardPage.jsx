@@ -82,6 +82,7 @@ const DashboardPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState('All');
   const [serviceFilter, setServiceFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Secured'
   const [currentPage, setCurrentPage] = useState(1);
   const servicesPerPage = 2;
 
@@ -115,6 +116,7 @@ const DashboardPage = () => {
       setSearchTerm('');
       setSeverityFilter('All');
       setServiceFilter('all');
+      setStatusFilter('All');
       setCurrentPage(1);
     };
 
@@ -239,12 +241,51 @@ const DashboardPage = () => {
   }, [scanData, searchTerm, severityFilter, serviceFilter, currentPage]);
 
   const allServices = useMemo(() => {
-    if (!scanData || !scanData.vulnerabilities || !Array.isArray(scanData.vulnerabilities)) return [];
+    if (!scanData) return [];
     const services = new Set();
-    scanData.vulnerabilities.forEach(v => {
-      services.add(getServiceName(v.resource));
-    });
+    if (scanData.vulnerabilities && Array.isArray(scanData.vulnerabilities)) {
+      scanData.vulnerabilities.forEach(v => {
+        services.add(getServiceName(v.resource));
+      });
+    }
+    if (scanData.passedResources && Array.isArray(scanData.passedResources)) {
+      scanData.passedResources.forEach(r => {
+        services.add(r.service || 'Unknown Service');
+      });
+    }
     return Array.from(services).sort();
+  }, [scanData]);
+
+  // Secured resources: resources that were scanned but have NO vulnerability findings
+  const securedStats = useMemo(() => {
+    if (!scanData) return { count: 0, total: 0, pct: 100, passedItems: [] };
+    const total = scanData.scanned || 0;
+    const vulnResources = new Set((scanData.vulnerabilities || []).map(v => v.resource));
+    const vulnCount = vulnResources.size;
+    const securedCount = Math.max(0, total - vulnCount);
+
+    const passedItems = Array.isArray(scanData.passedResources) ? scanData.passedResources : [];
+
+    // Group passed items by service
+    const passedByService = {};
+    passedItems.forEach(item => {
+      const svc = item.service || 'Unknown Service';
+      if (!passedByService[svc]) passedByService[svc] = [];
+      passedByService[svc].push(item);
+    });
+
+    const passedServicesArr = Object.keys(passedByService).sort().map(svc => ({
+      name: svc,
+      items: passedByService[svc]
+    }));
+
+    return {
+      count: securedCount,
+      total,
+      pct: total > 0 ? Math.round((securedCount / total) * 100) : 100,
+      vulnCount,
+      passedServicesArr
+    };
   }, [scanData]);
 
   const handleServiceCheckboxChange = (service) => {
@@ -524,16 +565,27 @@ const DashboardPage = () => {
               gap: 'var(--spacing-6)',
               marginBottom: 'var(--spacing-8)'
             }}>
-              <div style={{ 
-                background: 'var(--color-bg-secondary)', 
-                padding: 'var(--spacing-6)',
-                borderRadius: '16px',
-                border: '1px solid var(--color-border)',
-                boxShadow: 'var(--shadow-md)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600 }}>Total Vulnerabilities</h3>
+              <div
+                onClick={() => { setStatusFilter('All'); setCurrentPage(1); }}
+                style={{
+                  background: statusFilter === 'All'
+                    ? 'linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0.05) 100%)'
+                    : 'var(--color-bg-secondary)',
+                  padding: 'var(--spacing-6)',
+                  borderRadius: '16px',
+                  border: statusFilter === 'All' ? '1.5px solid #ef4444' : '1px solid var(--color-border)',
+                  boxShadow: 'var(--shadow-md)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.2s, background 0.2s',
+                }}
+              >
+                <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(239,68,68,0.10) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Total Vulnerabilities
+                  {statusFilter === 'All' && <span style={{ fontSize: '9px', padding: '2px 6px', background: 'rgba(239,68,68,0.15)', color: '#ef4444', borderRadius: '4px', fontWeight: 700 }}>ACTIVE</span>}
+                </h3>
                 <div style={{ fontSize: '36px', fontWeight: 800, color: '#ef4444', letterSpacing: '-0.02em' }}>{processedData.totalItems}</div>
                 <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   Critical Findings: <span style={{ color: '#ef4444', fontWeight: 600 }}>{(scanData?.vulnerabilities || []).filter(f => f.severity === 'Critical').length}</span>
@@ -649,6 +701,92 @@ const DashboardPage = () => {
                   </div>
                 )}
               </div>
+
+              {/* ── Vulnerable Resources Card ── */}
+              <div style={{ 
+                background: 'var(--color-bg-secondary)', 
+                padding: 'var(--spacing-6)',
+                borderRadius: '16px',
+                border: '1px solid var(--color-border)',
+                boxShadow: 'var(--shadow-md)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Vulnerable Resources
+                  <div style={{ position: 'relative', display: 'inline-block', cursor: 'help' }} 
+                       onMouseEnter={(e) => {
+                         const tooltip = e.currentTarget.querySelector('div[data-tooltip="vuln-resources"]');
+                         if (tooltip) tooltip.style.opacity = '1';
+                         if (tooltip) tooltip.style.visibility = 'visible';
+                         if (tooltip) tooltip.style.transform = 'translate(-50%, 8px)';
+                       }}
+                       onMouseLeave={(e) => {
+                         const tooltip = e.currentTarget.querySelector('div[data-tooltip="vuln-resources"]');
+                         if (tooltip) tooltip.style.opacity = '0';
+                         if (tooltip) tooltip.style.visibility = 'hidden';
+                         if (tooltip) tooltip.style.transform = 'translate(-50%, 0px)';
+                       }}
+                  >
+                    <span style={{ fontSize: '10px', background: 'var(--color-border)', color: 'var(--color-text)', borderRadius: '50%', width: '14px', height: '14px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>?</span>
+                    <div data-tooltip="vuln-resources" style={{
+                      position: 'absolute', top: '100%', left: '50%', transform: 'translate(-50%, 0)', marginTop: '8px',
+                      background: 'var(--color-bg)', color: 'var(--color-text-muted)', padding: '12px', borderRadius: '8px',
+                      fontSize: '11px', width: '220px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                      border: '1px solid var(--color-border)', pointerEvents: 'none', zIndex: 100, textTransform: 'none',
+                      letterSpacing: 'normal', fontWeight: 400, opacity: 0, visibility: 'hidden', transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    }}>
+                      <div style={{ color: 'var(--color-text)', fontWeight: 600, marginBottom: '4px' }}>Unique Resources</div>
+                      The number of distinct resources that have at least one vulnerability finding.
+                    </div>
+                  </div>
+                </h3>
+                <div style={{ fontSize: '36px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                  {securedStats.vulnCount}
+                </div>
+                <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ color: '#ef4444', fontWeight: 600 }}>{((securedStats.vulnCount / (securedStats.total || 1)) * 100).toFixed(0)}%</span> of total audited resources
+                </div>
+              </div>
+
+              {/* ── Secured Resources Card ── */}
+              {(() => {
+                const { count, total, pct, vulnCount } = securedStats;
+                return (
+                  <div
+                    onClick={() => { setStatusFilter(s => s === 'Secured' ? 'All' : 'Secured'); setCurrentPage(1); }}
+                    style={{
+                      background: statusFilter === 'Secured'
+                        ? 'linear-gradient(135deg, rgba(34,197,94,0.18) 0%, rgba(16,185,129,0.10) 100%)'
+                        : 'var(--color-bg-secondary)',
+                      padding: 'var(--spacing-6)',
+                      borderRadius: '16px',
+                      border: statusFilter === 'Secured' ? '1.5px solid #22c55e' : '1px solid var(--color-border)',
+                      boxShadow: 'var(--shadow-md)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.2s, background 0.2s',
+                    }}
+                  >
+                    <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(34,197,94,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                    <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      Secured Resources
+                      {statusFilter === 'Secured' && <span style={{ fontSize: '9px', padding: '2px 6px', background: 'rgba(34,197,94,0.2)', color: '#22c55e', borderRadius: '4px', fontWeight: 700 }}>ACTIVE</span>}
+                    </h3>
+                    <div style={{ fontSize: '36px', fontWeight: 800, color: '#22c55e', letterSpacing: '-0.02em' }}>
+                      {count}<span style={{ fontSize: '18px', color: 'var(--color-text-muted)', fontWeight: 400 }}> / {total}</span>
+                    </div>
+                    <div style={{ marginTop: '12px', height: '4px', borderRadius: '99px', background: 'var(--color-border)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: '99px' }} />
+                    </div>
+                    <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#22c55e', fontWeight: 600 }}>{pct}% secured</span>
+                      <span>{vulnCount} vulnerable</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Premium Sticky Filter Bar */}
@@ -672,7 +810,7 @@ const DashboardPage = () => {
               <div style={{ flex: 1.5, position: 'relative' }}>
                 <input
                   type="text"
-                  placeholder="Search vulnerabilities..."
+                  placeholder={statusFilter === 'Secured' ? "Search secured resources..." : "Search vulnerabilities..."}
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   style={{
@@ -691,7 +829,7 @@ const DashboardPage = () => {
                   onFocus={(e) => e.target.style.borderColor = 'var(--color-primary)'}
                   onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'}
                 />
-                <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', opacity: 0.5 }}>🔍</span>
+                <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', opacity: 0.5 }}>{statusFilter === 'Secured' ? '🛡️' : '🔍'}</span>
               </div>
 
               <div style={{ flex: 1, position: 'relative' }}>
@@ -714,7 +852,11 @@ const DashboardPage = () => {
                   }}
                 >
                   <option value="all">All Services</option>
-                  {allServices.map(s => <option key={s} value={s}>{s}</option>)}
+                  {statusFilter === 'Secured' ? (
+                    <option value="Secured Infrastructure">Secured Infrastructure</option>
+                  ) : (
+                    allServices.map(s => <option key={s} value={s}>{s}</option>)
+                  )}
                 </select>
                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', opacity: 0.6 }}>🛠️</span>
                 <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3, fontSize: '10px' }}>▼</span>
@@ -724,19 +866,21 @@ const DashboardPage = () => {
                 <select
                   value={severityFilter}
                   onChange={(e) => { setSeverityFilter(e.target.value); setCurrentPage(1); }}
+                  disabled={statusFilter === 'Secured'}
                   style={{
                     width: '100%',
                     height: '42px',
-                    backgroundColor: 'var(--color-bg-secondary)',
+                    backgroundColor: statusFilter === 'Secured' ? 'rgba(0,0,0,0.05)' : 'var(--color-bg-secondary)',
                     border: '1px solid rgba(0,0,0,0.1)',
                     borderRadius: '10px',
                     padding: '0 12px 0 35px',
-                    color: 'var(--color-text)',
+                    color: statusFilter === 'Secured' ? 'var(--color-text-muted)' : 'var(--color-text)',
                     fontSize: '14px',
-                    cursor: 'pointer',
+                    cursor: statusFilter === 'Secured' ? 'not-allowed' : 'pointer',
                     outline: 'none',
                     appearance: 'none',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                    opacity: statusFilter === 'Secured' ? 0.6 : 1
                   }}
                 >
                   <option value="All">All Severities</option>
@@ -748,9 +892,42 @@ const DashboardPage = () => {
                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', opacity: 0.6 }}>🛡️</span>
                 <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4, fontSize: '10px' }}>▼</span>
               </div>
+
+              {/* Status toggle: Vulnerabilities ↔ Secured */}
+              <div style={{ display: 'flex', gap: '4px', background: 'var(--color-bg-secondary)', borderRadius: '10px', padding: '4px', border: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }}>
+                <button
+                  onClick={() => { setStatusFilter('All'); setCurrentPage(1); }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '7px',
+                    border: 'none',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    background: statusFilter === 'All' ? 'var(--color-primary)' : 'transparent',
+                    color: statusFilter === 'All' ? '#fff' : 'var(--color-text-muted)',
+                  }}
+                >⚠️ Vulnerable</button>
+                <button
+                  onClick={() => { setStatusFilter('Secured'); setCurrentPage(1); }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '7px',
+                    border: 'none',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    background: statusFilter === 'Secured' ? '#22c55e' : 'transparent',
+                    color: statusFilter === 'Secured' ? '#fff' : 'var(--color-text-muted)',
+                  }}
+                >✅ Secured</button>
+              </div>
             </div>
 
-            {/* Data Table */}
+            {/* Data Table — Vulnerable view */}
+            {statusFilter === 'All' ? (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-2)' }}>
                 <h2 style={{ fontSize: 'var(--font-size-base)', margin: 0 }}>Vulnerability Findings <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>({processedData.totalItems})</span></h2>
@@ -857,6 +1034,115 @@ const DashboardPage = () => {
                 </div>
               )}
             </div>
+            ) : (
+            /* ── Secured Resources Panel ── */
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
+                <h2 style={{ fontSize: 'var(--font-size-base)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: '#22c55e' }}>✅</span> Secured Resources
+                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>({securedStats.count} / {securedStats.total})</span>
+                </h2>
+                <span style={{ fontSize: '12px', color: '#22c55e', fontWeight: 600, background: 'rgba(34,197,94,0.1)', padding: '4px 10px', borderRadius: '20px', border: '1px solid rgba(34,197,94,0.25)' }}>
+                  {securedStats.pct}% of infrastructure secured
+                </span>
+              </div>
+
+              {/* Summary banner */}
+              <div style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(16,185,129,0.05) 100%)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '14px', padding: '20px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <div style={{ fontSize: '48px', lineHeight: 1 }}>🛡️</div>
+                <div>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#22c55e', letterSpacing: '-0.02em' }}>
+                    {securedStats.count} <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-muted)' }}>out of {securedStats.total} resources had no vulnerability findings</span>
+                  </div>
+                  <div style={{ marginTop: '6px', fontSize: '13px', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+                    These resources passed all security checkpoints in this audit. {securedStats.vulnCount} resource{securedStats.vulnCount !== 1 ? 's' : ''} had at least one finding and appear in the <strong>⚠️ Vulnerable</strong> view.
+                  </div>
+                </div>
+              </div>
+
+              {/* Secured Resources List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {(() => {
+                  if (securedStats.count === 0) {
+                    return (
+                      <div style={{ padding: 'var(--spacing-8)', textAlign: 'center', color: 'var(--color-text-muted)', backgroundColor: 'var(--color-background-light)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--color-border)' }}>
+                        No secured resources found. All scanned resources have vulnerabilities.
+                      </div>
+                    );
+                  }
+
+                  let filteredServices = securedStats.passedServicesArr || [];
+
+                  // Apply Service Filter
+                  if (serviceFilter !== 'all') {
+                    filteredServices = filteredServices.filter(s => s.name === serviceFilter);
+                  }
+
+                  // Apply Search Filter
+                  if (searchTerm) {
+                    const lowerTerm = searchTerm.toLowerCase();
+                    filteredServices = filteredServices.map(s => {
+                      const matchedItems = s.items.filter(item => 
+                        (item.name || '').toLowerCase().includes(lowerTerm) ||
+                        (item.service || '').toLowerCase().includes(lowerTerm)
+                      );
+                      return { ...s, items: matchedItems };
+                    }).filter(s => s.items.length > 0 || s.name.toLowerCase().includes(lowerTerm));
+                  }
+
+                  if (filteredServices.length === 0) {
+                    return (
+                      <div style={{ padding: 'var(--spacing-8)', textAlign: 'center', color: 'var(--color-text-muted)', backgroundColor: 'var(--color-background-light)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--color-border)' }}>
+                        No secured resources match the current filters.
+                      </div>
+                    );
+                  }
+
+                  return filteredServices.map((svc, sIdx) => (
+                    <Card key={sIdx} style={{ padding: 0, overflow: 'hidden', border: '1px solid rgba(34,197,94,0.3)' }}>
+                      <div style={{ 
+                        background: 'linear-gradient(90deg, rgba(34,197,94,0.12) 0%, rgba(16,185,129,0.05) 100%)', 
+                        padding: '16px 20px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        borderBottom: '1px solid rgba(34,197,94,0.2)'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontSize: '20px' }}>🛡️</span>
+                          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#16a34a' }}>
+                            {svc.name}
+                          </h3>
+                        </div>
+                        <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '20px', fontWeight: 600,
+                          background: 'rgba(34,197,94,0.15)',
+                          color: '#15803d',
+                          border: '1px solid rgba(34,197,94,0.3)'
+                        }}>
+                          {svc.items.length} Secured Resource{svc.items.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      
+                      <div style={{ padding: '0' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                          <tbody>
+                            {svc.items.map((item, iIdx) => (
+                              <tr key={iIdx} style={{ borderBottom: iIdx === svc.items.length - 1 ? 'none' : '1px solid var(--color-border)' }}>
+                                <td style={{ padding: '14px 20px', fontSize: '13px', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <span style={{ color: '#22c55e', fontSize: '16px' }}>✓</span>
+                                  <span style={{ fontWeight: 500 }}>{item.name || 'Unknown Resource'}</span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </Card>
+                  ));
+                })()}
+              </div>
+            </div>
+            )}
           </>
         ) : (
           <Section style={{ padding: 0 }} darker={false}>

@@ -6,6 +6,7 @@ const { google } = require('googleapis');
  */
 async function auditLoadBalancers(authClient, projectId) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -25,6 +26,7 @@ async function auditLoadBalancers(authClient, projectId) {
         const rules = scopedList.forwardingRules || [];
         for (const rule of rules) {
           scannedCount++;
+          // TODO: Add scannedResourceList.push({ service: 'Unknown', name: 'Resource' });
           const lbName = rule.name;
           const target = rule.target || '';
           
@@ -109,7 +111,7 @@ async function auditLoadBalancers(authClient, projectId) {
     }
   }
 
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 module.exports = { auditLoadBalancers };

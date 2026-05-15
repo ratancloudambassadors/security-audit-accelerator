@@ -8,6 +8,7 @@ const { google } = require('googleapis');
  */
 const auditEssentialContacts = async (googleAuthClient, projectId) => {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 1; // Scanning the project itself for contacts
 
   try {
@@ -44,7 +45,7 @@ const auditEssentialContacts = async (googleAuthClient, projectId) => {
       });
     }
 
-    return { findings, scannedCount };
+    return { findings, scannedCount, scannedResourceList };
 
   } catch (error) {
     console.error("[Essential Contacts] Critical error during Essential Contacts audit:", error);

@@ -93,7 +93,7 @@ const ResetPasswordPage = () => {
 
           {/* OTP input — styled like a code box */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', marginBottom: '6px', display: 'block' }}>
+            <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-muted)', marginBottom: '6px', display: 'block' }}>
               Reset Code
             </label>
             <input

@@ -8,6 +8,7 @@ const { google } = require('googleapis');
  */
 const auditDataproc = async (googleAuthClient, projectId) => {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -62,7 +63,7 @@ const auditDataproc = async (googleAuthClient, projectId) => {
       }
     }
 
-    return { findings, scannedCount };
+    return { findings, scannedCount, scannedResourceList };
 
   } catch (error) {
     console.error("[Dataproc] Error during Dataproc audit:", error);

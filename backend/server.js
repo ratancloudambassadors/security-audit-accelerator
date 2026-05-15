@@ -127,11 +127,15 @@ app.post('/api/scan/gcp', authenticateToken, async (req, res) => {
     // Consolidate findings from successfully resolved auditor promises
     let allFindings = [];
     let totalScanned = 0;
+    let allScannedResources = [];
 
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         allFindings = allFindings.concat(result.value.findings || []);
         totalScanned += (result.value.scannedCount || 0);
+        if (result.value.scannedResourceList) {
+          allScannedResources = allScannedResources.concat(result.value.scannedResourceList);
+        }
       } else {
         console.error(`[Engine] Auditor at index ${index} completely failed:`, result.reason);
       }
@@ -143,7 +147,11 @@ app.post('/api/scan/gcp', authenticateToken, async (req, res) => {
     const mediumCount = allFindings.filter(f => f.severity === 'Medium').length;
 
     // Calculate the number of unique resources that have vulnerabilities
-    const uniqueVulnerableResources = new Set(allFindings.map(f => f.resource)).size;
+    const vulnerableResourceNames = new Set(allFindings.map(f => f.resource));
+    const uniqueVulnerableResources = vulnerableResourceNames.size;
+
+    // Extract exactly which resources were 100% secured
+    const securedResourcesList = allScannedResources.filter(r => !vulnerableResourceNames.has(r.name));
 
     // Score represents the percentage of completely healthy resources
     let computedScore = 100;
@@ -179,6 +187,7 @@ app.post('/api/scan/gcp', authenticateToken, async (req, res) => {
         highCount,
         mediumCount,
         findings: JSON.stringify(allFindings),
+        passedResources: JSON.stringify(securedResourcesList),
         projectId: project.id
       }
     });
@@ -195,7 +204,8 @@ app.post('/api/scan/gcp', authenticateToken, async (req, res) => {
         high: highCount,
         medium: mediumCount
       },
-      vulnerabilities: allFindings
+      vulnerabilities: allFindings,
+      passedResources: securedResourcesList
     };
 
     console.log(`[Engine] Scan complete. Saved to DB (Scan ID: ${scanRecord.id}).`);
@@ -261,11 +271,15 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
 
     let allFindings = [];
     let totalScanned = 0;
+    let allScannedResources = [];
 
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         allFindings = allFindings.concat(result.value.findings || []);
         totalScanned += (result.value.scannedCount || 0);
+        if (result.value.scannedResourceList) {
+          allScannedResources = allScannedResources.concat(result.value.scannedResourceList);
+        }
       } else {
         console.error(`[Engine] AWS Auditor at index ${index} failed:`, result.reason);
       }
@@ -275,7 +289,10 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
     const highCount = allFindings.filter(f => f.severity === 'High').length;
     const mediumCount = allFindings.filter(f => f.severity === 'Medium').length;
 
-    const uniqueVulnerableResources = new Set(allFindings.map(f => f.resource)).size;
+    const vulnerableResourceNames = new Set(allFindings.map(f => f.resource));
+    const uniqueVulnerableResources = vulnerableResourceNames.size;
+
+    const securedResourcesList = allScannedResources.filter(r => !vulnerableResourceNames.has(r.name));
 
     let computedScore = 100;
     if (totalScanned > 0) {
@@ -320,6 +337,7 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
         highCount,
         mediumCount,
         findings: JSON.stringify(allFindings),
+        passedResources: JSON.stringify(securedResourcesList),
         projectId: project.id
       }
     });
@@ -335,7 +353,8 @@ app.post('/api/scan/aws', authenticateToken, async (req, res) => {
         scannedResources: totalScanned,
         vulnerableCount: uniqueVulnerableResources,
       },
-      vulnerabilities: allFindings
+      vulnerabilities: allFindings,
+      passedResources: securedResourcesList
     };
 
     res.json(liveResults);
@@ -418,11 +437,15 @@ app.post('/api/scan/azure', authenticateToken, async (req, res) => {
 
     let allFindings = [];
     let totalScanned = 0;
+    let allScannedResources = [];
 
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         allFindings = allFindings.concat(result.value.findings || []);
         totalScanned += (result.value.scannedCount || 0);
+        if (result.value.scannedResourceList) {
+          allScannedResources = allScannedResources.concat(result.value.scannedResourceList);
+        }
       } else {
         console.error(`[Engine] Azure Auditor at index ${index} failed:`, result.reason);
       }
@@ -432,7 +455,10 @@ app.post('/api/scan/azure', authenticateToken, async (req, res) => {
     const highCount = allFindings.filter(f => f.severity === 'High').length;
     const mediumCount = allFindings.filter(f => f.severity === 'Medium').length;
 
-    const uniqueVulnerableResources = new Set(allFindings.map(f => f.resource)).size;
+    const vulnerableResourceNames = new Set(allFindings.map(f => f.resource));
+    const uniqueVulnerableResources = vulnerableResourceNames.size;
+
+    const securedResourcesList = allScannedResources.filter(r => !vulnerableResourceNames.has(r.name));
 
     let computedScore = 100;
     if (totalScanned > 0) {
@@ -466,6 +492,7 @@ app.post('/api/scan/azure', authenticateToken, async (req, res) => {
         highCount,
         mediumCount,
         findings: JSON.stringify(allFindings),
+        passedResources: JSON.stringify(securedResourcesList),
         projectId: project.id
       }
     });
@@ -481,7 +508,8 @@ app.post('/api/scan/azure', authenticateToken, async (req, res) => {
         scannedResources: totalScanned,
         vulnerableCount: uniqueVulnerableResources,
       },
-      vulnerabilities: allFindings
+      vulnerabilities: allFindings,
+      passedResources: securedResourcesList
     };
 
     res.json(liveResults);

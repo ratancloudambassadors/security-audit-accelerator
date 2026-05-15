@@ -8,6 +8,7 @@ const { google } = require('googleapis');
  */
 const auditLogging = async (googleAuthClient, projectId) => {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -19,7 +20,8 @@ const auditLogging = async (googleAuthClient, projectId) => {
     const serviceusage = google.serviceusage({ version: 'v1', auth: googleAuthClient });
     const accessapproval = google.accessapproval({ version: 'v1', auth: googleAuthClient });
 
-    scannedCount++; // general project scan
+    scannedCount++;
+          // TODO: Add scannedResourceList.push({ service: 'Unknown', name: 'Resource' }); // general project scan
 
     // --- 1. Audit Auth/Audit Configs ---
     try {
@@ -184,7 +186,7 @@ const auditLogging = async (googleAuthClient, projectId) => {
       }
     }
 
-    return { findings, scannedCount };
+    return { findings, scannedCount, scannedResourceList };
 
   } catch (error) {
     console.error("[Logging] Critical error during Logging audit:", error);

@@ -8,6 +8,7 @@ const { google } = require('googleapis');
  */
 const auditCloudSQL = async (googleAuthClient, projectId) => {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -156,7 +157,7 @@ const auditCloudSQL = async (googleAuthClient, projectId) => {
       }
     }
 
-    return { findings, scannedCount };
+    return { findings, scannedCount, scannedResourceList };
 
   } catch (error) {
     console.error("[Cloud SQL] Error during SQL audit:", error);

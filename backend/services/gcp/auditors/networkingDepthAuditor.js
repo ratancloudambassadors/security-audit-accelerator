@@ -6,6 +6,7 @@ const { google } = require('googleapis');
  */
 async function auditNetworkingDepth(authClient, projectId) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -21,6 +22,7 @@ async function auditNetworkingDepth(authClient, projectId) {
       const subnets = scopedList.subnetworks || [];
       for (const subnet of subnets) {
         scannedCount++;
+          // TODO: Add scannedResourceList.push({ service: 'Unknown', name: 'Resource' });
         // Skip default networks or subnets that don't belong to the project
         if (subnet.network.endsWith('/default')) continue;
 
@@ -76,7 +78,7 @@ async function auditNetworkingDepth(authClient, projectId) {
     }
   }
 
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 module.exports = { auditNetworkingDepth };

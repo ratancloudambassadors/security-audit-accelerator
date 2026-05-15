@@ -9,6 +9,7 @@
  */
 const auditNetworking = async (networksClient, firewallsClient, subnetworksClient, backendServicesClient, projectId) => {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -19,6 +20,7 @@ const auditNetworking = async (networksClient, firewallsClient, subnetworksClien
       const networksAggregated = await networksClient.listAsync({ project: projectId });
       for await (const network of networksAggregated) {
         scannedCount++;
+          // TODO: Add scannedResourceList.push({ service: 'Unknown', name: 'Resource' });
         const netName = network.name;
         
         // Target 1: Default Network exists
@@ -53,6 +55,7 @@ const auditNetworking = async (networksClient, firewallsClient, subnetworksClien
        const firewallsAggregated = await firewallsClient.listAsync({ project: projectId });
        for await (const firewall of firewallsAggregated) {
          scannedCount++;
+          // TODO: Add scannedResourceList.push({ service: 'Unknown', name: 'Resource' });
          
          // We only care about ingress rules allowing traffic
          if (firewall.direction === 'INGRESS' && !firewall.denied?.length) {
@@ -111,6 +114,7 @@ const auditNetworking = async (networksClient, firewallsClient, subnetworksClien
         if (subnets && subnets.length > 0) {
           for (const subnet of subnets) {
             scannedCount++;
+          // TODO: Add scannedResourceList.push({ service: 'Unknown', name: 'Resource' });
             
             if (!subnet.enableFlowLogs) {
                findings.push({
@@ -146,6 +150,7 @@ const auditNetworking = async (networksClient, firewallsClient, subnetworksClien
         if (backendServices && backendServices.length > 0) {
           for (const service of backendServices) {
             scannedCount++;
+          // TODO: Add scannedResourceList.push({ service: 'Unknown', name: 'Resource' });
             
             if (service.loadBalancingScheme === 'EXTERNAL' || service.loadBalancingScheme === 'INTERNAL_MANAGED') {
               if (!service.logConfig || !service.logConfig.enable) {
@@ -165,7 +170,7 @@ const auditNetworking = async (networksClient, firewallsClient, subnetworksClien
        console.warn("[Networking] Failed to list Backend Services:", bsErr.message);
     }
 
-    return { findings, scannedCount };
+    return { findings, scannedCount, scannedResourceList };
 
   } catch (error) {
     console.error("[Networking] Error during Networking audit:", error);

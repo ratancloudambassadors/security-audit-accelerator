@@ -49,6 +49,7 @@ model ScanHistory {
   highCount        Int
   mediumCount      Int
   findings         String   // Stored as JSON string to accommodate large payloads
+  passedResources  String?  // Stored as JSON string (array of objects)
   createdAt        DateTime @default(now())
   
   projectId        String   @db.ObjectId

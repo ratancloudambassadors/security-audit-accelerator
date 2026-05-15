@@ -8,6 +8,7 @@ const { google } = require('googleapis');
  */
 const auditIAM = async (googleAuthClient, projectId) => {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -115,6 +116,9 @@ const auditIAM = async (googleAuthClient, projectId) => {
       
       const serviceAccounts = saResponse.data.accounts || [];
       scannedCount += serviceAccounts.length;
+      serviceAccounts.forEach(sa => {
+        scannedResourceList.push({ service: 'IAM', name: `Service Account (${sa.email})` });
+      });
 
       for (const sa of serviceAccounts) {
         const keyResponse = await iam.projects.serviceAccounts.keys.list({
@@ -155,7 +159,7 @@ const auditIAM = async (googleAuthClient, projectId) => {
       console.warn("[IAM] Failed to list Service Accounts:", saErr.message);
     }
 
-    return { findings, scannedCount };
+    return { findings, scannedCount, scannedResourceList };
 
   } catch (error) {
     console.error("[IAM] Critical error during IAM audit:", error);

@@ -8,6 +8,7 @@ const { google } = require('googleapis');
  */
 const auditDns = async (googleAuthClient, projectId) => {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -21,7 +22,7 @@ const auditDns = async (googleAuthClient, projectId) => {
       zonesResponse = await dns.managedZones.list({ project: projectId });
     } catch (dnsErr) {
        console.warn("[Cloud DNS] Failed to list managed zones or API not enabled:", dnsErr.message);
-       return { findings, scannedCount };
+       return { findings, scannedCount, scannedResourceList };
     }
 
     const zones = zonesResponse.data.managedZones || [];
@@ -87,7 +88,7 @@ const auditDns = async (googleAuthClient, projectId) => {
       }
     } catch(err) { }
 
-    return { findings, scannedCount };
+    return { findings, scannedCount, scannedResourceList };
 
   } catch (error) {
     console.error("[Cloud DNS] Critical error during DNS audit:", error);

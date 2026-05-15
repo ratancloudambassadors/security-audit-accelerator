@@ -26,6 +26,7 @@ function getAzureCredentials(creds) {
 // =============================================================================
 async function auditAzureIam(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const cred = getAzureCredentials(credentials);
@@ -73,6 +74,7 @@ async function auditAzureIam(credentials) {
 // =============================================================================
 async function auditAzureVm(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const cred = getAzureCredentials(credentials);
@@ -115,6 +117,7 @@ async function auditAzureVm(credentials) {
 // =============================================================================
 async function auditAzureVnet(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const cred = getAzureCredentials(credentials);
@@ -130,7 +133,7 @@ async function auditAzureVnet(credentials) {
 
     scannedCount = 7;
   } catch (err) { console.error('[AZURE VNET] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -138,6 +141,7 @@ async function auditAzureVnet(credentials) {
 // =============================================================================
 async function auditAzureMonitor(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   try {
     findings.push({ id: 'AZURE-MON-LOG-PROFILE', severity: 'Critical', resource: 'Monitor Log Profile', issue: 'Export of Activity Log is missing or not capturing all actions.', remediation: 'Ensure log profile exports all categories (Write, Delete, Action) to Log Analytics or Storage.' });
     findings.push({ id: 'AZURE-MON-RETENTION', severity: 'Medium', resource: 'Monitor Log Profile', issue: 'Log profile retention is less than 365 days.', remediation: 'Set log profile retention policy to 365 days or greater.' });
@@ -172,6 +176,7 @@ async function auditAzureMonitor(credentials) {
 // =============================================================================
 async function auditAzureSecurity(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   try {
     findings.push({ id: 'AZURE-SEC-DEFENDER-ON', severity: 'High', resource: 'Defender for Cloud', issue: 'Microsoft Defender for Cloud (Standard tier) is not enabled on the subscription.', remediation: 'Enable Defender for Cloud for all resource types for enhanced DSPM and CWP.' });
     findings.push({ id: 'AZURE-SEC-CONTACTS', severity: 'Medium', resource: 'Defender for Cloud', issue: 'Security contacts are missing or do not include phone numbers.', remediation: 'Configure valid security contact emails and phone numbers.' });
@@ -185,6 +190,7 @@ async function auditAzureSecurity(credentials) {
 // =============================================================================
 async function auditAzureStorage(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   try {
     findings.push({ id: `AZURE-STORAGE-SECURE-TRANSFER`, severity: 'High', resource: 'Storage Account', issue: 'Secure transfer required is disabled.', remediation: 'Enable "Secure transfer required" to enforce HTTPS.' });
     findings.push({ id: `AZURE-STORAGE-BLOB-PUBLIC`, severity: 'Critical', resource: 'Storage Account', issue: 'Blob public access is universally allowed.', remediation: 'Set "Allow Blob public access" to Disabled at the storage account level.' });
@@ -201,6 +207,7 @@ async function auditAzureStorage(credentials) {
 // =============================================================================
 async function auditAzureSql(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   try {
     findings.push({ id: 'AZURE-SQL-AUDITING', severity: 'High', resource: 'SQL Server', issue: 'Auditing is not enabled at the logical server level.', remediation: 'Enable auditing and configure it to write to Log Analytics or Storage.' });
     findings.push({ id: 'AZURE-SQL-THREAT-DETECTION', severity: 'High', resource: 'SQL Server', issue: 'Advanced Data Security / Microsoft Defender for SQL is disabled.', remediation: 'Enable Defender for SQL at the server level.' });
@@ -224,6 +231,7 @@ async function auditAzureSql(credentials) {
 // =============================================================================
 async function auditAzureAks(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   try {
     findings.push({ id: `AZURE-AKS-RBAC`, severity: 'High', resource: 'AKS Cluster', issue: 'Kubernetes RBAC or Azure AD RBAC is not enabled.', remediation: 'Enable Azure AD integration and Kubernetes RBAC for cluster authentication.' });
     findings.push({ id: `AZURE-AKS-API-RANGES`, severity: 'Medium', resource: 'AKS Cluster', issue: 'API server authorized IP ranges are not defined.', remediation: 'Restrict API server access to specific egress IPs or use a Private AKS cluster.' });
@@ -236,6 +244,7 @@ async function auditAzureAks(credentials) {
 // =============================================================================
 async function auditAzureLb(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   try {
     findings.push({ id: `AZURE-APPGW-WAF`, severity: 'High', resource: 'Application Gateway', issue: 'Web Application Firewall (WAF) is disabled on the Application Gateway.', remediation: 'Enable WAF in Prevention mode using OWASP core rule sets.' });
     findings.push({ id: `AZURE-LB-HTTPS-ONLY`, severity: 'Medium', resource: 'Application Gateway', issue: 'HTTP traffic is not redirected to HTTPS.', remediation: 'Configure a routing rule to redirect all HTTP (port 80) traffic to HTTPS (port 443).' });
@@ -248,6 +257,7 @@ async function auditAzureLb(credentials) {
 // =============================================================================
 async function auditAzureKeyVault(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   try {
     findings.push({ id: `AZURE-KV-SOFT-DELETE`, severity: 'High', resource: 'Key Vault', issue: 'Soft delete is not enabled.', remediation: 'Enable soft delete with a retention period to recover accidentally deleted vaults/keys.' });
     findings.push({ id: `AZURE-KV-PURGE-PROTECT`, severity: 'Medium', resource: 'Key Vault', issue: 'Purge protection is disabled.', remediation: 'Enable purge protection to enforce the retention period for deleted objects.' });
@@ -261,6 +271,7 @@ async function auditAzureKeyVault(credentials) {
 // =============================================================================
 async function auditAzureFunctions(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   try {
     findings.push({ id: `AZURE-APP-HTTPS-ONLY`, severity: 'High', resource: 'App Service / Function', issue: 'HTTPS Only is disabled.', remediation: 'Set HTTPS Only to Enabled to force SSL/TLS for all incoming requests.' });
     findings.push({ id: `AZURE-APP-CLIENT-CERT`, severity: 'Medium', resource: 'App Service / Function', issue: 'Incoming client certificates are not required/validated.', remediation: 'Set Client Certificate Mode to Require if mutual TLS is needed.' });
@@ -274,6 +285,7 @@ async function auditAzureFunctions(credentials) {
 // =============================================================================
 async function auditAzureDns(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   try {
     findings.push({ id: `AZURE-DNS-LOCK`, severity: 'Low', resource: 'DNS Zone', issue: 'Resource lock is not applied to the DNS Zone.', remediation: 'Apply a "CanNotDelete" resource lock to critical DNS zones.' });
     findings.push({ id: `AZURE-DNS-DEFENDER`, severity: 'Medium', resource: 'DNS Zone', issue: 'Defender for DNS is not enabled.', remediation: 'Enable Defender for DNS on the subscription.' });
@@ -286,6 +298,7 @@ async function auditAzureDns(credentials) {
 // =============================================================================
 async function auditAzureSynapse(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   try {
     findings.push({ id: `AZURE-SYNAPSE-MANAGED-VNET`, severity: 'High', resource: 'Synapse Workspace', issue: 'Workspace is not utilizing a Managed Virtual Network.', remediation: 'Deploy Synapse Workspaces with a Managed Virtual Network.' });
     findings.push({ id: `AZURE-SYNAPSE-EXFILTRATION`, severity: 'High', resource: 'Synapse Workspace', issue: 'Data exfiltration protection is disabled.', remediation: 'Enable data exfiltration protection on the Synapse workspace.' });
@@ -299,6 +312,7 @@ async function auditAzureSynapse(credentials) {
 // =============================================================================
 async function auditAzureHdinsight(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   try {
     findings.push({ id: `AZURE-HDI-VNET`, severity: 'Medium', resource: 'HDInsight Cluster', issue: 'Cluster is not deployed within a Virtual Network.', remediation: 'Deploy HDInsight clusters inside an isolated Virtual Network.' });
   } catch (err) { console.error('[AZURE HDInsight] Error:', err.message); }

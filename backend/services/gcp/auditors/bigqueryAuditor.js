@@ -6,6 +6,7 @@
  */
 const auditBigQuery = async (bigQueryClient, projectId) => {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -78,7 +79,7 @@ const auditBigQuery = async (bigQueryClient, projectId) => {
       }
     }
 
-    return { findings, scannedCount };
+    return { findings, scannedCount, scannedResourceList };
 
   } catch (error) {
     console.error("[BigQuery] Error during BigQuery audit:", error);

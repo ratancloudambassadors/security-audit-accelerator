@@ -26,6 +26,7 @@ const { SNSClient, ListTopicsCommand, GetTopicAttributesCommand } = require('@aw
 // =============================================================================
 async function auditAwsIam(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new IAMClient({ region: credentials.region || 'us-east-1', credentials });
@@ -35,6 +36,7 @@ async function auditAwsIam(credentials) {
       const summary = await client.send(new GetAccountSummaryCommand({}));
       const s = summary.SummaryMap || {};
       scannedCount++;
+          scannedResourceList.push({ service: 'AWS', name: 'AWS Resource' });
 
       if (!s['AccountMFAEnabled'] || s['AccountMFAEnabled'] === 0) {
         findings.push({ id: 'AWS-IAM-ROOT-MFA-DISABLED', severity: 'Critical', resource: 'AWS Root Account', issue: 'Multi-Factor Authentication (MFA) is NOT enabled for the root account.', remediation: 'Enable MFA on root account immediately using a hardware or virtual MFA device.' });
@@ -48,6 +50,7 @@ async function auditAwsIam(credentials) {
     try {
       const policyData = await client.send(new GetAccountPasswordPolicyCommand({}));
       scannedCount++;
+          scannedResourceList.push({ service: 'AWS', name: 'AWS Resource' });
       const p = policyData.PasswordPolicy;
       if (!p || p.MinimumPasswordLength < 14) findings.push({ id: 'AWS-IAM-PASSWORD-MINLEN', severity: 'Medium', resource: 'IAM Password Policy', issue: 'Minimum password length is less than 14 characters.', remediation: 'Set minimum password length to 14+ characters in IAM password policy.' });
       if (!p || !p.RequireUppercaseCharacters) findings.push({ id: 'AWS-IAM-PASSWORD-UPPERCASE', severity: 'Low', resource: 'IAM Password Policy', issue: 'Password policy does not require uppercase characters.', remediation: 'Enable uppercase character requirement in IAM password policy.' });
@@ -85,7 +88,7 @@ async function auditAwsIam(credentials) {
     } catch (err) { console.warn('[AWS IAM] ListUsers:', err.message); }
 
   } catch (err) { console.error('[AWS IAM] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -93,6 +96,7 @@ async function auditAwsIam(credentials) {
 // =============================================================================
 async function auditAwsEc2(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new EC2Client({ region: credentials.region || 'us-east-1', credentials });
@@ -186,7 +190,7 @@ async function auditAwsEc2(credentials) {
     } catch (e) { /* ignore */ }
 
   } catch (err) { console.error('[AWS EC2] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -194,6 +198,7 @@ async function auditAwsEc2(credentials) {
 // =============================================================================
 async function auditAwsVpc(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new EC2Client({ region: credentials.region || 'us-east-1', credentials });
@@ -234,7 +239,7 @@ async function auditAwsVpc(credentials) {
     } catch (e) { console.warn('[AWS NACL] NACL check:', e.message); }
 
   } catch (err) { console.error('[AWS VPC] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -242,6 +247,7 @@ async function auditAwsVpc(credentials) {
 // =============================================================================
 async function auditAwsCloudTrail(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const ctClient = new CloudTrailClient({ region: credentials.region || 'us-east-1', credentials });
@@ -327,7 +333,7 @@ async function auditAwsCloudTrail(credentials) {
     } catch (e) { console.warn('[CloudTrail] MetricFilters check:', e.message); }
 
   } catch (err) { console.error('[AWS CloudTrail] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -335,6 +341,7 @@ async function auditAwsCloudTrail(credentials) {
 // =============================================================================
 async function auditAwsSecurityServices(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 3; // We're checking 3 services
   try {
     const region = credentials.region || 'us-east-1';
@@ -378,7 +385,7 @@ async function auditAwsSecurityServices(credentials) {
     }
 
   } catch (err) { console.error('[AWS Security Services] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -386,6 +393,7 @@ async function auditAwsSecurityServices(credentials) {
 // =============================================================================
 async function auditAwsS3(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new S3Client({ region: credentials.region || 'us-east-1', credentials });
@@ -432,7 +440,7 @@ async function auditAwsS3(credentials) {
       }
     }
   } catch (err) { console.error('[AWS S3] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -440,6 +448,7 @@ async function auditAwsS3(credentials) {
 // =============================================================================
 async function auditAwsRds(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new RDSClient({ region: credentials.region || 'us-east-1', credentials });
@@ -475,7 +484,7 @@ async function auditAwsRds(credentials) {
       }
     }
   } catch (err) { console.error('[AWS RDS] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -483,6 +492,7 @@ async function auditAwsRds(credentials) {
 // =============================================================================
 async function auditAwsEks(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new EKSClient({ region: credentials.region || 'us-east-1', credentials });
@@ -497,7 +507,7 @@ async function auditAwsEks(credentials) {
       if (!loggingEnabled) findings.push({ id: `AWS-EKS-NO-LOGGING-${name}`, severity: 'Medium', resource: `EKS Cluster (${name})`, issue: 'EKS Control plane logging is not enabled.', remediation: 'Enable all control plane log types (api, audit, authenticator, controllerManager, scheduler).' });
     }
   } catch (err) { console.error('[AWS EKS] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -505,6 +515,7 @@ async function auditAwsEks(credentials) {
 // =============================================================================
 async function auditAwsLb(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new ElasticLoadBalancingV2Client({ region: credentials.region || 'us-east-1', credentials });
@@ -519,7 +530,7 @@ async function auditAwsLb(credentials) {
       if (!dropHeaders && lb.Type === 'application') findings.push({ id: `AWS-ELB-INVALID-HEADERS-${lb.LoadBalancerName}`, severity: 'Medium', resource: `ALB (${lb.LoadBalancerName})`, issue: 'Invalid HTTP header dropping is not enabled, risking HTTP desync attacks.', remediation: 'Enable routing.http.drop_invalid_header_fields.enabled on the ALB.' });
     }
   } catch (err) { console.error('[AWS ELB] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -527,6 +538,7 @@ async function auditAwsLb(credentials) {
 // =============================================================================
 async function auditAwsKms(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new KMSClient({ region: credentials.region || 'us-east-1', credentials });
@@ -550,7 +562,7 @@ async function auditAwsKms(credentials) {
       } catch (e) { /* ignore */ }
     }
   } catch (err) { console.error('[AWS KMS] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -558,6 +570,7 @@ async function auditAwsKms(credentials) {
 // =============================================================================
 async function auditAwsServerless(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new LambdaClient({ region: credentials.region || 'us-east-1', credentials });
@@ -587,7 +600,7 @@ async function auditAwsServerless(credentials) {
       }
     }
   } catch (err) { console.error('[AWS Lambda] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -595,6 +608,7 @@ async function auditAwsServerless(credentials) {
 // =============================================================================
 async function auditAwsRoute53(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new Route53Client({ region: 'us-east-1', credentials }); // Route53 is global
@@ -622,7 +636,7 @@ async function auditAwsRoute53(credentials) {
       } catch (e) { /* ignore */ }
     }
   } catch (err) { console.error('[AWS Route53] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -630,6 +644,7 @@ async function auditAwsRoute53(credentials) {
 // =============================================================================
 async function auditAwsRedshift(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new RedshiftClient({ region: credentials.region || 'us-east-1', credentials });
@@ -644,7 +659,7 @@ async function auditAwsRedshift(credentials) {
       if (!sslRequired) findings.push({ id: `AWS-REDSHIFT-NO-SSL-${id}`, severity: 'High', resource: `Redshift Cluster (${id})`, issue: 'SSL is not required for Redshift connections.', remediation: 'Set the require_ssl parameter to true in the cluster parameter group.' });
     }
   } catch (err) { console.error('[AWS Redshift] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================
@@ -652,6 +667,7 @@ async function auditAwsRedshift(credentials) {
 // =============================================================================
 async function auditAwsEmr(credentials) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
   try {
     const client = new EMRClient({ region: credentials.region || 'us-east-1', credentials });
@@ -667,7 +683,7 @@ async function auditAwsEmr(credentials) {
       } catch (e) { /* ignore */ }
     }
   } catch (err) { console.error('[AWS EMR] Error:', err.message); }
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 // =============================================================================

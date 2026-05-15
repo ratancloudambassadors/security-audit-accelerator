@@ -8,6 +8,7 @@ const { google } = require('googleapis');
  */
 const auditApiKeys = async (googleAuthClient, projectId) => {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -23,7 +24,7 @@ const auditApiKeys = async (googleAuthClient, projectId) => {
       });
     } catch (apiErr) {
        console.warn("[API Keys] Failed to list API keys or API not enabled:", apiErr.message);
-       return { findings, scannedCount };
+       return { findings, scannedCount, scannedResourceList };
     }
 
     const keys = keysResponse.data.keys || [];
@@ -73,7 +74,7 @@ const auditApiKeys = async (googleAuthClient, projectId) => {
       }
     }
 
-    return { findings, scannedCount };
+    return { findings, scannedCount, scannedResourceList };
 
   } catch (error) {
     console.error("[API Keys] Critical error during API Keys audit:", error);

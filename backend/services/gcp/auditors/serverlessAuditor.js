@@ -6,6 +6,7 @@ const { google } = require('googleapis');
  */
 async function auditServerless(authClient, projectId) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -107,7 +108,7 @@ async function auditServerless(authClient, projectId) {
     console.error('[Serverless Auditor] Global Error:', err.message);
   }
 
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 module.exports = { auditServerless };

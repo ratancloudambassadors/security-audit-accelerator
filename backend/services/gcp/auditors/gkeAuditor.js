@@ -6,6 +6,7 @@ const { google } = require('googleapis');
  */
 async function auditGKE(authClient, projectId) {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -97,7 +98,7 @@ async function auditGKE(authClient, projectId) {
     }
   }
 
-  return { findings, scannedCount };
+  return { findings, scannedCount, scannedResourceList };
 }
 
 module.exports = { auditGKE };

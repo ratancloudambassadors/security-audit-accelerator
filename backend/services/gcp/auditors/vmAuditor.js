@@ -3,6 +3,7 @@
  */
 const auditVMs = async (computeClient, projectClient, projectId) => {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -46,6 +47,7 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
         for (const instance of instances) {
           scannedCount++;
           const instanceName = instance.name;
+          scannedResourceList.push({ service: 'Compute', name: `Compute Instance (${instanceName})` });
 
           // Target 1: Public IP
           let hasPublicIp = false;
@@ -206,7 +208,8 @@ const auditVMs = async (computeClient, projectClient, projectId) => {
 
     return {
       findings,
-      scannedCount
+      scannedCount,
+      scannedResourceList
     };
 
   } catch (error) {

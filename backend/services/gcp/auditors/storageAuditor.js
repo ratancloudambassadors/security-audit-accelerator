@@ -7,6 +7,7 @@
  */
 const auditStorageBuckets = async (storageClient, projectId) => {
   const findings = [];
+  const scannedResourceList = [];
   let scannedCount = 0;
 
   try {
@@ -20,6 +21,7 @@ const auditStorageBuckets = async (storageClient, projectId) => {
     for (const bucket of buckets) {
       scannedCount++;
       const bucketName = bucket.name;
+      scannedResourceList.push({ service: 'Storage', name: `Storage Bucket (${bucketName})` });
 
       try {
         const [policy] = await bucket.iam.getPolicy({ requestedPolicyVersion: 3 });
@@ -117,7 +119,8 @@ const auditStorageBuckets = async (storageClient, projectId) => {
 
     return {
       findings,
-      scannedCount
+      scannedCount,
+      scannedResourceList
     };
 
   } catch (error) {
