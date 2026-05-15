@@ -266,15 +266,16 @@ const DashboardPage = () => {
     return Array.from(services).sort();
   }, [scanData]);
 
-  // Secured resources: resources that were scanned but have NO vulnerability findings
+  // Secured resources: resources that are explicitly listed in passedResources
   const securedStats = useMemo(() => {
     if (!scanData) return { count: 0, total: 0, pct: 100, passedItems: [] };
     const total = scanData.scanned || 0;
     const vulnResources = new Set((scanData.vulnerabilities || []).map(v => v.resource));
     const vulnCount = vulnResources.size;
-    const securedCount = Math.max(0, total - vulnCount);
 
     const passedItems = Array.isArray(scanData.passedResources) ? scanData.passedResources : [];
+    // Use ACTUAL passedResources count — this is what we show in the table
+    const securedCount = passedItems.length;
 
     // Group passed items by service
     const passedByService = {};
@@ -990,6 +991,7 @@ const DashboardPage = () => {
                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--font-size-xs)' }}>
                                   <thead>
                                     <tr style={{ backgroundColor: 'transparent', borderBottom: '1px solid var(--color-border)' }}>
+                                      <th style={{ padding: 'var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '40px', textAlign: 'center' }}>#</th>
                                       <th style={{ padding: 'var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '12%' }}>ID</th>
                                       <th style={{ padding: 'var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '10%' }}>Severity</th>
                                       <th style={{ padding: 'var(--spacing-3)', fontWeight: 600, color: 'var(--color-text-muted)', width: '20%' }}>Resource</th>
@@ -1000,6 +1002,9 @@ const DashboardPage = () => {
                                   <tbody>
                                     {checkpoint.items.map((vuln, idx) => (
                                       <tr key={idx} style={{ borderBottom: idx === checkpoint.items.length - 1 ? 'none' : '1px solid var(--color-border)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)' }}>
+                                        <td style={{ padding: 'var(--spacing-3)', color: 'var(--color-text-muted)', textAlign: 'center', fontWeight: 500 }}>
+                                          {idx + 1}
+                                        </td>
                                         <td style={{ padding: 'var(--spacing-3)', fontFamily: 'monospace', color: 'var(--color-primary)', fontWeight: 500 }}>
                                           {vuln.id}
                                         </td>
