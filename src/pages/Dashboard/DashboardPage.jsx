@@ -1404,20 +1404,30 @@ const DashboardPage = () => {
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('openScannerModal'))}
                 style={{
-                  marginTop: '16px',
-                  padding: '12px 24px',
+                  marginTop: '24px',
+                  padding: '16px 48px',
                   backgroundColor: 'var(--color-primary)',
                   color: '#fff',
                   border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: 600,
+                  outline: '4px solid rgba(59, 130, 246, 0.2)',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                  transition: 'transform 0.2s, background-color 0.2s',
+                  boxShadow: '0 8px 20px rgba(59, 130, 246, 0.3)',
+                  transition: 'all 0.3s ease',
+                  letterSpacing: '0.05em'
                 }}
-                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.outline = '6px solid rgba(59, 130, 246, 0.3)';
+                  e.currentTarget.style.boxShadow = '0 12px 28px rgba(59, 130, 246, 0.4)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.outline = '4px solid rgba(59, 130, 246, 0.2)';
+                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.3)';
+                }}
               >
                 Scan Now
               </button>
