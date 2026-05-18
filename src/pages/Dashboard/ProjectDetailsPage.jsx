@@ -24,23 +24,32 @@ const barColorByScore = (score) => {
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    const { fill, glow } = barColorByScore(data.value);
     return (
       <div style={{
         background: 'var(--color-bg)',
-        border: `1.5px solid ${fill}66`,
+        border: `1px solid var(--color-border)`,
         padding: '14px 18px',
         borderRadius: '12px',
-        boxShadow: `0 8px 24px rgba(0,0,0,0.10), 0 0 0 1px ${fill}22, 0 0 16px ${glow}`,
+        boxShadow: `0 8px 24px rgba(0,0,0,0.15)`,
         backdropFilter: 'blur(12px)',
-        minWidth: 190,
+        minWidth: 200,
       }}>
         <p style={{ margin: '0 0 10px 0', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>📅 {label}</p>
-        <p style={{ margin: 0, fontSize: '28px', fontWeight: 900, color: fill, lineHeight: 1, letterSpacing: '-1px' }}>
-          {data.value}<span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)' }}>%</span>
-        </p>
-        <p style={{ margin: '10px 0 0 0', fontSize: '9px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Click to view scan history →</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {payload.map((entry, index) => {
+            const timeKey = `scanTime${entry.dataKey.replace('scan', '')}`;
+            const time = entry.payload[timeKey] || `Scan ${index + 1}`;
+            return (
+              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: entry.color || entry.fill || '#3b82f6' }} />
+                  <span style={{ fontSize: '12px', color: 'var(--color-text)', fontWeight: 600 }}>{time}</span>
+                </div>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: entry.color || entry.fill || '#3b82f6' }}>{entry.value}%</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -271,19 +280,37 @@ const ProjectDetailsPage = ({ projectId }) => {
     return true;
   });
 
-  // Map individual scans for Bar Chart
-  const chartData = [...filteredScans].reverse().map(s => {
+  // Group scans by Date for Grouped Bar Chart
+  const groupedByDate = {};
+  let maxScansInADay = 0;
+
+  [...filteredScans].reverse().forEach(s => {
     const d = new Date(s.createdAt);
     const shortDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const fullDate = d.toLocaleDateString('en-CA');
     const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const fullDate = d.toLocaleDateString('en-CA'); // YYYY-MM-DD
     
-    return {
-      label: `${shortDate} ${time}`,
-      fullDate: fullDate,
-      value: s.score || 0
-    };
-  }).slice(-50);
+    if (!groupedByDate[shortDate]) {
+      groupedByDate[shortDate] = { label: shortDate, fullDate, scans: [] };
+    }
+    groupedByDate[shortDate].scans.push({
+      score: s.score || 0,
+      time: time
+    });
+    
+    if (groupedByDate[shortDate].scans.length > maxScansInADay) {
+      maxScansInADay = groupedByDate[shortDate].scans.length;
+    }
+  });
+
+  const chartData = Object.values(groupedByDate).map(day => {
+    const dataObj = { label: day.label, fullDate: day.fullDate };
+    day.scans.forEach((scan, index) => {
+      dataObj[`scan${index}`] = scan.score;
+      dataObj[`scanTime${index}`] = scan.time;
+    });
+    return dataObj;
+  }).slice(-15);
 
   const dlLabel = dlStatus === 'downloading' ? '⏳ Generating PDF...'
                 : dlStatus === 'done'        ? '✅ Downloaded!'
@@ -459,22 +486,7 @@ const ProjectDetailsPage = ({ projectId }) => {
             {/* Chart */}
             <div style={{ width: '100%', height: 280 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -5, bottom: 15 }} barCategoryGap="35%">
-                  <defs>
-                    {chartData.map((entry, i) => {
-                      const { stop1, stop2 } = barColorByScore(entry.value);
-                      return (
-                        <linearGradient key={`grad-${i}`} id={`barGrad-${i}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={stop1} stopOpacity={1} />
-                          <stop offset="100%" stopColor={stop2} stopOpacity={0.85} />
-                        </linearGradient>
-                      );
-                    })}
-                    <filter id="barGlow">
-                      <feGaussianBlur stdDeviation="3" result="blur" />
-                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                    </filter>
-                  </defs>
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -5, bottom: 15 }} barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="2 4" vertical={false} stroke="var(--color-border)" />
                   <XAxis 
                     dataKey="label" 
@@ -492,26 +504,17 @@ const ProjectDetailsPage = ({ projectId }) => {
                     label={{ value: 'Score (%)', angle: -90, position: 'insideLeft', offset: 12, fill: 'var(--color-text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 4 }} />
-                  <Bar 
-                    dataKey="value" 
-                    radius={[6, 6, 0, 0]}
-                    animationDuration={1000}
-                    isAnimationActive={true}
-                    onClick={(data) => {
-                      if (data && data.payload) {
-                         const targetDate = data.payload.fullDate;
-                         window.location.href = `/dashboard/history?project=${project._id || project.id}&date=${targetDate}`;
-                      }
-                    }}
-                    style={{ cursor: 'pointer', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}
-                  >
-                    {chartData.map((entry, i) => (
-                      <Cell
-                        key={`cell-${i}`}
-                        fill={`url(#barGrad-${i})`}
-                      />
-                    ))}
-                  </Bar>
+                  {Array.from({ length: maxScansInADay || 1 }).map((_, i) => (
+                    <Bar 
+                      key={`bar-${i}`}
+                      dataKey={`scan${i}`} 
+                      radius={[4, 4, 0, 0]}
+                      animationDuration={1000}
+                      isAnimationActive={true}
+                      fill={['#3b82f6', '#f97316', '#9ca3af', '#eab308', '#8b5cf6', '#10b981', '#ec4899'][i % 7]}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  ))}
                 </BarChart>
               </ResponsiveContainer>
             </div>
