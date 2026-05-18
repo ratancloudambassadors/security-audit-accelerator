@@ -14,7 +14,7 @@ const scoreColor = (s) => {
   return '#ef4444';
 };
 
-import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
 
 const barColorByScore = (score) => {
   if (score > 80) return { fill: '#10b981', stop1: '#34d399', stop2: '#059669', glow: 'rgba(16,185,129,0.35)' };
@@ -312,6 +312,20 @@ const ProjectDetailsPage = ({ projectId }) => {
     return dataObj;
   }).slice(-15);
 
+  const lineChartData = [...filteredScans].reverse().map(s => {
+    const d = new Date(s.createdAt);
+    const shortDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    return {
+      label: `${shortDate} ${time}`,
+      fullDate: d.toLocaleDateString('en-CA'),
+      Critical: s.criticalCount || 0,
+      High: s.highCount || 0,
+      Medium: s.mediumCount || 0,
+    };
+  }).slice(-50);
+
   const dlLabel = dlStatus === 'downloading' ? '⏳ Generating PDF...'
                 : dlStatus === 'done'        ? '✅ Downloaded!'
                 : dlStatus === 'error'       ? '❌ Failed'
@@ -516,6 +530,63 @@ const ProjectDetailsPage = ({ projectId }) => {
                     />
                   ))}
                 </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+        
+        {/* ── Row 2.5: Vulnerability Trend Line Chart ── */}
+        {scans.length > 0 && (
+          <div style={{
+            background: 'var(--color-bg-secondary)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 16,
+            padding: '20px 24px',
+            marginTop: '24px',
+            display: 'flex', flexDirection: 'column', gap: 0,
+            boxShadow: '0 2px 16px rgba(239,68,68,0.06), 0 1px 4px rgba(0,0,0,0.04)',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            {/* Subtle ambient glow */}
+            <div style={{ position:'absolute', top:'-60px', left:'50%', transform:'translateX(-50%)', width:'500px', height:'160px', background:'radial-gradient(ellipse at center, rgba(239,68,68,0.04) 0%, transparent 70%)', pointerEvents:'none' }} />
+            
+            {/* Header row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text)' }}>Vulnerability Trend</span>
+                </div>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, display:'block' }}>Tracking Critical, High, and Medium issues over time</span>
+              </div>
+            </div>
+
+            {/* Chart */}
+            <div style={{ width: '100%', height: 280 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={lineChartData} margin={{ top: 10, right: 10, left: -5, bottom: 15 }}>
+                  <CartesianGrid strokeDasharray="2 4" vertical={false} stroke="var(--color-border)" />
+                  <XAxis 
+                    dataKey="label" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fill: 'var(--color-text-muted)', fontWeight: 600 }} 
+                    dy={10} 
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fill: 'var(--color-text-muted)', fontWeight: 600 }} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'var(--color-bg)', borderColor: 'var(--color-border)', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
+                    itemStyle={{ fontSize: '13px', fontWeight: 600 }}
+                    labelStyle={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 600, paddingTop: '10px' }} />
+                  <Line type="monotone" dataKey="Critical" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="High" stroke="#f97316" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="Medium" stroke="#eab308" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
