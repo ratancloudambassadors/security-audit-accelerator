@@ -128,6 +128,7 @@ const ProjectDetailsPage = ({ projectId }) => {
   // Chart Date Range Filters
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
 
   useEffect(() => {
     const go = async () => {
@@ -312,19 +313,27 @@ const ProjectDetailsPage = ({ projectId }) => {
     return dataObj;
   }).slice(-15);
 
-  const lineChartData = [...filteredScans].reverse().map(s => {
+  // Filter line chart scans to only the currently selected day (defaults to latest scan's date)
+  const latestDateInScans = scans[0] ? new Date(scans[0].createdAt).toLocaleDateString('en-CA') : '';
+  const activeDate = selectedDate || latestDateInScans;
+  const activeDateFormatted = activeDate ? new Date(activeDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+  const lineChartScans = filteredScans.filter(s => {
+    const sDate = new Date(s.createdAt).toLocaleDateString('en-CA');
+    return sDate === activeDate;
+  });
+
+  const lineChartData = [...lineChartScans].reverse().map(s => {
     const d = new Date(s.createdAt);
-    const shortDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
     return {
-      label: `${shortDate} ${time}`,
-      fullDate: d.toLocaleDateString('en-CA'),
+      label: time,
       Critical: s.criticalCount || 0,
       High: s.highCount || 0,
       Medium: s.mediumCount || 0,
     };
-  }).slice(-50);
+  });
 
   const dlLabel = dlStatus === 'downloading' ? '⏳ Generating PDF...'
                 : dlStatus === 'done'        ? '✅ Downloaded!'
@@ -500,7 +509,19 @@ const ProjectDetailsPage = ({ projectId }) => {
             {/* Chart */}
             <div style={{ width: '100%', height: 280 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -5, bottom: 15 }} barCategoryGap="20%">
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 10, right: 10, left: -5, bottom: 15 }}
+                  barCategoryGap="20%"
+                  onClick={(state) => {
+                    if (state && state.activePayload && state.activePayload.length > 0) {
+                      const clickedData = state.activePayload[0].payload;
+                      if (clickedData && clickedData.fullDate) {
+                        setSelectedDate(clickedData.fullDate);
+                      }
+                    }
+                  }}
+                >
                   <CartesianGrid strokeDasharray="2 4" vertical={false} stroke="var(--color-border)" />
                   <XAxis 
                     dataKey="label" 
@@ -555,8 +576,11 @@ const ProjectDetailsPage = ({ projectId }) => {
               <div>
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <span style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text)' }}>Vulnerability Trend</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)' }}>
+                    📅 {activeDateFormatted}
+                  </span>
                 </div>
-                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, display:'block' }}>Tracking Critical, High, and Medium issues over time</span>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, display:'block' }}>Tracking Critical, High, and Medium issues across scans for this day (click any day in the chart above to switch)</span>
               </div>
             </div>
 
