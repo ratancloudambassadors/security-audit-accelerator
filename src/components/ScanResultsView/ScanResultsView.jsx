@@ -556,12 +556,12 @@ const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
                           <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '11px', marginBottom: '6px' }}>🛡️ How is the Score calculated?</div>
                           <div style={{ fontSize: '11px', color: 'var(--color-text)', lineHeight: 1.6 }}>
                             <div style={{ background: 'rgba(99,102,241,0.07)', borderRadius: '6px', padding: '6px 8px', fontFamily: 'monospace', marginBottom: '7px', fontSize: '10.5px' }}>
-                              Score = (Secured Resources ÷ Total Scanned) × 100
+                              Score = (Healthy Resources ÷ Total Scanned) × 100
                             </div>
-                            A resource is <strong>Secured</strong> only if it has <em>zero</em> vulnerability findings. Even one finding marks it as vulnerable.
+                            A resource is <strong>Healthy</strong> only if it has <em>zero</em> vulnerability findings. Even one finding marks it as vulnerable.
                           </div>
                           <div style={{ marginTop: '7px', fontSize: '10px', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', paddingTop: '6px' }}>
-                            e.g. 190 secured out of 200 scanned → <strong style={{ color: 'var(--color-primary)' }}>95%</strong>
+                            e.g. 190 healthy out of 200 scanned → <strong style={{ color: 'var(--color-primary)' }}>95%</strong>
                           </div>
                         </div>
                       </div>
@@ -679,7 +679,6 @@ const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
                 <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(239,68,68,0.10) 0%, transparent 70%)', pointerEvents: 'none' }} />
                 <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Total Vulnerabilities
-                  {statusFilter === 'All' && <span style={{ fontSize: '9px', padding: '2px 6px', background: 'rgba(239,68,68,0.15)', color: '#ef4444', borderRadius: '4px', fontWeight: 700 }}>ACTIVE</span>}
                 </h3>
                 <div style={{ fontSize: '36px', fontWeight: 800, color: '#ef4444', letterSpacing: '-0.02em' }}>{processedData.totalItems}</div>
                 <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -827,7 +826,6 @@ const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
                 }}>
                 <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Vulnerable Resources
-                  {statusFilter === 'VulnResources' && <span style={{ fontSize: '9px', padding: '2px 6px', background: 'rgba(239,68,68,0.2)', color: '#ef4444', borderRadius: '4px', fontWeight: 700 }}>ACTIVE</span>}
                   <div style={{ position: 'relative', display: 'inline-block', cursor: 'help' }}
                     onMouseEnter={(e) => {
                       const tooltip = e.currentTarget.querySelector('div[data-tooltip="vuln-resources"]');
@@ -863,7 +861,7 @@ const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
                 </div>
               </div>
 
-              {/* ── Secured Resources Card ── */}
+              {/* ── Healthy Resources Card ── */}
               {(() => {
                 const { count, total, pct, vulnCount } = securedStats;
                 return (
@@ -885,8 +883,7 @@ const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
                   >
                     <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(34,197,94,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
                     <h3 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-muted)', marginBottom: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      Secured Resources
-                      {statusFilter === 'Secured' && <span style={{ fontSize: '9px', padding: '2px 6px', background: 'rgba(34,197,94,0.2)', color: '#22c55e', borderRadius: '4px', fontWeight: 700 }}>ACTIVE</span>}
+                      Healthy Resources
                     </h3>
                     <div style={{ fontSize: '36px', fontWeight: 800, color: '#22c55e', letterSpacing: '-0.02em' }}>
                       {count}<span style={{ fontSize: '18px', color: 'var(--color-text-muted)', fontWeight: 400 }}> / {total}</span>
@@ -895,7 +892,7 @@ const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
                       <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #22c55e, #16a34a)', borderRadius: '99px' }} />
                     </div>
                     <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#22c55e', fontWeight: 600 }}>{pct}% secured</span>
+                      <span style={{ color: '#22c55e', fontWeight: 600 }}>{pct}% healthy</span>
                       <span>{vulnCount} vulnerable</span>
                     </div>
                   </div>
@@ -924,7 +921,7 @@ const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
               <div style={{ flex: 1.5, position: 'relative' }}>
                 <input
                   type="text"
-                  placeholder={statusFilter === 'Secured' ? 'Search secured resources...' : statusFilter === 'AllResources' ? 'Search all resources...' : statusFilter === 'VulnResources' ? 'Search vulnerable resources...' : 'Search vulnerabilities...'}
+                  placeholder={statusFilter === 'Secured' ? 'Search healthy resources...' : statusFilter === 'AllResources' ? 'Search all resources...' : statusFilter === 'VulnResources' ? 'Search vulnerable resources...' : 'Search vulnerabilities...'}
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   style={{
@@ -1094,12 +1091,12 @@ const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
                     <span style={{ fontWeight: 800, fontSize: '20px', color: '#f97316' }}>{securedStats.vulnCount}</span>
                   </div>
                   <div style={{ padding: '12px 16px', borderRadius: '10px', background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#22c55e', fontWeight: 700, fontSize: '13px' }}>✅ Secured Resources</span>
+                    <span style={{ color: '#22c55e', fontWeight: 700, fontSize: '13px' }}>✅ Healthy Resources</span>
                     <span style={{ fontWeight: 800, fontSize: '20px', color: '#22c55e' }}>{securedStats.count}</span>
                   </div>
                 </div>
                 <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-                  Click <strong style={{ color: 'var(--color-text)' }}>⚠️ Vulnerable Resources</strong> or <strong style={{ color: 'var(--color-text)' }}>✅ Secured Resources</strong> card for a detailed breakdown.
+                  Click <strong style={{ color: 'var(--color-text)' }}>⚠️ Vulnerable Resources</strong> or <strong style={{ color: 'var(--color-text)' }}>✅ Healthy Resources</strong> card for a detailed breakdown.
                 </p>
                 <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '12px', overflow: 'hidden' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -1242,15 +1239,15 @@ const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
                 )}
               </div>
             ) : (
-              /* ── Secured Resources Panel ── */
+              /* ── Healthy Resources Panel ── */
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}>
                   <h2 style={{ fontSize: 'var(--font-size-base)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#22c55e' }}>✅</span> Secured Resources
+                    <span style={{ color: '#22c55e' }}>✅</span> Healthy Resources
                     <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>({securedStats.count} / {securedStats.total})</span>
                   </h2>
                   <span style={{ fontSize: '12px', color: '#22c55e', fontWeight: 600, background: 'rgba(34,197,94,0.1)', padding: '4px 10px', borderRadius: '20px', border: '1px solid rgba(34,197,94,0.25)' }}>
-                    {securedStats.pct}% of infrastructure secured
+                    {securedStats.pct}% of infrastructure healthy
                   </span>
                 </div>
 
@@ -1273,13 +1270,13 @@ const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
                   </div>
                 </div>
 
-                {/* Secured Resources List */}
+                {/* Healthy Resources List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {(() => {
                     if (securedStats.count === 0) {
                       return (
                         <div style={{ padding: 'var(--spacing-8)', textAlign: 'center', color: 'var(--color-text-muted)', backgroundColor: 'var(--color-background-light)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--color-border)' }}>
-                          No secured resources found. All scanned resources have vulnerabilities.
+                          No healthy resources found. All scanned resources have vulnerabilities.
                         </div>
                       );
                     }
@@ -1306,7 +1303,7 @@ const DashboardPage = ({ scanDataProp = null, isHistoryView = false }) => {
                     if (filteredServices.length === 0) {
                       return (
                         <div style={{ padding: 'var(--spacing-8)', textAlign: 'center', color: 'var(--color-text-muted)', backgroundColor: 'var(--color-background-light)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--color-border)' }}>
-                          No secured resources match the current filters.
+                          No healthy resources match the current filters.
                         </div>
                       );
                     }

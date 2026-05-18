@@ -24,6 +24,9 @@ const barColorByScore = (score) => {
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
+    const entry = payload[0];
+    const time = entry.payload.time || 'Latest Scan';
+    const scoreColor = entry.value > 80 ? '#22c55e' : entry.value > 50 ? '#eab308' : '#ef4444';
     return (
       <div style={{
         background: 'var(--color-bg)',
@@ -35,20 +38,12 @@ const CustomTooltip = ({ active, payload, label }) => {
         minWidth: 200,
       }}>
         <p style={{ margin: '0 0 10px 0', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>📅 {label}</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {payload.map((entry, index) => {
-            const timeKey = `scanTime${entry.dataKey.replace('scan', '')}`;
-            const time = entry.payload[timeKey] || `Scan ${index + 1}`;
-            return (
-              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: entry.color || entry.fill || '#3b82f6' }} />
-                  <span style={{ fontSize: '12px', color: 'var(--color-text)', fontWeight: 600 }}>{time}</span>
-                </div>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: entry.color || entry.fill || '#3b82f6' }}>{entry.value}%</span>
-              </div>
-            );
-          })}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: scoreColor }} />
+            <span style={{ fontSize: '12px', color: 'var(--color-text)', fontWeight: 600 }}>{time}</span>
+          </div>
+          <span style={{ fontSize: '14px', fontWeight: 800, color: scoreColor }}>{entry.value}%</span>
         </div>
       </div>
     );
@@ -128,7 +123,6 @@ const ProjectDetailsPage = ({ projectId }) => {
   // Chart Date Range Filters
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
 
   useEffect(() => {
     const go = async () => {
@@ -296,7 +290,10 @@ const ProjectDetailsPage = ({ projectId }) => {
     }
     groupedByDate[shortDate].scans.push({
       score: s.score || 0,
-      time: time
+      time: time,
+      critical: s.criticalCount || 0,
+      high: s.highCount || 0,
+      medium: s.mediumCount || 0
     });
     
     if (groupedByDate[shortDate].scans.length > maxScansInADay) {
@@ -305,35 +302,25 @@ const ProjectDetailsPage = ({ projectId }) => {
   });
 
   const chartData = Object.values(groupedByDate).map(day => {
-    const dataObj = { label: day.label, fullDate: day.fullDate };
-    day.scans.forEach((scan, index) => {
-      dataObj[`scan${index}`] = scan.score;
-      dataObj[`scanTime${index}`] = scan.time;
-    });
-    return dataObj;
+    const latestScan = day.scans[day.scans.length - 1] || {};
+    return {
+      label: day.label,
+      fullDate: day.fullDate,
+      score: latestScan.score || 0,
+      time: latestScan.time || '',
+    };
   }).slice(-15);
 
-  // Filter line chart scans to only the currently selected day (defaults to latest scan's date)
-  const latestDateInScans = scans[0] ? new Date(scans[0].createdAt).toLocaleDateString('en-CA') : '';
-  const activeDate = selectedDate || latestDateInScans;
-  const activeDateFormatted = activeDate ? new Date(activeDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-
-  const lineChartScans = filteredScans.filter(s => {
-    const sDate = new Date(s.createdAt).toLocaleDateString('en-CA');
-    return sDate === activeDate;
-  });
-
-  const lineChartData = [...lineChartScans].reverse().map(s => {
-    const d = new Date(s.createdAt);
-    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
+  const lineChartData = Object.values(groupedByDate).map(day => {
+    const latestScan = day.scans[day.scans.length - 1] || {};
     return {
-      label: time,
-      Critical: s.criticalCount || 0,
-      High: s.highCount || 0,
-      Medium: s.mediumCount || 0,
+      label: day.label,
+      fullDate: day.fullDate,
+      Critical: latestScan.critical || 0,
+      High: latestScan.high || 0,
+      Medium: latestScan.medium || 0,
     };
-  });
+  }).slice(-15);
 
   const dlLabel = dlStatus === 'downloading' ? '⏳ Generating PDF...'
                 : dlStatus === 'done'        ? '✅ Downloaded!'
@@ -419,12 +406,12 @@ const ProjectDetailsPage = ({ projectId }) => {
                   <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '11px', marginBottom: '6px' }}>🛡️ How is the Score calculated?</div>
                   <div style={{ fontSize: '11px', color: 'var(--color-text)', lineHeight: 1.6 }}>
                     <div style={{ background: 'rgba(99,102,241,0.07)', borderRadius: '6px', padding: '6px 8px', fontFamily: 'monospace', marginBottom: '7px', fontSize: '10px' }}>
-                      Score = (Secured Resources ÷ Total Scanned) × 100
+                      Score = (Healthy Resources ÷ Total Scanned) × 100
                     </div>
-                    A resource is <strong>Secured</strong> only if it has <em>zero</em> vulnerability findings. Even one finding marks it as vulnerable.
+                    A resource is <strong>Healthy</strong> only if it has <em>zero</em> vulnerability findings. Even one finding marks it as vulnerable.
                   </div>
                   <div style={{ marginTop: '7px', fontSize: '10px', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', paddingTop: '6px' }}>
-                    e.g. 190 secured out of 200 scanned → <strong style={{ color: 'var(--color-primary)' }}>95%</strong>
+                    e.g. 190 healthy out of 200 scanned → <strong style={{ color: 'var(--color-primary)' }}>95%</strong>
                   </div>
                 </div>
               }
@@ -509,19 +496,7 @@ const ProjectDetailsPage = ({ projectId }) => {
             {/* Chart */}
             <div style={{ width: '100%', height: 280 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 10, right: 10, left: -5, bottom: 15 }}
-                  barCategoryGap="20%"
-                  onClick={(state) => {
-                    if (state && state.activePayload && state.activePayload.length > 0) {
-                      const clickedData = state.activePayload[0].payload;
-                      if (clickedData && clickedData.fullDate) {
-                        setSelectedDate(clickedData.fullDate);
-                      }
-                    }
-                  }}
-                >
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -5, bottom: 15 }} barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="2 4" vertical={false} stroke="var(--color-border)" />
                   <XAxis 
                     dataKey="label" 
@@ -539,17 +514,18 @@ const ProjectDetailsPage = ({ projectId }) => {
                     label={{ value: 'Score (%)', angle: -90, position: 'insideLeft', offset: 12, fill: 'var(--color-text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 4 }} />
-                  {Array.from({ length: maxScansInADay || 1 }).map((_, i) => (
-                    <Bar 
-                      key={`bar-${i}`}
-                      dataKey={`scan${i}`} 
-                      radius={[4, 4, 0, 0]}
-                      animationDuration={1000}
-                      isAnimationActive={true}
-                      fill={['#3b82f6', '#f97316', '#9ca3af', '#eab308', '#8b5cf6', '#10b981', '#ec4899'][i % 7]}
-                      style={{ cursor: 'pointer' }}
-                    />
-                  ))}
+                  <Bar 
+                    dataKey="score" 
+                    radius={[4, 4, 0, 0]}
+                    animationDuration={1000}
+                    isAnimationActive={true}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {chartData.map((entry, index) => {
+                      const colors = barColorByScore(entry.score);
+                      return <Cell key={`cell-${index}`} fill={colors.fill} />;
+                    })}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -576,11 +552,8 @@ const ProjectDetailsPage = ({ projectId }) => {
               <div>
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <span style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text)' }}>Vulnerability Trend</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'rgba(99,102,241,0.1)', color: 'var(--color-primary)' }}>
-                    📅 {activeDateFormatted}
-                  </span>
                 </div>
-                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, display:'block' }}>Tracking Critical, High, and Medium issues across scans for this day (click any day in the chart above to switch)</span>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, display:'block' }}>Tracking Critical, High, and Medium issues across days</span>
               </div>
             </div>
 

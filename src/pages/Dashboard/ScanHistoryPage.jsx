@@ -296,12 +296,12 @@ const ScanHistoryPage = () => {
                               <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '11px', marginBottom: '6px' }}>🛡️ How is the Score calculated?</div>
                               <div style={{ fontSize: '11px', color: 'var(--color-text)', lineHeight: 1.6 }}>
                                 <div style={{ background: 'rgba(99,102,241,0.07)', borderRadius: '6px', padding: '6px 8px', fontFamily: 'monospace', marginBottom: '7px', fontSize: '10.5px' }}>
-                                  Score = (Secured Resources ÷ Total Scanned) × 100
+                                  Score = (Healthy Resources ÷ Total Scanned) × 100
                                 </div>
-                                A resource is <strong>Secured</strong> only if it has <em>zero</em> vulnerability findings. Even one finding marks it as vulnerable.
+                                A resource is <strong>Healthy</strong> only if it has <em>zero</em> vulnerability findings. Even one finding marks it as vulnerable.
                               </div>
                               <div style={{ marginTop: '7px', fontSize: '10px', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', paddingTop: '6px' }}>
-                                e.g. 190 secured out of 200 scanned → <strong style={{ color: 'var(--color-primary)' }}>95%</strong>
+                                e.g. 190 healthy out of 200 scanned → <strong style={{ color: 'var(--color-primary)' }}>95%</strong>
                               </div>
                             </div>
                           </div>
