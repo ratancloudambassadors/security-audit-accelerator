@@ -40,10 +40,6 @@ const CustomTooltip = ({ active, payload, label }) => {
         <p style={{ margin: 0, fontSize: '28px', fontWeight: 900, color: fill, lineHeight: 1, letterSpacing: '-1px' }}>
           {data.value}<span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)' }}>%</span>
         </p>
-        <p style={{ margin: '5px 0 12px 0', fontSize: '10px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Avg. score of all scans this day</p>
-        <div style={{ paddingTop: '10px', borderTop: `1px solid ${fill}33` }}>
-          <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>🔁 <strong style={{ color: 'var(--color-text)', fontSize: '13px' }}>{data.dayScanCount}</strong> scan{data.dayScanCount !== 1 ? 's' : ''} on this day</p>
-        </div>
         <p style={{ margin: '10px 0 0 0', fontSize: '9px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Click to view scan history →</p>
       </div>
     );
@@ -275,30 +271,19 @@ const ProjectDetailsPage = ({ projectId }) => {
     return true;
   });
 
-  // Group by Date for Bar Chart
-  const groupedByDate = {};
-  [...filteredScans].reverse().forEach(s => {
+  // Map individual scans for Bar Chart
+  const chartData = [...filteredScans].reverse().map(s => {
     const d = new Date(s.createdAt);
     const shortDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const fullDate = d.toLocaleDateString('en-CA'); // YYYY-MM-DD
-    if (!groupedByDate[shortDate]) {
-      groupedByDate[shortDate] = { scans: [], fullDate };
-    }
-    groupedByDate[shortDate].scans.push(s);
-  });
-
-  const chartData = Object.keys(groupedByDate).map(shortDate => {
-    const dayScans = groupedByDate[shortDate].scans;
-    // Average score across all scans of that day
-    const avgScore = Math.round(dayScans.reduce((sum, s) => sum + (s.score || 0), 0) / dayScans.length);
     
     return {
-      label: shortDate,
-      fullDate: groupedByDate[shortDate].fullDate,
-      value: avgScore,
-      dayScanCount: dayScans.length
+      label: `${shortDate} ${time}`,
+      fullDate: fullDate,
+      value: s.score || 0
     };
-  }).sort((a, b) => a.fullDate.localeCompare(b.fullDate)).slice(-50);
+  }).slice(-50);
 
   const dlLabel = dlStatus === 'downloading' ? '⏳ Generating PDF...'
                 : dlStatus === 'done'        ? '✅ Downloaded!'
