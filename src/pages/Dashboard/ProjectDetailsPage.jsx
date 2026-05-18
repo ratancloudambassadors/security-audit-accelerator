@@ -320,12 +320,12 @@ const ProjectDetailsPage = ({ projectId }) => {
     // Explicitly sort scans by createdAt ascending to ensure last one is the latest scan
     const sortedScans = [...day.scans].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     const latestScan = sortedScans[sortedScans.length - 1] || {};
+    const totalIssues = (latestScan.critical || 0) + (latestScan.high || 0) + (latestScan.medium || 0);
     return {
       label: day.label,
       fullDate: day.fullDate,
-      Critical: latestScan.critical || 0,
-      High: latestScan.high || 0,
-      Medium: latestScan.medium || 0,
+      time: latestScan.time || '',
+      vulnerabilities: totalIssues,
     };
   }).slice(-15);
 
@@ -559,7 +559,7 @@ const ProjectDetailsPage = ({ projectId }) => {
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <span style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text)' }}>Vulnerability Trend</span>
                 </div>
-                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, display:'block' }}>Tracking Critical, High, and Medium issues across days</span>
+                 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, display:'block' }}>Tracking total vulnerability findings across days</span>
               </div>
             </div>
 
@@ -584,11 +584,20 @@ const ProjectDetailsPage = ({ projectId }) => {
                     contentStyle={{ backgroundColor: 'var(--color-bg)', borderColor: 'var(--color-border)', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
                     itemStyle={{ fontSize: '13px', fontWeight: 600 }}
                     labelStyle={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}
+                    formatter={(value, name, props) => {
+                      const time = props.payload.time ? ` (at ${props.payload.time})` : '';
+                      return [`${value}${time}`, name];
+                    }}
                   />
-                  <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 600, paddingTop: '10px' }} />
-                  <Line type="monotone" dataKey="Critical" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="High" stroke="#f97316" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="Medium" stroke="#eab308" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="vulnerabilities" 
+                    name="Total Issues"
+                    stroke="#ef4444" 
+                    strokeWidth={3} 
+                    dot={{ r: 4, strokeWidth: 2 }} 
+                    activeDot={{ r: 6 }} 
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
