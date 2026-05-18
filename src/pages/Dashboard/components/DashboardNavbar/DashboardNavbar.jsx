@@ -65,6 +65,12 @@ const DashboardNavbar = () => {
   }, []);
 
   useEffect(() => {
+    const handleOpenScanner = () => setIsModalOpen(true);
+    window.addEventListener('openScannerModal', handleOpenScanner);
+    return () => window.removeEventListener('openScannerModal', handleOpenScanner);
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setProfileOpen(false);

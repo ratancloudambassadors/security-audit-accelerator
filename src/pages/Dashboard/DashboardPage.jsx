@@ -1399,9 +1399,29 @@ const DashboardPage = () => {
               </div>
               <h3 style={{ color: 'var(--color-text)' }}>No active scan right now</h3>
               <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', maxWidth: '400px', fontSize: 'var(--font-size-sm)' }}>
-                Hit the <strong style={{ color: 'var(--color-primary)' }}>Scan</strong> button in the top navigation bar, choose your cloud provider (AWS, GCP, or Azure), enter your credentials, and we'll run a full multi-service security audit for you.
+                Choose your cloud provider (AWS, GCP, or Azure), enter your credentials, and we'll run a full multi-service security audit for you.
               </p>
-              <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', maxWidth: '360px', fontSize: '12px', opacity: 0.7 }}>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('openScannerModal'))}
+                style={{
+                  marginTop: '16px',
+                  padding: '12px 24px',
+                  backgroundColor: 'var(--color-primary)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                  transition: 'transform 0.2s, background-color 0.2s',
+                }}
+                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
+              >
+                Scan Now
+              </button>
+              <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', maxWidth: '360px', fontSize: '12px', opacity: 0.7, marginTop: '12px' }}>
                 Results will appear here instantly once the scan completes.
               </p>
             </Card>
