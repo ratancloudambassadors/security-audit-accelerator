@@ -126,8 +126,10 @@ const ProjectDetailsPage = ({ projectId }) => {
   const [dlStatus, setDlStatus] = useState('idle'); // idle | downloading | done | error
   
   // Chart Date Range Filters
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [barStartDate, setBarStartDate] = useState('');
+  const [barEndDate, setBarEndDate] = useState('');
+  const [lineStartDate, setLineStartDate] = useState('');
+  const [lineEndDate, setLineEndDate] = useState('');
 
   useEffect(() => {
     const go = async () => {
@@ -271,29 +273,29 @@ const ProjectDetailsPage = ({ projectId }) => {
 
   const prov = PROVIDER_META[project.provider] || PROVIDER_META.gcp;
 
-  // Filter scans by Date Range
-  const filteredScans = scans.filter(s => {
-    if (!startDate && !endDate) return true;
+  // Filter scans for Bar Chart (Security Score Trend)
+  const barFilteredScans = scans.filter(s => {
+    if (!barStartDate && !barEndDate) return true;
     const sDate = new Date(s.createdAt).toISOString().split('T')[0];
-    if (startDate && sDate < startDate) return false;
-    if (endDate && sDate > endDate) return false;
+    if (barStartDate && sDate < barStartDate) return false;
+    if (barEndDate && sDate > barEndDate) return false;
     return true;
   });
 
   // Group scans by Date for Grouped Bar Chart
-  const groupedByDate = {};
+  const barGroupedByDate = {};
   let maxScansInADay = 0;
 
-  [...filteredScans].reverse().forEach(s => {
+  [...barFilteredScans].reverse().forEach(s => {
     const d = new Date(s.createdAt);
     const shortDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const fullDate = d.toLocaleDateString('en-CA');
     const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
-    if (!groupedByDate[shortDate]) {
-      groupedByDate[shortDate] = { label: shortDate, fullDate, scans: [] };
+    if (!barGroupedByDate[shortDate]) {
+      barGroupedByDate[shortDate] = { label: shortDate, fullDate, scans: [] };
     }
-    groupedByDate[shortDate].scans.push({
+    barGroupedByDate[shortDate].scans.push({
       createdAt: s.createdAt,
       score: s.score || 0,
       time: time,
@@ -302,12 +304,12 @@ const ProjectDetailsPage = ({ projectId }) => {
       medium: s.mediumCount || 0
     });
     
-    if (groupedByDate[shortDate].scans.length > maxScansInADay) {
-      maxScansInADay = groupedByDate[shortDate].scans.length;
+    if (barGroupedByDate[shortDate].scans.length > maxScansInADay) {
+      maxScansInADay = barGroupedByDate[shortDate].scans.length;
     }
   });
 
-  const chartData = Object.values(groupedByDate).map(day => {
+  const chartData = Object.values(barGroupedByDate).map(day => {
     const dataObj = { label: day.label, fullDate: day.fullDate };
     day.scans.forEach((scan, index) => {
       dataObj[`scan${index}`] = scan.score;
@@ -316,7 +318,36 @@ const ProjectDetailsPage = ({ projectId }) => {
     return dataObj;
   }).slice(-15);
 
-  const lineChartData = Object.values(groupedByDate).map(day => {
+  // Filter scans for Line Chart (Vulnerability Trend)
+  const lineFilteredScans = scans.filter(s => {
+    if (!lineStartDate && !lineEndDate) return true;
+    const sDate = new Date(s.createdAt).toISOString().split('T')[0];
+    if (lineStartDate && sDate < lineStartDate) return false;
+    if (lineEndDate && sDate > lineEndDate) return false;
+    return true;
+  });
+
+  const lineGroupedByDate = {};
+  [...lineFilteredScans].reverse().forEach(s => {
+    const d = new Date(s.createdAt);
+    const shortDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const fullDate = d.toLocaleDateString('en-CA');
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    if (!lineGroupedByDate[shortDate]) {
+      lineGroupedByDate[shortDate] = { label: shortDate, fullDate, scans: [] };
+    }
+    lineGroupedByDate[shortDate].scans.push({
+      createdAt: s.createdAt,
+      score: s.score || 0,
+      time: time,
+      critical: s.criticalCount || 0,
+      high: s.highCount || 0,
+      medium: s.mediumCount || 0
+    });
+  });
+
+  const lineChartData = Object.values(lineGroupedByDate).map(day => {
     // Explicitly sort scans by createdAt ascending to ensure last one is the latest scan
     const sortedScans = [...day.scans].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     const latestScan = sortedScans[sortedScans.length - 1] || {};
@@ -472,21 +503,21 @@ const ProjectDetailsPage = ({ projectId }) => {
                   <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>From</span>
                   <input 
                     type="date" 
-                    value={startDate} 
-                    max={endDate || undefined}
-                    onChange={e => setStartDate(e.target.value)}
+                    value={barStartDate} 
+                    max={barEndDate || undefined}
+                    onChange={e => setBarStartDate(e.target.value)}
                     style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', fontSize: '11px', outline:'none' }}
                   />
                   <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>→</span>
                   <input 
                     type="date" 
-                    value={endDate} 
-                    min={startDate || undefined}
-                    onChange={e => setEndDate(e.target.value)}
+                    value={barEndDate} 
+                    min={barStartDate || undefined}
+                    onChange={e => setBarEndDate(e.target.value)}
                     style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', fontSize: '11px', outline:'none' }}
                   />
-                  {(startDate || endDate) && (
-                    <button onClick={() => { setStartDate(''); setEndDate(''); }} style={{ background: 'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color: '#f87171', cursor: 'pointer', fontSize: '9px', borderRadius:4, padding:'2px 6px', fontWeight:700 }}>✕</button>
+                  {(barStartDate || barEndDate) && (
+                    <button onClick={() => { setBarStartDate(''); setBarEndDate(''); }} style={{ background: 'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color: '#f87171', cursor: 'pointer', fontSize: '9px', borderRadius:4, padding:'2px 6px', fontWeight:700 }}>✕</button>
                   )}
                 </div>
               </div>
@@ -559,21 +590,21 @@ const ProjectDetailsPage = ({ projectId }) => {
                 <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>From</span>
                 <input 
                   type="date" 
-                  value={startDate} 
-                  max={endDate || undefined}
-                  onChange={e => setStartDate(e.target.value)}
+                  value={lineStartDate} 
+                  max={lineEndDate || undefined}
+                  onChange={e => setLineStartDate(e.target.value)}
                   style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', fontSize: '11px', outline:'none' }}
                 />
                 <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>→</span>
                 <input 
                   type="date" 
-                  value={endDate} 
-                  min={startDate || undefined}
-                  onChange={e => setEndDate(e.target.value)}
+                  value={lineEndDate} 
+                  min={lineStartDate || undefined}
+                  onChange={e => setLineEndDate(e.target.value)}
                   style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', fontSize: '11px', outline:'none' }}
                 />
-                {(startDate || endDate) && (
-                  <button onClick={() => { setStartDate(''); setEndDate(''); }} style={{ background: 'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color: '#f87171', cursor: 'pointer', fontSize: '9px', borderRadius:4, padding:'2px 6px', fontWeight:700 }}>✕</button>
+                {(lineStartDate || lineEndDate) && (
+                  <button onClick={() => { setLineStartDate(''); setLineEndDate(''); }} style={{ background: 'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color: '#f87171', cursor: 'pointer', fontSize: '9px', borderRadius:4, padding:'2px 6px', fontWeight:700 }}>✕</button>
                 )}
               </div>
             </div>
