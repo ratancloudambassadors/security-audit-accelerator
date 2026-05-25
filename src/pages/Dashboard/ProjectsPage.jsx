@@ -127,18 +127,49 @@ const ProjectsPage = () => {
         @media (max-width: 600px) {
           .projects-list-grid { grid-template-columns: 1fr; }
         }
-        .provider-header-row {
+        .provider-tab-header {
           background: var(--color-bg-secondary);
           border: 1px solid var(--color-border);
           border-radius: 12px;
-          padding: 16px 20px;
+          padding: 14px 20px;
           cursor: pointer;
           user-select: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          transition: all 0.2s ease;
+          flex: 1;
+          min-width: 220px;
         }
-        .provider-header-row:hover {
+        .provider-tab-header:hover {
           border-color: rgba(99,102,241,0.4);
+          transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .provider-tab-header.active-aws {
+          border-color: #FF9900;
+          box-shadow: 0 0 12px rgba(255,153,0,0.15);
+          background: rgba(255,153,0,0.04);
+        }
+        .provider-tab-header.active-azure {
+          border-color: #0078D4;
+          box-shadow: 0 0 12px rgba(0,120,212,0.15);
+          background: rgba(0,120,212,0.04);
+        }
+        .provider-tab-header.active-gcp {
+          border-color: #4285F4;
+          box-shadow: 0 0 12px rgba(66,133,244,0.15);
+          background: rgba(66,133,244,0.04);
+        }
+        .tab-chevron {
+          transition: transform 0.2s ease;
+        }
+        .active-chevron {
+          transform: rotate(180deg);
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
       <div style={{ paddingBottom: 'var(--spacing-6)' }}>
@@ -156,28 +187,67 @@ const ProjectsPage = () => {
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>Run a scan to automatically create a project.</p>
           </Card>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)' }}>
-            {/* AWS Section */}
-            <div className="provider-header-row" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div>
+            {/* Horizontal Provider Tab Headers */}
+            <div style={{ display: 'flex', gap: 'var(--spacing-4)', flexWrap: 'wrap', marginBottom: 'var(--spacing-6)' }}>
+              {/* AWS Tab */}
               <div 
-                onClick={() => setExpandedProviders(prev => ({ ...prev, aws: !prev.aws }))}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}
+                className={`provider-tab-header ${expandedProviders.aws ? 'active-aws' : ''}`}
+                onClick={() => setExpandedProviders(prev => ({ aws: !prev.aws, azure: false, gcp: false }))}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <img src="/assets/aws-logo.svg" alt="AWS" width="24" height="24" />
+                  <img src="/assets/aws-logo.svg" alt="AWS" width="22" height="22" />
                   <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--color-text)' }}>AWS</span>
                   <span style={{ fontSize: 'var(--font-size-xs)', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                     {awsProjects.length} project(s)
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-muted)', transition: 'transform 0.2s', transform: expandedProviders.aws ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                <div className={`tab-chevron ${expandedProviders.aws ? 'active-chevron' : ''}`} style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-muted)' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                 </div>
               </div>
+
+              {/* Azure Tab */}
+              <div 
+                className={`provider-tab-header ${expandedProviders.azure ? 'active-azure' : ''}`}
+                onClick={() => setExpandedProviders(prev => ({ azure: !prev.azure, aws: false, gcp: false }))}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <img src="/assets/azure-logo.svg" alt="Azure" width="22" height="22" />
+                  <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--color-text)' }}>Azure</span>
+                  <span style={{ fontSize: 'var(--font-size-xs)', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                    {azureProjects.length} project(s)
+                  </span>
+                </div>
+                <div className={`tab-chevron ${expandedProviders.azure ? 'active-chevron' : ''}`} style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-muted)' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+              </div>
+
+              {/* GCP Tab */}
+              <div 
+                className={`provider-tab-header ${expandedProviders.gcp ? 'active-gcp' : ''}`}
+                onClick={() => setExpandedProviders(prev => ({ gcp: !prev.gcp, aws: false, azure: false }))}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <img src="/assets/gcp-logo.svg" alt="GCP" width="22" height="22" />
+                  <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--color-text)' }}>Google Cloud</span>
+                  <span style={{ fontSize: 'var(--font-size-xs)', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                    {gcpProjects.length} project(s)
+                  </span>
+                </div>
+                <div className={`tab-chevron ${expandedProviders.gcp ? 'active-chevron' : ''}`} style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-muted)' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Expanded List Panel */}
+            <div style={{ minHeight: '120px' }}>
               {expandedProviders.aws && (
-                <div style={{ marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
+                <div style={{ animation: 'fadeIn 0.25s ease-out' }}>
                   {awsProjects.length === 0 ? (
-                    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No AWS projects scanned yet.</div>
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-6) 0', textAlign: 'center', background: 'var(--color-bg-secondary)', borderRadius: '12px', border: '1px dashed var(--color-border)' }}>No AWS projects scanned yet.</div>
                   ) : (
                     <div className="projects-list-grid">
                       {awsProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
@@ -185,29 +255,11 @@ const ProjectsPage = () => {
                   )}
                 </div>
               )}
-            </div>
 
-            {/* Azure Section */}
-            <div className="provider-header-row" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              <div 
-                onClick={() => setExpandedProviders(prev => ({ ...prev, azure: !prev.azure }))}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <img src="/assets/azure-logo.svg" alt="Azure" width="24" height="24" />
-                  <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--color-text)' }}>Azure</span>
-                  <span style={{ fontSize: 'var(--font-size-xs)', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                    {azureProjects.length} project(s)
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-muted)', transition: 'transform 0.2s', transform: expandedProviders.azure ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </div>
-              </div>
               {expandedProviders.azure && (
-                <div style={{ marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
+                <div style={{ animation: 'fadeIn 0.25s ease-out' }}>
                   {azureProjects.length === 0 ? (
-                    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No Azure projects scanned yet.</div>
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-6) 0', textAlign: 'center', background: 'var(--color-bg-secondary)', borderRadius: '12px', border: '1px dashed var(--color-border)' }}>No Azure projects scanned yet.</div>
                   ) : (
                     <div className="projects-list-grid">
                       {azureProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
@@ -215,34 +267,22 @@ const ProjectsPage = () => {
                   )}
                 </div>
               )}
-            </div>
 
-            {/* GCP Section */}
-            <div className="provider-header-row" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              <div 
-                onClick={() => setExpandedProviders(prev => ({ ...prev, gcp: !prev.gcp }))}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <img src="/assets/gcp-logo.svg" alt="GCP" width="24" height="24" />
-                  <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--color-text)' }}>Google Cloud</span>
-                  <span style={{ fontSize: 'var(--font-size-xs)', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                    {gcpProjects.length} project(s)
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-muted)', transition: 'transform 0.2s', transform: expandedProviders.gcp ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </div>
-              </div>
               {expandedProviders.gcp && (
-                <div style={{ marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
+                <div style={{ animation: 'fadeIn 0.25s ease-out' }}>
                   {gcpProjects.length === 0 ? (
-                    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No GCP projects scanned yet.</div>
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-6) 0', textAlign: 'center', background: 'var(--color-bg-secondary)', borderRadius: '12px', border: '1px dashed var(--color-border)' }}>No GCP projects scanned yet.</div>
                   ) : (
                     <div className="projects-list-grid">
                       {gcpProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
                     </div>
                   )}
+                </div>
+              )}
+
+              {!expandedProviders.aws && !expandedProviders.azure && !expandedProviders.gcp && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '140px', border: '1px dashed var(--color-border)', borderRadius: '12px', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', background: 'rgba(255,255,255,0.01)' }}>
+                  Select a cloud provider above to view its scanned projects.
                 </div>
               )}
             </div>
