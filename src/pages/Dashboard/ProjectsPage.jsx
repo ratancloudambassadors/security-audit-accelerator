@@ -7,6 +7,11 @@ const ProjectsPage = () => {
 
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedProviders, setExpandedProviders] = useState({
+    aws: false,
+    azure: false,
+    gcp: false,
+  });
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -122,6 +127,19 @@ const ProjectsPage = () => {
         @media (max-width: 600px) {
           .projects-list-grid { grid-template-columns: 1fr; }
         }
+        .provider-header-row {
+          background: var(--color-bg-secondary);
+          border: 1px solid var(--color-border);
+          border-radius: 12px;
+          padding: 16px 20px;
+          cursor: pointer;
+          user-select: none;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .provider-header-row:hover {
+          border-color: rgba(99,102,241,0.4);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
       `}</style>
       <div style={{ paddingBottom: 'var(--spacing-6)' }}>
         <h1 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-1)' }}>Projects</h1>
@@ -138,48 +156,93 @@ const ProjectsPage = () => {
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>Run a scan to automatically create a project.</p>
           </Card>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-8)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)' }}>
             {/* AWS Section */}
-            <div>
-              <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--spacing-2)' }}>
-                <img src="/assets/aws-logo.svg" alt="AWS" width="24" height="24" />
-                AWS
-              </h2>
-              {awsProjects.length === 0 ? (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No AWS projects scanned yet.</div>
-              ) : (
-                <div className="projects-list-grid">
-                  {awsProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
+            <div className="provider-header-row" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div 
+                onClick={() => setExpandedProviders(prev => ({ ...prev, aws: !prev.aws }))}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <img src="/assets/aws-logo.svg" alt="AWS" width="24" height="24" />
+                  <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--color-text)' }}>AWS</span>
+                  <span style={{ fontSize: 'var(--font-size-xs)', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                    {awsProjects.length} project(s)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-muted)', transition: 'transform 0.2s', transform: expandedProviders.aws ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+              </div>
+              {expandedProviders.aws && (
+                <div style={{ marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
+                  {awsProjects.length === 0 ? (
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No AWS projects scanned yet.</div>
+                  ) : (
+                    <div className="projects-list-grid">
+                      {awsProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             {/* Azure Section */}
-            <div>
-              <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--spacing-2)' }}>
-                <img src="/assets/azure-logo.svg" alt="Azure" width="24" height="24" />
-                Azure
-              </h2>
-              {azureProjects.length === 0 ? (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No Azure projects scanned yet.</div>
-              ) : (
-                <div className="projects-list-grid">
-                  {azureProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
+            <div className="provider-header-row" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div 
+                onClick={() => setExpandedProviders(prev => ({ ...prev, azure: !prev.azure }))}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <img src="/assets/azure-logo.svg" alt="Azure" width="24" height="24" />
+                  <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--color-text)' }}>Azure</span>
+                  <span style={{ fontSize: 'var(--font-size-xs)', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                    {azureProjects.length} project(s)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-muted)', transition: 'transform 0.2s', transform: expandedProviders.azure ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+              </div>
+              {expandedProviders.azure && (
+                <div style={{ marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
+                  {azureProjects.length === 0 ? (
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No Azure projects scanned yet.</div>
+                  ) : (
+                    <div className="projects-list-grid">
+                      {azureProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             {/* GCP Section */}
-            <div>
-              <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--spacing-2)' }}>
-                <img src="/assets/gcp-logo.svg" alt="GCP" width="24" height="24" />
-                Google Cloud
-              </h2>
-              {gcpProjects.length === 0 ? (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No GCP projects scanned yet.</div>
-              ) : (
-                <div className="projects-list-grid">
-                  {gcpProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
+            <div className="provider-header-row" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div 
+                onClick={() => setExpandedProviders(prev => ({ ...prev, gcp: !prev.gcp }))}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <img src="/assets/gcp-logo.svg" alt="GCP" width="24" height="24" />
+                  <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--color-text)' }}>Google Cloud</span>
+                  <span style={{ fontSize: 'var(--font-size-xs)', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                    {gcpProjects.length} project(s)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-muted)', transition: 'transform 0.2s', transform: expandedProviders.gcp ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+              </div>
+              {expandedProviders.gcp && (
+                <div style={{ marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
+                  {gcpProjects.length === 0 ? (
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No GCP projects scanned yet.</div>
+                  ) : (
+                    <div className="projects-list-grid">
+                      {gcpProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
