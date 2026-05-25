@@ -108,14 +108,22 @@ const ProjectsPage = () => {
           box-shadow: var(--shadow-lg);
           border-color: var(--color-primary);
         }
-        @media (max-width: 1024px) {
-          .provider-grid { grid-template-columns: 1fr 1fr !important; }
+        .projects-list-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: var(--spacing-4);
         }
-        @media (max-width: 768px) {
-          .provider-grid { grid-template-columns: 1fr !important; }
+        @media (max-width: 1200px) {
+          .projects-list-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 900px) {
+          .projects-list-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+          .projects-list-grid { grid-template-columns: 1fr; }
         }
       `}</style>
-      <div style={{ paddingBottom: 'var(--spacing-4)' }}>
+      <div style={{ paddingBottom: 'var(--spacing-6)' }}>
         <h1 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-1)' }}>Projects</h1>
         <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-6)' }}>
           Cloud projects you have previously scanned, organized by provider.
@@ -130,47 +138,47 @@ const ProjectsPage = () => {
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>Run a scan to automatically create a project.</p>
           </Card>
         ) : (
-          <div className="provider-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--spacing-8)' }}>
-            {/* AWS Column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-8)' }}>
+            {/* AWS Section */}
             <div>
               <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--spacing-2)' }}>
                 <img src="/assets/aws-logo.svg" alt="AWS" width="24" height="24" />
                 AWS
               </h2>
               {awsProjects.length === 0 ? (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic' }}>No AWS projects scanned yet.</div>
+                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No AWS projects scanned yet.</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                <div className="projects-list-grid">
                   {awsProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
                 </div>
               )}
             </div>
 
-            {/* Azure Column */}
+            {/* Azure Section */}
             <div>
               <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--spacing-2)' }}>
                 <img src="/assets/azure-logo.svg" alt="Azure" width="24" height="24" />
                 Azure
               </h2>
               {azureProjects.length === 0 ? (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic' }}>No Azure projects scanned yet.</div>
+                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No Azure projects scanned yet.</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                <div className="projects-list-grid">
                   {azureProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
                 </div>
               )}
             </div>
 
-            {/* GCP Column */}
+            {/* GCP Section */}
             <div>
               <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-4)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--spacing-2)' }}>
                 <img src="/assets/gcp-logo.svg" alt="GCP" width="24" height="24" />
                 Google Cloud
               </h2>
               {gcpProjects.length === 0 ? (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic' }}>No GCP projects scanned yet.</div>
+                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', padding: 'var(--spacing-2) 0' }}>No GCP projects scanned yet.</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                <div className="projects-list-grid">
                   {gcpProjects.map(proj => <ProjectCard key={proj.id} proj={proj} />)}
                 </div>
               )}
