@@ -467,14 +467,6 @@ const ProjectDetailsPage = ({ projectId }) => {
               
               {/* Legend + Date Filters */}
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                {/* Legend pills */}
-                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                  {[{c:'#10b981', label:'>80% Safe'},{c:'#f59e0b', label:'50–80% Warn'},{c:'#ef4444', label:'<50% Risk'}].map(l => (
-                    <span key={l.label} style={{ display:'inline-flex', alignItems:'center', gap:4, background:`${l.c}18`, border:`1px solid ${l.c}44`, borderRadius:20, padding:'2px 8px', fontSize:9, color:l.c, fontWeight:700 }}>
-                      <span style={{width:6,height:6,borderRadius:'50%',background:l.c,display:'inline-block'}}/>{l.label}
-                    </span>
-                  ))}
-                </div>
                 {/* Date pickers */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background:'var(--color-bg)', border:'1px solid var(--color-border)', borderRadius:8, padding:'4px 10px' }}>
                   <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>From</span>
@@ -560,6 +552,29 @@ const ProjectDetailsPage = ({ projectId }) => {
                   <span style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text)' }}>Vulnerability Trend</span>
                 </div>
                  <span style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, display:'block' }}>Tracking total vulnerability findings across days</span>
+              </div>
+              
+              {/* Date pickers */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background:'var(--color-bg)', border:'1px solid var(--color-border)', borderRadius:8, padding:'4px 10px' }}>
+                <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>From</span>
+                <input 
+                  type="date" 
+                  value={startDate} 
+                  max={endDate || undefined}
+                  onChange={e => setStartDate(e.target.value)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', fontSize: '11px', outline:'none' }}
+                />
+                <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>→</span>
+                <input 
+                  type="date" 
+                  value={endDate} 
+                  min={startDate || undefined}
+                  onChange={e => setEndDate(e.target.value)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', fontSize: '11px', outline:'none' }}
+                />
+                {(startDate || endDate) && (
+                  <button onClick={() => { setStartDate(''); setEndDate(''); }} style={{ background: 'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color: '#f87171', cursor: 'pointer', fontSize: '9px', borderRadius:4, padding:'2px 6px', fontWeight:700 }}>✕</button>
+                )}
               </div>
             </div>
 
