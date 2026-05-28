@@ -557,6 +557,10 @@ const startScheduler = () => {
 
                     if (!user) {
                         console.warn(`[Scheduler] ⚠️ Skipping schedule ${schedule.id}: User ${schedule.userId} not found.`);
+                        await prisma.auditSchedule.update({
+                            where: { id: schedule.id },
+                            data: { isActive: false }
+                        });
                         continue;
                     }
 
